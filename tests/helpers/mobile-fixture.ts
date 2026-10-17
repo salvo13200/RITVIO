@@ -2,9 +2,9 @@ import {expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 export async function fixture(page:Page,{empty=false,error=false,queueLength=2}={}){
  page.on('pageerror',error=>console.error('[mobile fixture runtime error]',error.message));
- const images=await Promise.all(['electronic','pop','rock','jazz'].map(name=>readFile(`apps/client/public/artwork/${name}.png`)));
- await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/png',headers:{'access-control-allow-origin':'*'},body:images[route.request().url().includes('12345678901')?1:route.request().url().includes('23456789012')?2:route.request().url().includes('34567890123')?3:0]}));
- await page.route('https://lh3.googleusercontent.com/**',route=>route.fulfill({contentType:'image/png',body:images[0]}));
+ const images=await Promise.all(['electronic','pop','rock','jazz'].map(name=>readFile(`apps/client/public/artwork/${name}.webp`)));
+ await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/webp',headers:{'access-control-allow-origin':'*'},body:images[route.request().url().includes('12345678901')?1:route.request().url().includes('23456789012')?2:route.request().url().includes('34567890123')?3:0]}));
+ await page.route('https://lh3.googleusercontent.com/**',route=>route.fulfill({contentType:'image/webp',body:images[0]}));
  await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isAndroid=true;export const nativePlayback=window.__mobileNative;'}));
  await page.addInitScript(({empty,error,queueLength})=>{
   const first={videoId:'abcdefghijk',title:'A luci spente',artist:'Luna Riva',thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',duration:222,album:{id:'ALBUM1',name:'Notti chiare'},artists:[{id:'ARTIST1',name:'Luna Riva'}]};

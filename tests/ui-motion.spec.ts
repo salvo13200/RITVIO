@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {tracks} from './fixtures';
-const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'},shots='.impeccable/review/ui-6-2';
+const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'},shots='test-results/visual/ui-6-2';
 const title='Luci lontane — registrazione dal vivo con orchestra, ospiti e un finale da ricordare';
 const artist='Il collettivo delle città sospese con musicisti e ospiti della notte';
 const songs=tracks.map((track,i)=>({...track,title:i?'Un altro orizzonte':title,artist,artists:[{id:'UCtestArtist01',name:artist}],album:{id:'MPREb_test1',name:'Album test 1'}}));
@@ -14,7 +14,7 @@ test.beforeEach(async({page,request})=>{
     (window as unknown as {motionCalls:unknown[]}).motionCalls=[];
     Element.prototype.animate=function(...args:Parameters<typeof original>){(window as unknown as {motionCalls:unknown[]}).motionCalls.push({target:(this as HTMLElement).className,frames:args[0],options:args[1]});return original.apply(this,args);};
   },{songs,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile(`docs/design/ui-1/preview/assets/${route.request().url().includes('testmusic02')?'sky':'city'}.png`)}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile(`tests/fixtures/artwork/${route.request().url().includes('testmusic02')?'sky':'city'}.webp`)}));
 });
 async function settle(page:Page){await page.evaluate(()=>document.fonts.ready);try{await expect.poll(()=>page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().iterations!==Infinity).length)).toBe(0);}catch(error){console.log(await page.evaluate(()=>document.getAnimations().map(a=>({id:a.id,state:a.playState,timing:a.effect?.getComputedTiming(),target:(a.effect as KeyframeEffect)?.target?.getAttribute('class')}))));throw error;}}
 async function capture(page:Page,name:string){await settle(page);await page.screenshot({path:shots+'/'+name+'.png'});}
@@ -51,7 +51,7 @@ test('essential, reduced, hidden and fitting names do not keep optional movement
 
 test('new artwork waits for loading, transitions once and shows a truthful failure fallback',async({page})=>{
   let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);
-  await page.route('https://i.ytimg.com/vi/testmusic02/**',async route=>{await gate;await route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/sky.png')});});
+  await page.route('https://i.ytimg.com/vi/testmusic02/**',async route=>{await gate;await route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/sky.webp')});});
   await page.goto('/');await expect(page.locator('.now-artwork .cover-incoming')).toHaveJSProperty('complete',true);
   await page.locator('.transport').getByRole('button',{name:'Brano successivo',exact:true}).click();await page.locator('.transport').getByRole('button',{name:'Pausa',exact:true}).click();await expect(page.locator('.now-artwork .cover-retained')).toHaveAttribute('src',songs[0].thumbnail);await expect(page.locator('.now-artwork .animated-cover')).toHaveAttribute('aria-busy','true');await capture(page,'artwork-waiting');release();
   await expect(page.locator('.now-artwork .animated-cover')).toHaveAttribute('aria-busy','false');await settle(page);await expect(page.locator('.now-artwork .cover-retained')).toHaveCount(0);expect((await record(page)).some(c=>c.frames.some(frame=>frame.clipPath==='inset(0 0 0 6%)'))).toBe(true);await capture(page,'artwork-ready');
@@ -79,6 +79,6 @@ test('actual fixture audio continues while footer links and panels navigate',asy
 });
 
 test('a late cover from a skipped track cannot replace the latest selection',async({page})=>{
-  let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);await page.route('https://i.ytimg.com/vi/testmusic02/**',async route=>{await gate;await route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/sky.png')});});
+  let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);await page.route('https://i.ytimg.com/vi/testmusic02/**',async route=>{await gate;await route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/sky.webp')});});
   await page.goto('/');await expect(page.locator('.now-artwork .animated-cover')).toHaveAttribute('aria-busy','false');const next=page.locator('.transport').getByRole('button',{name:'Brano successivo',exact:true});await next.click();await expect(page.locator('.now-artwork .animated-cover')).toHaveAttribute('aria-busy','true');await next.click();await page.locator('.transport').getByRole('button',{name:'Pausa',exact:true}).click();await expect(page.locator('.now-artwork .cover-incoming')).toHaveAttribute('src',songs[0].thumbnail);release();await settle(page);await expect(page.locator('.now-artwork .cover-incoming')).toHaveAttribute('src',songs[0].thumbnail);await expect(page.locator('.player-track strong')).toHaveText(title);
 });

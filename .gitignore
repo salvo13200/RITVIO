@@ -44,15 +44,6 @@ docs/*
 !docs/RELEASE_CHECKLIST.md
 !docs/API.md
 !docs/openapi.json
-!docs/design/
-docs/design/*
-!docs/design/ui-1/
-docs/design/ui-1/*
-!docs/design/ui-1/preview/
-docs/design/ui-1/preview/*
-!docs/design/ui-1/preview/assets/
-docs/design/ui-1/preview/assets/*
-!docs/design/ui-1/preview/assets/city.png
-!docs/design/ui-1/preview/assets/sky.png
-!docs/design/ui-1/preview/assets/sunset.png
+!docs/ARCHITECTURE.md
+!docs/TESTING.md
 

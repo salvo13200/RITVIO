@@ -15,7 +15,7 @@ export const discoveryCategories=[
 
 export function DiscoveryGenres({onSearch}:{onSearch:(query:string)=>void}){
   const artwork=useContext(ArtworkContext);
-  return <div className="search-starts discovery-genres" aria-label={t('design.search.ideas')}>{discoveryCategories.map(category=><button className="genre-card" key={category.name} onClick={()=>onSearch(category.query)}><img src={artwork[`genre-${category.artwork}`]??`./artwork/${category.artwork}.png`} alt="" loading="lazy"/><span><strong>{t(category.key)}</strong><ArrowRight size={18} aria-hidden="true"/></span></button>)}</div>;
+  return <div className="search-starts discovery-genres" aria-label={t('design.search.ideas')}>{discoveryCategories.map(category=><button className="genre-card" key={category.name} onClick={()=>onSearch(category.query)}><img src={artwork[`genre-${category.artwork}`]??`./artwork/${category.artwork}.webp`} alt="" loading="lazy"/><span><strong>{t(category.key)}</strong><ArrowRight size={18} aria-hidden="true"/></span></button>)}</div>;
 }
 
 export function RecentTracks({tracks}:{tracks:Track[]}){

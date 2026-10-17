@@ -2,7 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {fixture} from './helpers/mobile-fixture';
 
-const output=process.env.RITVIO_ANDROID102==='1'?'.impeccable/review/android-102':process.env.RITVIO_ANDROID101==='1'?'.impeccable/review/android-101':process.env.RITVIO_ANDROID10==='1'?'.impeccable/review/android-10/regression-android6-ui.spec':process.env.RITVIO_ANDROID8==='1'?'.impeccable/review/android-8/regression-story':process.env.RITVIO_ANDROID7==='1'?'.impeccable/review/android-7/regression-story':process.env.RITVIO_MOBILE_REVIEW==='1'?'.impeccable/review/android-review/regression-story':'.impeccable/review/android-6';
+const output=process.env.RITVIO_ANDROID102==='1'?'test-results/visual/android-102':process.env.RITVIO_ANDROID101==='1'?'test-results/visual/android-101':process.env.RITVIO_ANDROID10==='1'?'test-results/visual/android-10/regression-android6-ui.spec':process.env.RITVIO_ANDROID8==='1'?'test-results/visual/android-8/regression-story':process.env.RITVIO_ANDROID7==='1'?'test-results/visual/android-7/regression-story':process.env.RITVIO_MOBILE_REVIEW==='1'?'test-results/visual/android-review/regression-story':'test-results/visual/android-6';
 const verses=Array.from({length:13},(_,i)=>`Nel silenzio della notte, verso ${i+1}`);
 async function operations(page:Page){return page.evaluate(()=>(window as any).__mobileOperations as any[]);}
 async function composer(page:Page){await page.getByRole('button',{name:/Apri il player:/}).click();await page.getByRole('button',{name:'Condividi',exact:true}).click();const dialog=page.getByRole('dialog',{name:'Condividi brano',exact:true});await expect(dialog.locator('canvas')).toHaveAttribute('width','1080',{timeout:45000});return dialog;}

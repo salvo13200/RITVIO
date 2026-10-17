@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 import {fixture} from './helpers/mobile-fixture';
-const output='.impeccable/review/android-10';
+const output='test-results/visual/android-10';
 async function open(page:Page){await page.getByRole('button',{name:/Apri il player:/}).click();return page.getByRole('dialog',{name:'In ascolto',exact:true});}
 async function calls(page:Page){return page.evaluate(()=>(window as any).__mobileOperations as any[]);}
 

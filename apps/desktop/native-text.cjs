@@ -1166,7 +1166,7 @@ const texts={
   "File RITVIO": "RITVIO file",
   "Leggo la playlist…": "Reading playlist…",
   "Mostra anteprima": "Show preview",
-  "File .ritvio.json e precedenti .spotyfree.json, versione 1, fino a 4 MB. Nessun file audio.": ".ritvio.json and older .spotyfree.json files, version 1, up to 4 MB. No audio files.",
+  "File .ritvio.json, versione 1, fino a 4 MB. Nessun file audio.": ".ritvio.json files, version 1, up to 4 MB. No audio files.",
   "Leggo il file…": "Reading file…",
   "Scegli file playlist": "Choose playlist file",
   "La riproduzione continua. Puoi chiudere per annullare la lettura.": "Playback continues. Close this panel to cancel reading.",

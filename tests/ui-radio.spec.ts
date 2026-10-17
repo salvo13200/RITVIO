@@ -50,11 +50,11 @@ test('radio: search menu is keyboard accessible; finite queue does not request a
   await page.evaluate(async()=>{const path='/src/store.ts';const s=(await import(path)).usePlayer.getState();s.select(s.queue.length-1);s.next(true);});expect((await state(page)).playing).toBe(false);expect(calls).toBe(1);
 });
 test('radio: visual matrix, wrapped labels and reduced motion use the incumbent system',async({page})=>{
-  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await startButton(page).click();await expect(page.locator('.radio-summary')).toContainText('5 suggerimenti');await mkdir('.impeccable/review/radio-0.6.26',{recursive:true});
+  await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await startButton(page).click();await expect(page.locator('.radio-summary')).toContainText('5 suggerimenti');await mkdir('test-results/visual/radio-0.6.26',{recursive:true});
   for(const mode of ['desktop','light','compact'] as const){
     await page.setViewportSize({width:mode==='compact'?640:1440,height:940});await page.evaluate(async theme=>{const path='/src/store.ts';(await import(path)).usePlayer.setState({theme});},mode==='light'?'light':'dark');
     const bounds=await page.locator('.radio-summary').evaluate(e=>({scroll:e.scrollWidth,client:e.clientWidth}));expect(bounds.scroll).toBeLessThanOrEqual(bounds.client+1);
-    await page.screenshot({path:'.impeccable/review/radio-0.6.26/'+mode+'.png'});
+    await page.screenshot({path:'test-results/visual/radio-0.6.26/'+mode+'.png'});
   }
   expect(await page.locator('.radio-summary').evaluate(e=>e.getAnimations().filter(a=>a.playState==='running').length)).toBe(0);
 });

@@ -26,6 +26,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm setup:resolver
       - run: pnpm release:check
+      - run: pnpm check:assets
+      - run: pnpm check:architecture
       - run: pnpm check:locales
       - run: pnpm i18n:check
       - run: pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts

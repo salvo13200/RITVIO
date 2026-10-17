@@ -50,7 +50,7 @@ Modifiche alle playlist esistenti richiedono `If-Match: "revision"`: 428 se manc
 
 | Metodo e percorso | Comportamento |
 | --- | --- |
-| GET /me/playlists/{id}/export | File JSON format=spotyfree-playlist, version=1, exportedAt UTC; playlist con nome, descrizione, copertina e tracks. Solo proprietario. |
+| GET /me/playlists/{id}/export | File JSON format=ritvio-playlist, version=1, exportedAt UTC; playlist con nome, descrizione, copertina e tracks. Solo proprietario. |
 | POST /me/playlists/import | Body nel formato del file, fino a 4 MiB e 1.000 brani; risposta playlist completa, 201. Nuova identità e visibilità privata, importazione atomica. |
 
 Ogni brano del file ha solo videoId, title, artist e duration. UUID, copertina remota e URL canonico vengono ricostruiti dal server, senza accettare URL audio o immagini remote dal file. I metadati già presenti nella libreria non sono sovrascritti da un'importazione. Il file non contiene owner, token, email, foto del profilo, cronologia, URL audio o musica.

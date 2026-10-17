@@ -1,13 +1,13 @@
 import {test,expect,type Page} from '@playwright/test';
 import {mkdir,readFile} from 'node:fs/promises';
-const review='.impeccable/review/home-0.6.33';
+const review='test-results/visual/home-0.6.33';
 async function settle(page:Page){await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});}
 test.beforeEach(async({page,request})=>{
   page.on('pageerror',error=>console.log('HOME_PAGE_ERROR',error.stack));
   await request.post('http://127.0.0.1:5199/test-reset-library');
   await page.addInitScript(()=>{localStorage.setItem('ritvio.language.v1',JSON.stringify({schema:1,preference:'it'}));window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
   await page.route('**/v1/home',async route=>{const response=await route.fetch(),json=await response.json();for(const c of json.data?.collections??[])c.artwork=`https://i.ytimg.com/vi/${c.id==='releases'?'homealbum01':c.id==='global'?'homeworld01':'homeitaly01'}/mqdefault.jpg`;await route.fulfill({json});});
-  await page.route('https://i.ytimg.com/**',async route=>{const url=route.request().url(),asset=url.includes('homealbum')?'sky':url.includes('homeworld')?'sunset':'city';await route.fulfill({body:await readFile(`docs/design/ui-1/preview/assets/${asset}.png`),contentType:'image/png'});});
+  await page.route('https://i.ytimg.com/**',async route=>{const url=route.request().url(),asset=url.includes('homealbum')?'sky':url.includes('homeworld')?'sunset':'city';await route.fulfill({body:await readFile(`tests/fixtures/artwork/${asset}.webp`),contentType:'image/webp'});});
   await mkdir(review,{recursive:true});
 });
 test('Home A has real collection actions, no eager audio, and a readable closed-panel desktop',async({page})=>{

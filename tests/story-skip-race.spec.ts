@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
 test('closing lyric sharing then skipping ignores a late error from the outgoing audio resource',async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
-  await page.route('**/v1/media/*/artwork',async r=>r.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}));
+  await page.route('**/v1/media/*/artwork',async r=>r.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));
   await page.route('**/playback?prepare=true',r=>r.fulfill({status:503,json:{error:{code:'BUSY',message:'Preparing fixture'}}}));
   await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');await page.locator('.track-row').first().getByRole('button',{name:'Riproduci Secondo brano',exact:true}).click();
   const sample=()=>page.evaluate(async()=>{const p='/src/player.tsx';const a=(await import(p)).audio;return {time:a.currentTime,error:a.error?.code??null,paused:a.paused};});

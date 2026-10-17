@@ -1,9 +1,9 @@
 import {test,expect,type Page} from '@playwright/test';
 import {readFile,mkdir} from 'node:fs/promises';
-const output=process.env.RITVIO_ANDROID10==='1'?'.impeccable/review/android-10/regression-android0-ui.spec':'.impeccable/review/android-0';
+const output=process.env.RITVIO_ANDROID10==='1'?'test-results/visual/android-10/regression-android0-ui.spec':'test-results/visual/android-0';
 async function fixture(page:Page){
-  const picture=await readFile('apps/client/public/artwork/electronic.png');
-  await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/png',body:picture}));
+  const picture=await readFile('apps/client/public/artwork/electronic.webp');
+  await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/webp',body:picture}));
   await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isAndroid=true;export const nativePlayback=window.__mobileNative;'}));
   await page.addInitScript(()=>{
     const first={videoId:'abcdefghijk',title:'Un brano originale dal titolo molto lungo per verificare la leggibilità',artist:'Artista dimostrativo e un secondo artista',thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',duration:240};

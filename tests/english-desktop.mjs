@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 const root=process.cwd(),area=path.resolve(root,'.packaging',`english-${Date.now()}`),profile=path.join(area,'profile');
 const evidence=process.env.RITVIO_EVIDENCE_PREFIX??'english';
 if(!/^[a-z0-9-]+$/.test(evidence))throw Error('Invalid test evidence prefix');
-const reviewFolder=path.join(root,'.impeccable/review',evidence==='english'?'english-release':evidence);
+const reviewFolder=path.join(root,'test-results/visual',evidence==='english'?'english-release':evidence);
 await mkdir(path.join(root,'data/analysis'),{recursive:true});
 await mkdir(reviewFolder,{recursive:true});
 if(!area.startsWith(path.resolve(root,'.packaging')+path.sep))throw Error('Invalid isolated test directory');

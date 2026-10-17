@@ -2,13 +2,13 @@ import {test,expect,type Page} from '@playwright/test';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 const {validateStoryPng}=createRequire(import.meta.url)('../apps/desktop/story-export.cjs');
-const review='.impeccable/review/story-selection-0.6.32';
+const review='test-results/visual/story-selection-0.6.32';
 const originalLines=['Sotto la pioggia di neon','La città rallenta','resta accesa una finestra','porto il cielo nelle tasche','e ritorno verso casa','le strade parlano ancora'];
 test.beforeEach(async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');
   await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
-  await page.route('https://i.ytimg.com/**',async route=>route.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}));
-  await page.route('**/v1/media/*/artwork',async route=>route.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}));
+  await page.route('https://i.ytimg.com/**',async route=>route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));
+  await page.route('**/v1/media/*/artwork',async route=>route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));
   await page.route('**/v1/me/lyrics/*',route=>route.fulfill({json:{status:'ready',document:{provider:'local',providerId:null,plainText:originalLines.join('\n'),lines:[],offsetMs:0,title:'Secondo brano',artist:'Artista - Topic',fileName:'original.txt',instrumental:false,fetchedAt:new Date().toISOString(),licenseVerified:null},cacheHit:true,savedChoice:true}}));
 });
 async function open(page:Page){

@@ -6,14 +6,14 @@ const longTitle='Luci lontane — una notte senza fine, versione dal vivo con or
 const longArtist='Nora e il collettivo delle città sospese insieme agli ospiti della sera';
 const songs=tracks.map((tr,i)=>({...tr,title:i?'UnaParolaMoltoLungaSenzaSpazi'.repeat(5):longTitle,artist:longArtist,artists:[{id:'UCtestArtist01',name:longArtist}],album:{id:'MPREb_test1',name:'Città sospese — edizione completa, rarità e registrazioni dal vivo'}}));
 const version=JSON.parse(await readFile('package.json','utf8')).version;
-const shots=`.impeccable/review/ui-6-1-${version}`;
+const shots=`test-results/visual/ui-6-1-${version}`;
 test.beforeEach(async({page,request})=>{
   await mkdir(shots,{recursive:true});await request.post(base+'/test-reset-library');await request.get(base+'/v1/search?q=Musica%20test',{headers});
   await page.addInitScript(({songs,base})=>{
     window.__RITVIO_TEST_CONFIG__={baseUrl:base,token:'test-token-only'};
     localStorage.setItem('ritvio-player-v1',JSON.stringify({state:{queue:Array.from({length:12},(_,i)=>({...songs[i%2],queueId:'read-'+i,source:'collection'})),recent:songs,index:0,duration:12,position:4,playing:false,volume:.6,muted:false,uiLayout:{sidebarWidth:272,panelWidth:408,motion:'curated',sidebarCollapsed:false}},version:1}));
   },{songs,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/city.png')}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/city.webp')}));
   await page.route('**/v1/search?*',async route=>{const response=await route.fetch(),body=await response.json();body.items=body.items.map((tr:typeof tracks[number],i:number)=>({...tr,...songs[i%2],id:tr.id,videoId:tr.videoId}));await route.fulfill({json:body});});
   await page.route('**/v1/me/playlists/*',async route=>{if(route.request().method()!=='GET')return route.continue();const response=await route.fetch(),body=await response.json();if(body.items)body.items=body.items.map((entry:{track:typeof tracks[number]},i:number)=>({...entry,track:{...entry.track,...songs[i%2]}}));await route.fulfill({json:body});});
 });

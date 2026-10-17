@@ -24,17 +24,19 @@ Optional settings are documented in `.env.example`. Defaults work without copyin
 ```powershell
 pnpm check:locales
 pnpm i18n:check
+pnpm check:architecture
+pnpm check:assets
 pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts
 .\.venv\Scripts\python.exe tests/home-catalog.test.py
 .\.venv\Scripts\python.exe tests/radio-catalog.test.py
 pnpm build
 pnpm --dir apps/mobile build
 pnpm exec playwright install msedge
-pnpm exec playwright test --config playwright.localization.config.ts
-pnpm exec playwright test --config playwright.home.config.ts
+pnpm exec playwright test --config tests/config/playwright.localization.config.ts
+pnpm exec playwright test --config tests/config/playwright.home.config.ts
 ```
 
-Browser tests use controlled fixtures and do not establish live audio availability, native rendering or background playback. The suite writes ignored evidence directories; do not commit screenshots of personal data. Run browser tests and Android Gradle builds separately on low-memory PCs.
+Browser tests use controlled fixtures and do not establish live audio availability, native rendering or background playback. Committed image inputs live in `tests/fixtures/artwork/`; generated screenshots and records live in ignored `test-results/`. No private design folder is needed. See [the testing guide](TESTING.md) for targeted suites and optional platform probes. Run browser tests and Android Gradle builds separately on low-memory PCs.
 
 ## Windows binaries
 
