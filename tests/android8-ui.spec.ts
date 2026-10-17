@@ -1,7 +1,7 @@
 import {test,expect,type Page} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 import {fixture} from './helpers/mobile-fixture';
-const output=process.env.RITVIO_ANDROID10==='1'?'.impeccable/review/android-10/regression-android8-ui.spec':'.impeccable/review/android-8';
+const output=process.env.RITVIO_ANDROID10==='1'?'test-results/visual/android-10/regression-android8-ui.spec':'test-results/visual/android-8';
 async function player(page:Page){await page.getByRole('button',{name:/Apri il player:/}).click();await expect(page.locator('.artwork-flight')).toHaveCount(0);return page.getByRole('dialog',{name:'In ascolto',exact:true});}
 async function calls(page:Page){return page.evaluate(()=>(window as any).__mobileOperations as any[]);}
 async function search(page:Page){await page.getByRole('button',{name:'Cerca',exact:true}).click();await page.getByRole('searchbox').fill('Luna Riva');await expect(page.getByRole('heading',{name:'Brani',exact:true})).toBeVisible();}

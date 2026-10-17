@@ -28,6 +28,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm setup:resolver
       - run: pnpm release:check
+      - run: pnpm check:assets
+      - run: pnpm check:architecture
       - run: pnpm check:locales
       - run: pnpm i18n:check
       - run: pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts
@@ -49,5 +51,6 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install msedge
-      - run: pnpm exec playwright test --config playwright.localization.config.ts
-      - run: pnpm exec playwright test --config playwright.home.config.ts
+      - run: pnpm exec playwright test --list
+      - run: pnpm exec playwright test --config tests/config/playwright.localization.config.ts
+      - run: pnpm exec playwright test --config tests/config/playwright.home.config.ts

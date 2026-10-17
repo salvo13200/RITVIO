@@ -3,14 +3,14 @@ import {readFile,mkdir} from 'node:fs/promises';
 import {tracks} from './fixtures';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'};
 const version=JSON.parse(await readFile('package.json','utf8')).version;
-const shots=`.impeccable/review/ui-5-${version}`;
+const shots=`test-results/visual/ui-5-${version}`;
 test.beforeEach(async({page,request})=>{
   await mkdir(shots,{recursive:true});await request.post(base+'/test-reset-library');await request.get(base+'/v1/search?q=Musica%20test',{headers});
   await page.addInitScript(({tracks,base})=>{
     window.__RITVIO_TEST_CONFIG__={baseUrl:base,token:'test-token-only'};
     if(!localStorage.getItem('ritvio-player-v1'))localStorage.setItem('ritvio-player-v1',JSON.stringify({state:{queue:[tracks[1],tracks[0]].map((track,i)=>({...track,queueId:'ui5-'+i,source:'collection'})),index:0,duration:12,position:4,volume:.6,muted:false,playing:false,uiLayout:{sidebarWidth:272,panelWidth:408,motion:'curated',sidebarCollapsed:false}},version:1}));
   },{tracks,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/city.png')}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/city.webp')}));
 });
 async function lyrics(page:Page){await page.goto('/');if(await page.locator('#listening-panel').getAttribute('aria-hidden')==='true')await page.locator('#now-panel-trigger').click();await page.locator('#lyrics-reader-trigger').click();await expect(page.locator('main .lyrics-reader')).toBeVisible();}
 async function preferences(page:Page){await page.getByRole('button',{name:'Impostazioni',exact:true}).click();await expect(page.getByRole('tab',{name:'Audio',exact:true})).toBeVisible();await page.getByRole('tab',{name:'Audio',exact:true}).click();}

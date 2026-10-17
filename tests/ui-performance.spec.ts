@@ -2,7 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {readFile,mkdir,writeFile} from 'node:fs/promises';
 import {tracks} from './fixtures';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'},label=process.env.RITVIO_PERF_LABEL??'after';
-const folder='docs/design/ui-6-4',shots='.impeccable/review/ui-6-4';
+const folder='test-results/native',shots='test-results/visual/ui-6-4';
 test.beforeEach(async({page,request})=>{
   await mkdir(folder,{recursive:true});await request.post(base+'/test-reset-library');await request.get(base+'/v1/search?q=Musica%20test',{headers});
   await page.addInitScript(({base,tracks})=>{
@@ -13,7 +13,7 @@ test.beforeEach(async({page,request})=>{
     JSON.stringify=function(value,...args:Parameters<typeof stringify> extends [unknown,...infer R]?R:never){const start=performance.now();const result=stringify(value,...args);if(value&&typeof value==='object'&&'state' in value&&'version' in value){holder.stringifyMs+=performance.now()-start;holder.serializedWrites++;}return result;} as typeof stringify;
   },{base,tracks});
   await page.route('**/src/*.tsx*',async route=>{const response=await route.fetch(),body=await response.text();const instrumented=body.replace(/function (PlayerBar|HomePage|QueuePanel|PreferencesPage|AnimatedCover|ScrollingLine|WaveSlider|PlayerTimeline|ResumeProgress)\([\s\S]*?\)\s*\{/g,(match,name)=>match+`globalThis.perfCounts[${JSON.stringify(name)}]=(globalThis.perfCounts[${JSON.stringify(name)}]||0)+1;`);await route.fulfill({response,body:instrumented});});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/city.png')}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/city.webp')}));
 });
 
 async function audioState(page:Page){return page.evaluate(async()=>{const path='/src/player.tsx',{audio}=await import(path);const holder=window as unknown as {perfAudio?:HTMLAudioElement};holder.perfAudio??=audio;return {same:holder.perfAudio===audio,src:audio.src,paused:audio.paused,time:audio.currentTime};});}

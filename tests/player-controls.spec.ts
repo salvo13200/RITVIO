@@ -4,15 +4,15 @@ const {version}=JSON.parse(await readFile('package.json','utf8'));
 import {tracks} from './fixtures';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'};
 test.beforeEach(async({page,request})=>{
-  await mkdir(`.impeccable/review/player-controls-${version}`,{recursive:true});
+  await mkdir(`test-results/visual/player-controls-${version}`,{recursive:true});
   await request.post(`${base}/test-reset-library`);
   await page.addInitScript(({tracks,base})=>{
     window.__RITVIO_TEST_CONFIG__={baseUrl:base,token:'test-token-only'};
     localStorage.setItem('ritvio-player-v1',JSON.stringify({state:{queue:tracks.map((track,i)=>({...track,duration:7320,queueId:`controls-${i}`,source:'collection'})),index:0,duration:7320,position:102,playing:false,volume:.6,muted:true,uiLayout:{sidebarWidth:272,panelWidth:408,motion:'curated',sidebarCollapsed:false}},version:1}));
   },{tracks,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/city.png')}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/city.webp')}));
 });
-async function capture(page:Page,name:string){await page.evaluate(()=>document.fonts.ready);await expect.poll(()=>page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().iterations!==Infinity).length)).toBe(0);await page.screenshot({path:`.impeccable/review/player-controls-${version}/${name}.png`});}
+async function capture(page:Page,name:string){await page.evaluate(()=>document.fonts.ready);await expect.poll(()=>page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().iterations!==Infinity).length)).toBe(0);await page.screenshot({path:`test-results/visual/player-controls-${version}/${name}.png`});}
 async function contained(page:Page){
   const result=await page.locator('.wave-time-preview').evaluate(el=>{const range=document.createRange();range.selectNodeContents(el);const ink=range.getBoundingClientRect(),box=el.getBoundingClientRect(),slider=el.parentElement!.getBoundingClientRect();return {inkLeft:ink.left,inkRight:ink.right,left:box.left,right:box.right,sliderLeft:slider.left,sliderRight:slider.right};});
   expect(result.inkLeft).toBeGreaterThanOrEqual(result.left+2);expect(result.inkRight).toBeLessThanOrEqual(result.right-2);expect(result.left).toBeGreaterThanOrEqual(result.sliderLeft-.5);expect(result.right).toBeLessThanOrEqual(result.sliderRight+.5);

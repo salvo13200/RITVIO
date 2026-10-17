@@ -38,7 +38,7 @@ Once you have your own public profile links:
 pnpm funding:configure --paypal 'https://paypal.me/YOUR_PROFILE' --coffee 'https://buymeacoffee.com/YOUR_PROFILE'
 ```
 
-The command validates provider domains, writes `.github/FUNDING.yml` and updates the README's support section. It does not create payment accounts, process payments or add buttons inside the app. PayPal uses GitHub's custom funding link; Buy Me a Coffee uses its native key. Until real links are supplied, FUNDING.yml is deliberately empty and no destination is advertised. Enable **Sponsorships** in GitHub Settings → General → Features after merging the file. Review both recipient pages. Donations are optional, without feature unlocks; provider fees may apply.
+The command validates provider domains, writes `.github/FUNDING.yml` and updates the README's support section. It does not create payment accounts, process payments or add buttons inside the app. PayPal uses GitHub's custom funding link; Buy Me a Coffee uses its native key. The official repository already has both recipients configured; forks must replace them with their own verified profiles or leave the funding file empty. Enable **Sponsorships** in GitHub Settings → General → Features after merging the file. Review both recipient pages. Donations are optional, without feature unlocks; provider fees may apply.
 
 ## 4. Builds and signing
 

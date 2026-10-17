@@ -1,0 +1,14 @@
+# Current architecture
+
+RITVIO has local profiles and libraries. No online registration, password database, Google sign-in, PostgreSQL server or cloud synchronisation is implemented.
+
+- **Windows:** Electron (`apps/desktop/`) starts a loopback-only Fastify API (`apps/api/server.ts`). `apps/api/store.ts` and `library-store.ts` persist cache and library data in SQLite. An installation/session token protects the local API; it is not an online user account. React renders the main window and mini-player.
+- **Android:** the React/Capacitor client (`apps/mobile/src/`) uses the `RitvioPlayback` bridge (`native.ts`). Kotlin/Media3 owns playback, media-session controls and background service lifecycle; Android stores its library locally. Python catalogue modules are copied from `scripts/` at build time.
+- **Shared code:** `packages/` contains types, i18n and reusable playback/library logic. English and Italian are shipped; other languages are planned.
+- **External services:** unofficial catalogue/stream resolvers, LRCLIB lyrics and optional iTunes metadata. Availability and rights are provider-dependent. Attribution is in Settings and the third-party notices.
+
+`docs/openapi.json` is a generated desktop contract. Operations with `x-implemented: false` are historical proposals and are not available endpoints; they are not requirements for launching the app. `docs/API.md` separates current local behaviour from the historical register. Regenerate the contract using `node scripts/api-contract.mjs`; check its references using `pnpm check:architecture`.
+
+The only references to the previous project name needed by runtime code are read-side compatibility: migrating an old Windows profile and importing old version-1 playlist files. New profiles, exports, app identity and links use RITVIO. Removing those readers could strand existing personal libraries; no migration is performed by tests against a real user profile.
+
+See [building](BUILDING.md), [testing](TESTING.md) and [privacy](../PRIVACY.md).

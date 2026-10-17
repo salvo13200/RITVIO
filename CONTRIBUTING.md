@@ -4,7 +4,7 @@ Read [the build guide](docs/BUILDING.md), [privacy information](PRIVACY.md) and 
 
 Open a bug or feature issue before a substantial change. Include platform, version, reproduction steps and sanitised evidence. Keep pull requests focused; explain the resulting behaviour and checks actually run. Add a regression test for a meaningful bug, rather than tests which only repeat implementation details.
 
-Run `pnpm check:locales`, `pnpm i18n:check`, `pnpm test` and `pnpm build`. Use platform tests for playback, packaging, native bridges and data migrations. Browser fixtures cannot verify Android background playback or Windows installer behaviour. Keep runtime versions locked and update notices when dependencies change.
+Run `pnpm check:locales`, `pnpm i18n:check`, `pnpm check:architecture`, `pnpm check:assets`, `pnpm test` and `pnpm build`. See [the testing guide](docs/TESTING.md) for browser configurations, fixtures and evidence paths. Use platform tests for playback, packaging, native bridges and data migrations. Browser fixtures cannot verify Android background playback or Windows installer behaviour. Keep runtime versions locked and update notices when dependencies change.
 
 Do not contribute music, lyrics, album covers or credentials for which you cannot grant redistribution rights. Demo artwork must have a recorded origin. Do not introduce analytics, remote accounts, paid dependencies or telemetry without a documented product decision. Preserve separate desktop/mobile design systems and accessibility, including reduced motion.
 

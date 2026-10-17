@@ -3,7 +3,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 test('opening, editing and closing sharing preserves actively decoded audio',async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');
   await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
-  await page.route('**/v1/media/*/artwork',async route=>route.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}));
+  await page.route('**/v1/media/*/artwork',async route=>route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));
   await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');await page.locator('.track-row').first().getByRole('button',{name:'Riproduci Secondo brano',exact:true}).click();
   const sample=()=>page.evaluate(async()=>{const modulePath='/src/player.tsx',statePath='/src/store.ts';const a=(await import(modulePath)).audio,s=(await import(statePath)).usePlayer.getState();return {time:a.currentTime,paused:a.paused,source:a.currentSrc,error:a.error?.code??null,playing:s.playing,message:s.error};});
   await expect.poll(async()=>(await sample()).time).toBeGreaterThan(.5);const before=await sample();
@@ -20,7 +20,7 @@ test('opening, editing and closing sharing preserves actively decoded audio',asy
 test('closing while artwork is pending cancels only sharing, then next playback succeeds',async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
   let release!:()=>void,entered=0;const gate=new Promise<void>(resolve=>release=resolve);
-  await page.route('**/v1/media/*/artwork',async route=>{entered++;await gate;await route.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}).catch(()=>{});});
+  await page.route('**/v1/media/*/artwork',async route=>{entered++;await gate;await route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}).catch(()=>{});});
   await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');await page.locator('.track-row').first().getByRole('button',{name:'Riproduci Secondo brano',exact:true}).click();
   const sample=()=>page.evaluate(async()=>{const p='/src/player.tsx';const a=(await import(p)).audio;return {time:a.currentTime,paused:a.paused,error:a.error?.code??null};});
   await expect.poll(async()=>(await sample()).time).toBeGreaterThan(.5);

@@ -6,8 +6,23 @@ import path from 'node:path';
 import {isPublicSource,publicFiles,scanPublicSource} from '../scripts/public-source.mjs';
 
 test('public export excludes private, generated and design-work files while retaining build sources',()=>{
-  for(const file of ['.local/android-signing/ritvio.jks','apps/mobile/android/local.properties','.agents/skills/test.md','docs/design/english-release/DELIVERY.json','data/history.json','.env','apps/mobile/android/app/build/output.apk','apps/mobile/android/app/src/main/assets/public/index.html','apps/client/.impeccable/design.json','apps/client/assets/plates/queue-cover-0.png','apps/client/src/design-review.tsx'])assert.equal(isPublicSource(file),false,file);
-  for(const file of ['.github/FUNDING.yml','LICENSE','pnpm-lock.yaml','scripts/build-android.mjs','apps/mobile/android/gradle/wrapper/gradle-wrapper.jar','apps/client/src/App.tsx','third-party/inventory.json','docs/BUILDING.md','docs/design/ui-1/preview/assets/city.png'])assert.equal(isPublicSource(file),true,file);
+  for(const file of ['.local/android-signing/ritvio.jks','apps/mobile/android/local.properties','.agents/skills/test.md','docs/design/english-release/DELIVERY.json','data/history.json','.env','apps/mobile/android/app/build/output.apk','apps/mobile/android/app/src/main/assets/public/index.html','apps/client/.impeccable/design.json','apps/client/assets/plates/queue-cover-0.png','apps/client/src/design-review.tsx','apps/mobile/ANDROID-0-BRIEF.md','database/001_initial.sql','apps/mobile/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java','test-results/visual/private.png'])assert.equal(isPublicSource(file),false,file);
+  for(const file of ['.github/FUNDING.yml','LICENSE','pnpm-lock.yaml','scripts/build-android.mjs','apps/mobile/android/gradle/wrapper/gradle-wrapper.jar','apps/client/src/App.tsx','third-party/inventory.json','docs/BUILDING.md','tests/fixtures/artwork/city.webp'])assert.equal(isPublicSource(file),true,file);
+});
+
+test('public export rejects embedded image prompts and truncated binary containers',async()=>{
+  const root=await mkdtemp(path.join(tmpdir(),'ritvio-image-scan-'));
+  try{
+    await mkdir(path.join(root,'apps/client/public'),{recursive:true});
+    const payload=Buffer.from('hidden prompt!'),chunk=Buffer.alloc(8+payload.length+(payload.length%2)),header=Buffer.alloc(12);
+    chunk.write('XMP ');chunk.writeUInt32LE(payload.length,4);payload.copy(chunk,8);
+    header.write('RIFF');header.writeUInt32LE(4+chunk.length,4);header.write('WEBP',8);
+    await writeFile(path.join(root,'apps/client/public/cover.webp'),Buffer.concat([header,chunk]));
+    const findings=await scanPublicSource(root,['apps/client/public/cover.webp']);
+    assert.equal(findings.length,1);assert.match(findings[0].reason,/embedded image metadata/);
+    await writeFile(path.join(root,'apps/client/public/cover.webp'),Buffer.from('not an image'));
+    assert.equal((await scanPublicSource(root,['apps/client/public/cover.webp'])).length,1);
+  }finally{await rm(root,{recursive:true,force:true});}
 });
 test('source selection and credential scan operate on the exported set',async()=>{
   const root=await mkdtemp(path.join(tmpdir(),'ritvio-source-'));

@@ -3,7 +3,7 @@ import AxeBuilder from '@axe-core/playwright';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {tracks} from './fixtures';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'};
-const shots='.impeccable/review/ui-6-3';
+const shots='test-results/visual/ui-6-3';
 const songs=tracks.map(track=>({...track,album:{id:'MPREb_test1',name:'Album test 1'}}));
 test.beforeEach(async({page,request})=>{
   await mkdir(shots,{recursive:true});await request.post(base+'/test-reset-library');await request.get(base+'/v1/search?q=Musica%20test',{headers});
@@ -11,7 +11,7 @@ test.beforeEach(async({page,request})=>{
     window.__RITVIO_TEST_CONFIG__={baseUrl:base,token:'test-token-only'};
     localStorage.setItem('ritvio-player-v1',JSON.stringify({state:{queue:songs.map((track,index)=>({...track,queueId:'access-'+index,source:'collection'})),index:0,duration:12,position:4,playing:false,volume:.6,muted:false,uiLayout:{sidebarWidth:272,panelWidth:408,motion:'curated',sidebarCollapsed:false}},version:1}));
   },{songs,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/city.png')}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/city.webp')}));
 });
 async function settle(page:Page){await page.evaluate(()=>document.fonts.ready);await expect.poll(()=>page.evaluate(()=>document.getAnimations().filter(a=>a.playState==='running'&&a.effect?.getComputedTiming().iterations!==Infinity).length)).toBe(0);}
 async function scan(page:Page,state:string){await settle(page);const expected=state.startsWith('light-')?'light':state.startsWith('dark-')?'dark':undefined;if(expected)await expect(page.locator('html')).toHaveAttribute('data-theme',expected);const theme=await page.locator('html').getAttribute('data-theme');const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa','wcag22aa']).analyze();if(expected)await expect(page.locator('html')).toHaveAttribute('data-theme',expected);await page.evaluate(()=>window.getSelection()?.removeAllRanges());await writeFile(`${shots}/axe-${state}.json`,JSON.stringify({url:page.url(),state,theme,violations:result.violations,incomplete:result.incomplete,passes:result.passes.map(rule=>rule.id)},null,2));if(!process.env.RITVIO_A11Y_REPORT_ONLY)expect(result.violations.map(rule=>({id:rule.id,nodes:rule.nodes.map(node=>({target:node.target,summary:node.failureSummary}))})),state).toEqual([]);}

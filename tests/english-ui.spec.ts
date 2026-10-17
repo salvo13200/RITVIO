@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {fixture} from './helpers/mobile-fixture';
-const capture='.impeccable/review/english-release';
+const capture='test-results/visual/english-release';
 async function english(page:import('@playwright/test').Page){await page.getByRole('button',{name:'Impostazioni',exact:true}).click();await page.getByRole('combobox',{name:'Lingua',exact:true}).selectOption('en');await expect(page.locator('html')).toHaveAttribute('lang','en');await expect(page.getByRole('combobox',{name:'Language',exact:true})).toHaveValue('en');}
 test('English settings persist and navigation, filters, artist and album links work',async({page})=>{
  await fixture(page);await english(page);await page.screenshot({path:capture+'/mobile-settings-en.png',animations:'disabled'});

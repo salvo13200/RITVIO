@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "encoding": "lossless WebP; decoded RGBA pixels unchanged",
+  "origin": "AI-generated project mockups, followed by image-generation edits using crops of those mockups. No external photographic reference is recorded in the local asset manifests.",
+  "files": [
+    {
+      "file": "apps/client/public/artwork/electronic.webp",
+      "width": 2095,
+      "height": 751,
+      "rgbaSha256": "42e4fb2eb8521c1f6003b5ef22ddc3307a7132dc16b03cdac225c41284c4f986",
+      "beforeBytes": 1596644,
+      "bytes": 1122916
+    },
+    {
+      "file": "apps/client/public/artwork/jazz.webp",
+      "width": 2051,
+      "height": 767,
+      "rgbaSha256": "f6b3bec8d19b772b246ee636e7fbb503e770f26bb6373374a46607ee816ea431",
+      "beforeBytes": 1836741,
+      "bytes": 1302816
+    },
+    {
+      "file": "apps/client/public/artwork/pop.webp",
+      "width": 2167,
+      "height": 726,
+      "rgbaSha256": "8d4c6fdb0fb83337a0f24e1125979f30fe19a143282e943bc6e21bb06c7fa9be",
+      "beforeBytes": 1818512,
+      "bytes": 1274774
+    },
+    {
+      "file": "apps/client/public/artwork/rock.webp",
+      "width": 2092,
+      "height": 751,
+      "rgbaSha256": "a23a1d3d18479a95815da577f1202158f88943bce7929845e02617fcd08a928b",
+      "beforeBytes": 1632639,
+      "bytes": 1192240
+    },
+    {
+      "file": "tests/fixtures/artwork/city.webp",
+      "width": 1254,
+      "height": 1254,
+      "rgbaSha256": "b986f9405eb57762b664cf86a87755c63b8cafcc08c6b1fa2319450678ee5a90",
+      "beforeBytes": 2809093,
+      "bytes": 2268056
+    },
+    {
+      "file": "tests/fixtures/artwork/sky.webp",
+      "width": 1254,
+      "height": 1254,
+      "rgbaSha256": "729ee6f7878f770b8d9583dbcda4042f16d39fb3449212f0a8b7e7ab50d78cd7",
+      "beforeBytes": 2444663,
+      "bytes": 1850474
+    },
+    {
+      "file": "tests/fixtures/artwork/sunset.webp",
+      "width": 1536,
+      "height": 1024,
+      "rgbaSha256": "ce5433af3d588b5ffe81f8f3673ed0db9312ab51c6a40061f69a5524c3d247f5",
+      "beforeBytes": 1618861,
+      "bytes": 1106910
+    }
+  ]
+}

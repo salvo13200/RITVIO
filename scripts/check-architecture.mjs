@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const root = new URL('../', import.meta.url);
 const read = (path) => readFileSync(new URL(path, root), 'utf8');
-for (const path of ['README.md', 'docs/FASE-1.md', 'docs/API.md', 'docs/openapi.json', 'database/001_initial.sql', '.env.example']) {
+for (const path of ['README.md', 'docs/ARCHITECTURE.md', 'docs/API.md', 'docs/openapi.json', 'docs/TESTING.md', '.env.example', 'apps/api/library-store.ts', 'apps/desktop/main.cjs', 'apps/mobile/src/native.ts']) {
   assert(existsSync(fileURLToPath(new URL(path, root))), `Artefatto mancante: ${path}`);
 }
 const spec = JSON.parse(read('docs/openapi.json'));
@@ -61,18 +61,18 @@ assert.equal(resolverPlayback.properties.capabilities.properties.offline.const, 
 assert.equal(resolverPlayback.properties.url.pattern, '^/v1/stream/[a-f0-9]{64}$');
 assert(resolverPlayback.required.includes('expiresAt'));
 
-const sql = read('database/001_initial.sql');
-const tables = [...sql.matchAll(/CREATE TABLE ritvio\.([a-z_]+)/g)].map((match) => match[1]);
-assert.equal(new Set(tables).size, tables.length, 'Tabella duplicata');
-assert(sql.includes('REVOKE ALL ON SCHEMA ritvio FROM PUBLIC;'));
-assert(sql.includes('DEFERRABLE INITIALLY DEFERRED'));
-assert(sql.trimEnd().endsWith('COMMIT;'));
-for (const required of ['users', 'sessions', 'media_refs', 'media_metadata', 'playlists', 'playlist_members', 'playlist_items', 'search_cache', 'provider_budgets']) {
-  assert(tables.includes(required), `Tabella essenziale mancante: ${required}`);
+// The shipping app uses local profiles. The old PostgreSQL/cloud proposal is
+// intentionally absent: it is not a runtime dependency or an implemented service.
+const library = read('apps/api/library-store.ts');
+assert(library.includes('DatabaseSync'), 'La libreria desktop deve usare SQLite locale');
+for (const path of ['/auth/register', '/auth/login', '/auth/google']) {
+  for (const operation of Object.values(spec.paths[path] ?? {})) {
+    assert.equal(operation['x-implemented'], false, 'Gli account online non sono implementati');
+  }
 }
 const env = read('.env.example');
 assert(!env.includes('YOUTUBE_API_KEY')); 
 assert(!env.includes('EXPERIMENTAL_ENABLED')); 
 assert(env.includes('APP_ACCENT="#C4B5FD"'));
-console.log(`Verifica completata: ${operations} operazioni, ${Object.keys(spec.components.schemas).length} schemi API, ${tables.length} tabelle dichiarate.`);
-console.log('Riferimenti e parametri coerenti. PostgreSQL, servizi e streaming non eseguiti in Fase 1.');
+console.log(`Architecture verified: ${operations} documented operations, ${Object.keys(spec.components.schemas).length} API schemas; local SQLite profiles.`);
+console.log('Static contracts only; live streaming and native phone behaviour are not exercised.');

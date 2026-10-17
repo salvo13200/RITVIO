@@ -1,13 +1,13 @@
 import {tracks} from './fixtures';
 import {test,expect,type Page} from '@playwright/test';
 import {mkdir,readFile} from 'node:fs/promises';
-const shots='.impeccable/review/ritvio-0.7.0';
+const shots='test-results/visual/ritvio-0.7.0';
 async function settle(page:Page){await page.evaluate(async()=>{await Promise.all(document.getAnimations().filter(a=>a.effect?.getComputedTiming().iterations!==Infinity).map(a=>a.finished.catch(()=>{})));});}
 async function search(page:Page){await page.getByRole('button',{name:'Cerca',exact:true}).click();await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica');await expect(page.locator('.track-row')).toHaveCount(2);}
 test.beforeEach(async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');
   await page.addInitScript(()=>{(window as any).__qualityAudio=[];const NativeAudio=window.Audio;window.Audio=new Proxy(NativeAudio,{construct(target,args){const audio=Reflect.construct(target,args);(window as any).__qualityAudio.push(audio);return audio;}});window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
-  await page.route('https://i.ytimg.com/**',async route=>route.fulfill({body:await readFile('docs/design/ui-1/preview/assets/city.png'),contentType:'image/png'}));await mkdir(shots,{recursive:true});
+  await page.route('https://i.ytimg.com/**',async route=>route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));await mkdir(shots,{recursive:true});
 });
 test('RITVIO shell and situation playlists remain metadata-only until explicit playback',async({page})=>{
   const errors:string[]=[],playbacks:string[]=[];page.on('pageerror',e=>errors.push(e.message));page.on('request',r=>{if(/^\/v1\/media\/[^/]+\/playback/.test(new URL(r.url()).pathname))playbacks.push(r.url());});

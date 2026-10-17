@@ -2,7 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 import {fixture} from './helpers/mobile-fixture';
 
-const output=process.env.RITVIO_ANDROID10==='1'?'.impeccable/review/android-10/regression-android5-ui.spec':process.env.RITVIO_ANDROID8==='1'?'.impeccable/review/android-8/regression-transfer':process.env.RITVIO_ANDROID7==='1'?'.impeccable/review/android-7/regression-transfer':process.env.RITVIO_MOBILE_REVIEW==='1'?'.impeccable/review/android-review/regression-transfer':'.impeccable/review/android-6/regression-transfer';
+const output=process.env.RITVIO_ANDROID10==='1'?'test-results/visual/android-10/regression-android5-ui.spec':process.env.RITVIO_ANDROID8==='1'?'test-results/visual/android-8/regression-transfer':process.env.RITVIO_ANDROID7==='1'?'test-results/visual/android-7/regression-transfer':process.env.RITVIO_MOBILE_REVIEW==='1'?'test-results/visual/android-review/regression-transfer':'test-results/visual/android-6/regression-transfer';
 async function openImport(page:Page){await page.getByRole('button',{name:'Libreria',exact:true}).click();await page.getByRole('button',{name:'Importa playlist',exact:true}).click();return page.getByRole('dialog',{name:'Importa playlist',exact:true});}
 async function preview(page:Page){const dialog=await openImport(page);await dialog.getByRole('textbox',{name:'Link della playlist'}).fill('https://music.youtube.com/playlist?list=PLabcdefghijklmno');await dialog.getByRole('button',{name:'Mostra anteprima'}).click();await expect(dialog.getByText('Viaggio italiano',{exact:true})).toBeVisible();return dialog;}
 async function library(page:Page){return page.evaluate(async()=>(window as any).__mobileNative.library());}

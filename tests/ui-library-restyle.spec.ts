@@ -2,7 +2,7 @@ import {test,expect,type Page} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import {readFile,mkdir} from 'node:fs/promises';
 import {tracks} from './fixtures';
-const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'},shots='.impeccable/review/library-fixes-0.6.29';
+const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'},shots='test-results/visual/library-fixes-0.6.29';
 const names=['Viaggio notturno','Senza fretta','Orizzonti','Città sospese','Sotto le stelle','Strade di casa'];
 const songs=Array.from({length:125},(_,i)=>({...tracks[i%2],id:i?`liked:${i}`:tracks[0].id,title:i===0?'Luci lontane':i===1?'Senza fretta':`Orizzonte ${String(i).padStart(3,'0')}`,artist:i%2?'Elio Serra':'Nora',artists:[{id:'UCtestArtist01',name:i%2?'Elio Serra':'Nora'}],album:{id:'MPREb_test1',name:'Città sospese'},duration:252}));
 const playlists=names.map((name,i)=>({id:`00000000-0000-4000-8000-${String(i+1).padStart(12,'0')}`,name,description:i?'Una raccolta personale':'Luci della città, strade bagnate e pensieri che viaggiano.',visibility:'private',cover:null,artwork:[tracks[i%2].thumbnail],count:[18,24,12,8,16,20][i],durationSeconds:3600+i*120,updatedAt:new Date(Date.UTC(2026,9,14-i)).toISOString(),revision:1}));
@@ -10,7 +10,7 @@ const follows=[...['Nora','Mara','Elio Serra','Luca Ventura'].map((name,i)=>({id
 test.beforeEach(async({page,request})=>{
   await mkdir(shots,{recursive:true});await request.post(base+'/test-reset-library');await request.get(base+'/v1/search?q=Musica%20test',{headers});
   await page.addInitScript(({songs,base})=>{window.__RITVIO_TEST_CONFIG__={baseUrl:base,token:'test-token-only'};localStorage.setItem('ritvio-player-v1',JSON.stringify({state:{queue:[{...songs[0],queueId:'lib2-current',source:'collection'}],index:0,position:102,duration:252,volume:.6,muted:false,theme:'dark',uiLayout:{sidebarWidth:272,panelWidth:408,motion:'curated',sidebarCollapsed:false}},version:1}));const animate=Element.prototype.animate;(window as any).libraryMotion=[];Element.prototype.animate=function(...args:Parameters<typeof animate>){(window as any).libraryMotion.push({target:(this as HTMLElement).className,frames:args[0]});return animate.apply(this,args);};},{songs,base});
-  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/png',body:await readFile(`docs/design/ui-1/preview/assets/${route.request().url().includes('testmusic02')?'sky':'city'}.png`)}));
+  await page.route('https://*.ytimg.com/**',async route=>route.fulfill({contentType:'image/webp',body:await readFile(`tests/fixtures/artwork/${route.request().url().includes('testmusic02')?'sky':'city'}.webp`)}));
   await page.route('**/v1/me/library',route=>route.fulfill({json:{profile:{id:'00000000-0000-4000-8000-000000000099',mode:'local',displayName:'Il mio spazio',avatar:null},likes:songs,playlists,follows,history:songs.slice(0,2).map((track,i)=>({id:'history-'+i,track,playedAt:'2026-10-14T10:00:00Z'}))}}));
   await page.route('**/v1/me/playlists/'+playlists[0].id,route=>route.fulfill({json:{...playlists[0],count:2,items:tracks.map((track,i)=>({id:'entry-'+i,track}))}}));
 });
@@ -82,7 +82,7 @@ test('LIB-2 missing artist portraits load from profiles with bounded requests an
     calls++;current++;peak=Math.max(peak,current);const id=route.request().url().split('/').at(-2)!;await gate;current--;
     await route.fulfill({json:{resource:{...artists.find(item=>item.id===id),artwork:'https://yt3.ggpht.com/profile-'+id}}});
   });
-  await page.route('https://yt3.ggpht.com/**',async route=>route.request().url().endsWith('/broken-portrait')?route.abort():route.fulfill({contentType:'image/png',body:await readFile('docs/design/ui-1/preview/assets/sky.png')}));
+  await page.route('https://yt3.ggpht.com/**',async route=>route.request().url().endsWith('/broken-portrait')?route.abort():route.fulfill({contentType:'image/webp',body:await readFile('tests/fixtures/artwork/sky.webp')}));
   await page.setViewportSize({width:1586,height:992});await page.emulateMedia({reducedMotion:'reduce'});const root=await library(page);
   try{
     await root.getByRole('tab',{name:'Artisti',exact:true}).click();await expect(root.locator('.artist-photo-loading')).toHaveCount(2);await capture(page,'artists-loading');expect(peak).toBe(2);release();
