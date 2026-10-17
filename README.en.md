@@ -48,7 +48,11 @@ Original RITVIO source is **GPL-3.0-only**. See [LICENSE](LICENSE), [third-party
 ## Support development
 
 <!-- funding:start -->
-Donations are optional. PayPal and Buy Me a Coffee links will be enabled here and in GitHub's Sponsor button after the maintainer provides the actual recipient links. There are no donation prompts or payment features inside the app.
+Donations are optional and do not unlock features.
+
+[Support via PayPal](https://www.paypal.me/sals126) · [Buy Me a Coffee](https://buymeacoffee.com/Sals126)
+
+Payments are handled by the provider; provider fees may apply.
 <!-- funding:end -->
 
 ## Report a problem

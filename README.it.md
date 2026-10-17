@@ -10,6 +10,6 @@ Funzioni: ricerca di brani/artisti/album, playlist e preferiti locali, cronologi
 
 Sorgente originale sotto **GPL-3.0-only**: [licenza](LICENSE), [avvisi delle dipendenze](THIRD_PARTY_NOTICES.md). Nessun diritto sui contenuti musicali viene concesso dalla licenza software. Resolver non ufficiali, fonti e relativi limiti sono documentati nelle impostazioni e nel [README principale](README.md).
 
-Le donazioni sono previste esclusivamente su GitHub, tramite PayPal e Buy Me a Coffee: nessun pulsante nell'app. I collegamenti saranno attivati dopo aver ricevuto i link reali del proprietario. Solo il proprietario avrà permessi di merge; gli altri potranno aprire issue o proporre pull request da fork.
+Le donazioni sono facoltative e avvengono solo su GitHub, tramite [PayPal](https://www.paypal.me/sals126) e [Buy Me a Coffee](https://buymeacoffee.com/Sals126): nessun pulsante nell'app e nessuna funzione sbloccata. Solo il proprietario avrà permessi di merge; gli altri potranno aprire issue o proporre pull request da fork.
 
 [Compilazione](docs/BUILDING.md) · [Pubblicazione e permessi GitHub](docs/PUBLISHING.md) · [Privacy](PRIVACY.md) · [Note della candidata](docs/RELEASE_NOTES.md).
