@@ -1,23 +1,25 @@
 import {expect,type Page} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-export async function fixture(page:Page,{empty=false,error=false,queueLength=2}={}){
+import type {NativeTrack} from '../../packages/domain/mobile';
+export async function fixture(page:Page,{empty=false,error=false,queueLength=2,language='it',sampleTracks,artworkFiles}:{empty?:boolean;error?:boolean;queueLength?:number;language?:'it'|'en';sampleTracks?:NativeTrack[];artworkFiles?:string[]}={}){
  page.on('pageerror',error=>console.error('[mobile fixture runtime error]',error.message));
- const images=await Promise.all(['electronic','pop','rock','jazz'].map(name=>readFile(`apps/client/public/artwork/${name}.webp`)));
+ const images=await Promise.all((artworkFiles??['electronic','pop','rock','jazz'].map(name=>`apps/client/public/artwork/${name}.webp`)).map(name=>readFile(name)));
+ if(images.length!==4)throw Error('The mobile fixture requires four artwork files');
  await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/webp',headers:{'access-control-allow-origin':'*'},body:images[route.request().url().includes('12345678901')?1:route.request().url().includes('23456789012')?2:route.request().url().includes('34567890123')?3:0]}));
  await page.route('https://lh3.googleusercontent.com/**',route=>route.fulfill({contentType:'image/webp',body:images[0]}));
  await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isAndroid=true;export const nativePlayback=window.__mobileNative;'}));
- await page.addInitScript(({empty,error,queueLength})=>{
-  const first={videoId:'abcdefghijk',title:'A luci spente',artist:'Luna Riva',thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',duration:222,album:{id:'ALBUM1',name:'Notti chiare'},artists:[{id:'ARTIST1',name:'Luna Riva'}]};
-  const second={...first,videoId:'12345678901',title:'Orizzonti',artist:'Marea',thumbnail:'https://i.ytimg.com/vi/12345678901/hqdefault.jpg'};
-  const third={...first,videoId:'23456789012',title:'Fiori d’inverno',artist:'Selva',thumbnail:'https://i.ytimg.com/vi/23456789012/hqdefault.jpg'};
-  const fourth={...first,videoId:'34567890123',title:'Stanze vuote',artist:'Marco Azul',thumbnail:'https://i.ytimg.com/vi/34567890123/hqdefault.jpg'};
+ await page.addInitScript(({empty,error,queueLength,language,sampleTracks})=>{
+  const first=sampleTracks?.[0]??{videoId:'abcdefghijk',title:'A luci spente',artist:'Luna Riva',thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',duration:222,album:{id:'ALBUM1',name:'Notti chiare'},artists:[{id:'ARTIST1',name:'Luna Riva'}]};
+  const second=sampleTracks?.[1]??{...first,videoId:'12345678901',title:'Orizzonti',artist:'Marea',thumbnail:'https://i.ytimg.com/vi/12345678901/hqdefault.jpg'};
+  const third=sampleTracks?.[2]??{...first,videoId:'23456789012',title:'Fiori d’inverno',artist:'Selva',thumbnail:'https://i.ytimg.com/vi/23456789012/hqdefault.jpg'};
+  const fourth=sampleTracks?.[3]??{...first,videoId:'34567890123',title:'Stanze vuote',artist:'Marco Azul',thumbnail:'https://i.ytimg.com/vi/34567890123/hqdefault.jpg'};
   const stranger={...first,videoId:'45678901234',title:'Luna Riva',artist:'Un altro artista',artists:[{id:'OTHER',name:'Un altro artista'}]};
-  const album={id:'ALBUM1',kind:'album',name:'Notti chiare',artwork:first.thumbnail,artists:[{id:'ARTIST1',name:'Luna Riva'}]};
-  const artist={id:'ARTIST1',kind:'artist',name:'Luna Riva',artwork:'https://lh3.googleusercontent.com/fixture',artists:[]};
+  const album={id:'ALBUM1',kind:'album',name:first.album?.name??'Notti chiare',artwork:first.thumbnail,artists:[{id:'ARTIST1',name:first.artist}]};
+  const artist={id:'ARTIST1',kind:'artist',name:first.artist,artwork:'https://lh3.googleusercontent.com/fixture',artists:[]};
   let library=JSON.parse(localStorage.getItem('__testLibrary')||'null')??{likes:empty?[]:[first,second],playlists:empty?[]:[{id:'p1',name:'Di notte',items:[first,third],updatedAt:1},{id:'p2',name:'In viaggio',items:[fourth],updatedAt:2}],recent:empty?[]:[first,second,third,fourth],follows:empty?[]:[album,artist]};
   let state:any={items:empty?[]:(queueLength===4?[first,second,third,fourth]:[first,second]),order:empty?[]:(queueLength===4?[0,1,2,3]:[0,1]),queueRevision:1,index:0,position:84,duration:222,buffered:120,playing:!empty,loading:false,repeat:'off',shuffle:false,volume:.65,error:null,status:'ready',automatic:[],discovery:{enabled:localStorage.getItem('__testAutoplay')==='true',status:'idle',loading:false,mode:null,origin:null,message:null,retryAfter:null}};
   let audio={available:true,enabled:false,bands:[60,230,910,3600,14000].map((frequency,index)=>({index,frequency,level:0})),min:-15,max:15,sleepAtEnd:false,sleepUntil:null as number|null};
-  const operations:any[]=[],listeners=new Set<(s:any)=>void>(),languageListeners=new Set<(s:any)=>void>();let languageState={schema:1,preference:localStorage.getItem('__testLanguagePreference')??'system',systemLanguages:['it-IT'],revision:1};const copy=(value:any)=>JSON.parse(JSON.stringify(value));const update=()=>{for(const listener of listeners)listener(copy(state));return copy(state);};const save=()=>{localStorage.setItem('__testLibrary',JSON.stringify(library));return copy(library);};
+  const operations:any[]=[],listeners=new Set<(s:any)=>void>(),languageListeners=new Set<(s:any)=>void>();let languageState={schema:1,preference:localStorage.getItem('__testLanguagePreference')??(language==='en'?'en':'system'),systemLanguages:[language==='en'?'en-GB':'it-IT'],revision:1};const copy=(value:any)=>JSON.parse(JSON.stringify(value));const update=()=>{for(const listener of listeners)listener(copy(state));return copy(state);};const save=()=>{localStorage.setItem('__testLibrary',JSON.stringify(library));return copy(library);};
   let discoveryGeneration=0,pendingRadio:any=null;
   function cancelDiscovery(){discoveryGeneration++;pendingRadio=null;state.discovery={...state.discovery,status:'idle',loading:false,mode:null,message:null,retryAfter:null};}
   function finishRadio(){
@@ -61,6 +63,6 @@ export async function fixture(page:Page,{empty=false,error=false,queueLength=2}=
    exportStory:async(input:any)=>{operations.push({method:'exportStory',videoId:input.videoId,save:input.save,base64:input.base64});if((window as any).__storyExportError)throw Error('Salvataggio non disponibile. Riprova.');return{status:(window as any).__storyCancelled?'cancelled':input.save?'saved':'opened',destination:input.save?'gallery':undefined,album:'RITVIO'};},
    lyrics:async(input:any)=>{operations.push({method:'lyrics',...input});if((window as any).__storyLyricsError)throw Error('No lyrics');if((window as any).__storyNoLyrics)return{plainLyrics:null,syncedLyrics:null,instrumental:false};return{plainLyrics:(window as any).__storyLyrics??'Prima riga\nSeconda riga',syncedLyrics:'[00:00.00]Prima riga\n[01:20.00]Seconda riga\n[01:40.00]Terza riga',instrumental:false};},share:async(input:any)=>{operations.push({method:'share',...input});},
   }});
- },{empty,error,queueLength});
- await page.goto('/',{waitUntil:'commit'});await expect(page.getByRole('heading',{name:empty?'La tua musica, adesso.':'Il tuo ascolto continua'})).toBeVisible({timeout:45000});
+ },{empty,error,queueLength,language,sampleTracks});
+ await page.goto('/',{waitUntil:'commit'});await expect(page.getByRole('heading',{name:language==='en'?(empty?'Your music, right now.':'Your listening continues'):(empty?'La tua musica, adesso.':'Il tuo ascolto continua')})).toBeVisible({timeout:45000});
 }

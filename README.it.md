@@ -1,15 +1,50 @@
+![RITVIO — Your music, with you.](docs/media/banner.webp)
+
 # RITVIO
 
-Player musicale gratuito e open source per Windows e Android, con libreria locale e interfacce specifiche per ciascuna piattaforma. Italiano e inglese disponibili; altre lingue previste in seguito. La Home propone classifiche globali e nuove uscite.
+**Player musicale gratuito e open source per Windows e Android.** Ricerca, scoperta, libreria locale e interfacce pensate per ciascuna piattaforma.
 
-Candidate pubbliche: **Windows 0.7.2** e **Android 1.0.4**. Le build pubblicate si trovano negli asset delle [GitHub Releases](https://github.com/salvo13200/RITVIO/releases). Gli utenti non devono installare Node.js/Python né configurare account RITVIO o chiavi API. Le verifiche native dell'ultima APK sono ancora aperte: la prima pubblicazione va presentata come prerelease.
+[English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1) · [Galleria](docs/SCREENSHOTS.md)
 
-Windows 10/11 x64: EXE portatile o installer per utente, attualmente senza firma Authenticode. Android API24+, ARM64/x86_64: aggiornare sopra la versione precedente senza disinstallare. La firma ufficiale deve restare la stessa per conservare la possibilità di aggiornamento.
+> Anteprima pubblica: **Windows 0.7.2** e **Android 1.0.4**. Le verifiche native finali dell'ultima APK sono ancora aperte: consulta [note e limiti](docs/RELEASE_NOTES.md).
 
-Funzioni: ricerca di brani/artisti/album, playlist e preferiti locali, cronologia, coda, shuffle/repeat, radio, timer, testi, equalizzatore e immagini di condivisione. Alcune funzioni differiscono tra Desktop e Android. Nessun account cloud, sincronizzazione tra dispositivi o download audio offline.
+[![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
 
-Sorgente originale sotto **GPL-3.0-only**: [licenza](LICENSE), [avvisi delle dipendenze](THIRD_PARTY_NOTICES.md). Nessun diritto sui contenuti musicali viene concesso dalla licenza software. Resolver non ufficiali, fonti e relativi limiti sono documentati nelle impostazioni e nel [README principale](README.md).
+Le schermate mostrano l'interfaccia reale in inglese, con dati dimostrativi e immagini sintetiche del progetto. Le catture mobile provengono dal renderer browser e non certificano il comportamento nativo su telefono. [Tutte le schermate](docs/SCREENSHOTS.md).
 
-Le donazioni sono facoltative e avvengono solo su GitHub, tramite [PayPal](https://www.paypal.me/sals126) e [Buy Me a Coffee](https://buymeacoffee.com/Sals126): nessun pulsante nell'app e nessuna funzione sbloccata. Solo il proprietario avrà permessi di merge; gli altri potranno aprire issue o proporre pull request da fork.
+## Funzioni
 
-[Compilazione](docs/BUILDING.md) · [Pubblicazione e permessi GitHub](docs/PUBLISHING.md) · [Privacy](PRIVACY.md) · [Note della candidata](docs/RELEASE_NOTES.md).
+- Ricerca di brani, artisti e album; classifiche globali, nuove uscite, radio e mix personali.
+- Preferiti, playlist, artisti/album seguiti e cronologia conservati sul dispositivo.
+- Coda modificabile, shuffle/repeat, timer, testi ed equalizzatore/controlli audio.
+- Importazione/esportazione di playlist e condivisione di brani o versi come immagini 9:16.
+- Windows: player desktop, vista immersiva e mini-player. Android: interfaccia touch, riproduzione nativa Media3 e controlli di sistema.
+
+Italiano e inglese disponibili nelle impostazioni; metadati e testi mantengono la lingua originale. Alcune funzioni differiscono tra le piattaforme. Nessun account cloud, sincronizzazione tra dispositivi, download audio offline o collaborazione social in tempo reale. [Guida alle funzioni](docs/FEATURES.md).
+
+## Download
+
+Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
+
+| Piattaforma | Download |
+| --- | --- |
+| Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-setup.exe) · [Portatile](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-portatile.exe) |
+| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-Android-1.0.4.apk) |
+
+Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1).
+
+## Documentazione e contributi
+
+[Indice della documentazione](docs/README.md) · [Compilazione](docs/BUILDING.md) · [Architettura](docs/ARCHITECTURE.md) · [Test](docs/TESTING.md) · [Contributi](CONTRIBUTING.md).
+
+La documentazione tecnica e la galleria sono in inglese. Per segnalare un problema usa [le issue](https://github.com/salvo13200/RITVIO/issues) con versione, dispositivo e passaggi per riprodurlo. Il proprietario gestisce i merge; chiunque può proporre una PR da fork. Per vulnerabilità consulta [SECURITY.md](SECURITY.md).
+
+## Privacy e licenze
+
+La libreria resta locale; ricerca, streaming, copertine, metadati e testi contattano servizi esterni. Resolver non ufficiali, fonti e limiti sono descritti in **Impostazioni → Fonti e attribuzioni**, nel [README inglese](README.md#privacy-sources-and-licence) e in [PRIVACY.md](PRIVACY.md).
+
+Sorgente originale sotto **GPL-3.0-only**: [licenza](LICENSE), [avvisi delle dipendenze e origine delle immagini](THIRD_PARTY_NOTICES.md). La licenza software non concede diritti su musica, testi, copertine o marchi dei provider.
+
+## Sostieni lo sviluppo
+
+Le donazioni sono facoltative e non sbloccano funzioni: [PayPal](https://www.paypal.me/sals126) · [Buy Me a Coffee](https://buymeacoffee.com/Sals126). I pagamenti sono gestiti dai provider e possono prevedere commissioni. Non sono presenti pagamenti nelle app.

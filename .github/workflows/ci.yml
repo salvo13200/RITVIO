@@ -29,6 +29,7 @@ jobs:
       - run: pnpm setup:resolver
       - run: pnpm release:check
       - run: pnpm check:assets
+      - run: pnpm check:docs
       - run: pnpm check:architecture
       - run: pnpm check:locales
       - run: pnpm i18n:check
