@@ -1,0 +1,33 @@
+import {registerPlugin,Capacitor,type PluginListenerHandle} from '@capacitor/core';
+import type {MobilePlayback,MobileCommand,NativeTrack,MobileLibrary,MobileCatalog,MobileAudio,MobileImportPreview,MobileImportResult} from '../../../packages/domain/mobile';
+import type {LanguageHostState,LanguagePreference} from '../../../packages/i18n/languages';
+export interface PlaybackPlugin{
+  languageRead():Promise<LanguageHostState>;
+  languageWrite(options:{preference:LanguagePreference}):Promise<LanguageHostState>;
+  addListener(event:'language',listener:(state:LanguageHostState)=>void):Promise<PluginListenerHandle>;
+  search(options:{query:string}):Promise<{items:NativeTrack[];cached:boolean}>;
+  snapshot():Promise<MobilePlayback>;
+  playTracks(options:{items:NativeTrack[];index:number}):Promise<MobilePlayback>;
+  enqueue(options:{track:NativeTrack;next?:boolean}):Promise<MobilePlayback>;
+  command(options:MobileCommand):Promise<MobilePlayback>;
+  catalog(options:Record<string,unknown>):Promise<MobileCatalog>;
+  library():Promise<MobileLibrary>;
+  libraryCommand(options:Record<string,unknown>):Promise<MobileLibrary>;
+  saveQueue(options:{name:string}):Promise<MobileLibrary>;
+  previewPlaylist(options:{url:string;requestId:string}):Promise<MobileImportPreview>;
+  choosePlaylistFile(options:{requestId:string}):Promise<MobileImportPreview|{cancelled:true}>;
+  cancelPlaylistImport(options:{requestId:string}):Promise<void>;
+  commitPlaylistImport(options:{requestId:string;numbers:number[];skipDuplicates:boolean;name:string;targetId:string|null;targetRevision:number|null}):Promise<MobileImportResult>;
+  exportPlaylist(options:{id:string;save:boolean}):Promise<{status:'saved'|'opened'|'cancelled'}>;
+  radio(options:{track:NativeTrack}):Promise<MobilePlayback>;
+  discoveryCommand(options:{type:'enabled';enabled:boolean}|{type:'cancel'|'retry'}):Promise<MobilePlayback>;
+  audio():Promise<MobileAudio>;
+  audioCommand(options:Record<string,unknown>):Promise<MobileAudio>;
+  lyrics(options:{track:NativeTrack}):Promise<{plainLyrics:string|null;syncedLyrics:string|null;instrumental:boolean}>;
+  share(options:{track:NativeTrack}):Promise<void>;
+  storyArtwork(options:{videoId:string}):Promise<{dataUrl:string}>;
+  exportStory(options:{videoId:string;base64:string;save:boolean}):Promise<{status:'saved'|'opened'|'cancelled';destination?:'gallery'|'document';album?:string}>;
+  addListener(event:'playback',listener:(state:MobilePlayback)=>void):Promise<PluginListenerHandle>;
+}
+export const nativePlayback=registerPlugin<PlaybackPlugin>('RitvioPlayback');
+export const isAndroid=Capacitor.getPlatform()==='android';

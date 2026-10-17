@@ -1,0 +1,21 @@
+{
+  "name": "Main is maintained by the owner",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [
+    {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "pull_request"}
+  ],
+  "conditions": {"ref_name": {"include": ["~DEFAULT_BRANCH"], "exclude": []}},
+  "rules": [
+    {"type": "deletion"},
+    {"type": "non_fast_forward"},
+    {"type": "update", "parameters": {"update_allows_fetch_and_merge": false}},
+    {"type": "pull_request", "parameters": {
+      "required_approving_review_count": 0,
+      "dismiss_stale_reviews_on_push": true,
+      "require_code_owner_review": false,
+      "require_last_push_approval": false,
+      "required_review_thread_resolution": true
+    }}
+  ]
+}

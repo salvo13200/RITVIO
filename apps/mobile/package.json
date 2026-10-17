@@ -1,0 +1,11 @@
+{
+  "name": "@ritvio/mobile",
+  "version": "1.0.4",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1 --port 5174"
+  },
+  "license": "GPL-3.0-only"
+}

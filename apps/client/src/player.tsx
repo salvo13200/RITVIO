@@ -1,0 +1,116 @@
+import {t} from './i18n';
+import {attachAutoplay} from './autoplay';
+import {useEffect,useRef} from 'react';
+import {usePlayer} from './store';
+import {configureAudio,prepareAudio} from './audio-engine';
+import {attachActivity,recordRecentAllowed} from './activity-controller';
+import {preparePlayback,attachPlaybackPreparation} from './playback-preparation';
+import {beginPlayback,observePlaybackRequests} from './playback-metrics';
+export const audio=new Audio();
+audio.preload='metadata';
+audio.crossOrigin='anonymous';
+const keyOfPlayer=()=>{const state=usePlayer.getState();return `${state.queue[state.index]?.queueId}:${state.activation}`;};
+export function seek(seconds:number){
+  if(usePlayer.getState().autoplayWaiting)usePlayer.getState().interruptAutoplay();
+  const limit=Number.isFinite(audio.duration)?audio.duration:usePlayer.getState().duration;
+  const position=Math.max(0,Math.min(seconds,limit||seconds));
+  if(audio.readyState>0)audio.currentTime=position;
+  usePlayer.setState({position});
+}
+export function AudioController(){
+  const current=usePlayer(s=>s.queue[s.index]);
+  const playing=usePlayer(s=>s.playing);const activation=usePlayer(s=>s.activation);
+  const volume=usePlayer(s=>s.volume);const muted=usePlayer(s=>s.muted);
+  const preferences=usePlayer(s=>s.audioPreferences);
+  const loaded=useRef('');const expires=useRef(0);const restoring=useRef(false);
+  const key=current?`${current.queueId}:${activation}`:'';
+  useEffect(()=>{audio.volume=volume;audio.muted=muted;},[volume,muted]);
+  useEffect(()=>{configureAudio(preferences);},[preferences]);
+  useEffect(()=>attachActivity(audio,()=>loaded.current===keyOfPlayer()&&!restoring.current),[]);
+  useEffect(()=>observePlaybackRequests(),[]);
+  useEffect(()=>attachPlaybackPreparation(),[]);
+  useEffect(()=>attachAutoplay(),[]);
+  useEffect(()=>{
+    const matches=()=>{const s=usePlayer.getState();return loaded.current===`${s.queue[s.index]?.queueId}:${s.activation}`;};
+    const onTime=()=>{if(matches()&&!restoring.current&&audio.readyState>0)usePlayer.setState({position:audio.currentTime});};
+    const onDuration=()=>{if(matches()&&Number.isFinite(audio.duration))usePlayer.setState({duration:audio.duration});};
+    const onPlaying=()=>{
+      if(!matches())return;
+      usePlayer.setState({loading:false});const s=usePlayer.getState();const track=s.queue[s.index];
+      if(track&&recordRecentAllowed())s.heard(track);
+    };
+    const onWaiting=()=>{if(matches()&&usePlayer.getState().playing)usePlayer.setState({loading:true});};
+    const onEnded=()=>{if(matches())usePlayer.getState().next(true);};
+    const listeners={timeupdate:onTime,durationchange:onDuration,playing:onPlaying,waiting:onWaiting,ended:onEnded};
+    for(const [event,listener] of Object.entries(listeners))audio.addEventListener(event,listener);
+    return()=>{for(const [event,listener] of Object.entries(listeners))audio.removeEventListener(event,listener);};
+  },[]);
+  useEffect(()=>{
+    const controller=new AbortController();let retries=0;let refreshing=false;let generation=0;let metadata:()=>void;let timing:ReturnType<typeof beginPlayback>|undefined;
+    const firstData=()=>timing?.firstData(),startedPlaying=()=>timing?.playing();
+    const alive=()=>!controller.signal.aborted;
+    audio.pause();
+    if(!current){loaded.current='';audio.removeAttribute('src');audio.load();return;}
+    if(!playing){usePlayer.setState({loading:false});return;}
+    audio.addEventListener('loadeddata',firstData);audio.addEventListener('playing',startedPlaying);
+    const fail=(message:string)=>{if(alive()){timing?.fail();loaded.current='';usePlayer.setState({loading:false,playing:false,error:message});}};
+    const prepare=async(fresh=false)=>{
+      const ownGeneration=++generation;
+      const isCurrent=()=>alive()&&ownGeneration===generation;
+      if(fresh)retries=1;
+      const resume=usePlayer.getState().position;
+      const attempt=beginPlayback(fresh?'refresh':'new');timing=attempt;
+      usePlayer.setState({loading:true,error:null});
+      try{
+        const [prepared]=await Promise.all([preparePlayback(current,fresh,controller.signal),prepareAudio(audio,usePlayer.getState().audioPreferences)]);
+        const {descriptor}=prepared;attempt.stages(prepared);
+        if(!isCurrent())return;
+        loaded.current=key;expires.current=Date.parse(descriptor.expiresAt);restoring.current=true;
+        if(metadata)audio.removeEventListener('loadedmetadata',metadata);
+        metadata=()=>{if(isCurrent()){if(resume>0&&Number.isFinite(audio.duration))audio.currentTime=Math.min(resume,Math.max(0,audio.duration-.1));restoring.current=false;}};
+        audio.addEventListener('loadedmetadata',metadata,{once:true});audio.src=descriptor.url;audio.load();
+        if(isCurrent()&&usePlayer.getState().playing)await audio.play();
+      }catch(error){
+        if(!isCurrent()||(refreshing&&!fresh))return;
+        if(error instanceof DOMException){if(!fresh)recover();else fail(t("player.il.flusso.audio.non.e.riproducibile.riprova.o.scegli.un.altro.bra"));}
+        else fail(error instanceof Error?error.message:t("player.impossibile.caricare.il.brano"));
+      }
+    };
+    const recover=()=>{
+      if(!alive()||refreshing)return;
+      if(retries===0){timing?.fail();retries=1;refreshing=true;loaded.current='';void prepare(true).finally(()=>{refreshing=false;});}
+      else fail(t("player.il.flusso.audio.non.e.riproducibile.riprova.o.scegli.un.altro.bra"));
+    };
+    // The outgoing media can still report a queued error while the incoming
+    // descriptor is loading. Only the resource installed for this activation
+    // may refresh it; otherwise two concurrent loads can interrupt each other.
+    const onError=()=>{if(loaded.current===key&&audio.error)recover();};
+    audio.addEventListener('error',onError);
+    if(loaded.current===key&&audio.src&&expires.current>Date.now()+30000){
+      timing=beginPlayback('resume');
+      if(restoring.current){
+        const resume=usePlayer.getState().position;
+        metadata=()=>{if(alive()){if(resume>0&&Number.isFinite(audio.duration))audio.currentTime=Math.min(resume,Math.max(0,audio.duration-.1));restoring.current=false;}};
+        if(audio.readyState>0)metadata();else audio.addEventListener('loadedmetadata',metadata,{once:true});
+      }
+      const ownGeneration=generation;
+      void prepareAudio(audio,usePlayer.getState().audioPreferences).then(()=>{if(alive()&&ownGeneration===generation)return audio.play();}).catch(()=>{if(alive()&&ownGeneration===generation)recover();});
+    }else void prepare(loaded.current===key);
+    return()=>{controller.abort();timing?.cancel();audio.removeEventListener('loadeddata',firstData);audio.removeEventListener('playing',startedPlaying);audio.removeEventListener('error',onError);if(metadata)audio.removeEventListener('loadedmetadata',metadata);};
+  },[key,playing]);
+  useEffect(()=>{
+    const actions={toggle:()=>usePlayer.getState().toggle(),next:()=>usePlayer.getState().next(),previous:()=>usePlayer.getState().previous()};
+    const unsubscribe=window.ritvio?.onMediaKey(action=>actions[action as keyof typeof actions]?.());
+    if('mediaSession' in navigator){
+      navigator.mediaSession.setActionHandler('play',()=>usePlayer.setState({playing:true,error:null}));
+      navigator.mediaSession.setActionHandler('pause',()=>{usePlayer.getState().interruptAutoplay();usePlayer.setState({playing:false});});
+      navigator.mediaSession.setActionHandler('nexttrack',actions.next);navigator.mediaSession.setActionHandler('previoustrack',actions.previous);
+      navigator.mediaSession.setActionHandler('seekto',details=>{if(details.seekTime!=null)seek(details.seekTime);});
+    }
+    return()=>{unsubscribe?.();if('mediaSession' in navigator)for(const action of ['play','pause','nexttrack','previoustrack','seekto'] as const)navigator.mediaSession.setActionHandler(action,null);};
+  },[]);
+  useEffect(()=>{
+    if('mediaSession' in navigator){navigator.mediaSession.playbackState=playing?'playing':'paused';navigator.mediaSession.metadata=current?new MediaMetadata({title:current.title,artist:current.artist,artwork:[{src:current.thumbnail,sizes:'320x180',type:'image/jpeg'}]}):null;}
+  },[current?.id,playing]);
+  return null;
+}

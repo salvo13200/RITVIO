@@ -1,0 +1,47 @@
+import {test,expect,type Page} from '@playwright/test';
+import {mkdir} from 'node:fs/promises';
+import {fixture} from './helpers/mobile-fixture';
+
+
+async function openQueue(page:Page){await page.getByRole('button',{name:/Apri il player:/}).click();await page.getByRole('button',{name:'Apri coda'}).click();const dialog=page.getByRole('dialog',{name:'Coda',exact:true});await expect(dialog).toHaveCSS('transform','none');return dialog;}
+async function state(page:Page){return page.evaluate(()=>(window as any).__mobileState());}
+async function operations(page:Page){return page.evaluate(()=>(window as any).__mobileOperations as any[]);}
+
+test('explicit play next inserts immediately after current without restarting it',async({page})=>{
+ await fixture(page,{queueLength:4});await page.getByRole('button',{name:'Cerca',exact:true}).click();await page.getByRole('searchbox').fill('Luna Riva');await page.getByRole('button',{name:'Opzioni: Orizzonti'}).click();await page.getByRole('button',{name:'Riproduci dopo',exact:true}).click();
+ const s=await state(page);expect(s.items[1].title).toBe('Orizzonti');expect(s.items).toHaveLength(5);expect(s.position).toBe(84);expect(s.playing).toBe(true);expect((await operations(page)).filter(o=>o.method==='playTracks')).toHaveLength(0);
+ const dialog=await openQueue(page);await dialog.getByRole('button',{name:'Salva playlist'}).click();await page.getByRole('dialog',{name:'Salva la coda'}).getByRole('button',{name:'Salva playlist'}).click();const library=await page.evaluate(async()=>(window as any).__mobileNative.library());expect(library.playlists.at(-1).items.filter((t:any)=>t.title==='Orizzonti')).toHaveLength(2);
+});
+test('accessible queue reorder and snapshot save preserve current track, duplicates and position',async({page})=>{
+ await fixture(page,{queueLength:4});const dialog=await openQueue(page);await dialog.getByRole('button',{name:'Sposta: Fiori d’inverno'}).click();await dialog.getByRole('button',{name:'Sposta su',exact:true}).click();
+ await expect.poll(async()=>(await state(page)).items[1].title).toBe('Fiori d’inverno');expect((await state(page)).position).toBe(84);
+ await dialog.getByRole('button',{name:'Salva playlist'}).click();await page.getByRole('textbox',{name:'Nome della playlist'}).fill('La coda del viaggio');await page.getByRole('dialog',{name:'Salva la coda'}).getByRole('button',{name:'Salva playlist'}).click();await expect(page.getByRole('dialog',{name:'Coda',exact:true})).toBeVisible();
+ const library=await page.evaluate(async()=>(window as any).__mobileNative.library());expect(library.playlists.at(-1).items.map((t:any)=>t.title)).toEqual(['A luci spente','Fiori d’inverno','Orizzonti','Stanze vuote']);expect((await state(page)).position).toBe(84);expect((await operations(page)).filter(o=>o.method==='playTracks')).toHaveLength(0);
+ await page.getByRole('button',{name:'Chiudi Coda',exact:true}).click();await page.getByRole('button',{name:'Chiudi il player',exact:true}).click();await page.reload();await page.getByRole('button',{name:'Libreria',exact:true}).click();await expect(page.getByRole('button',{name:/La coda del viaggio/})).toBeVisible();
+});
+test('queue shows and saves native shuffle order rather than array order',async({page})=>{
+ await fixture(page,{queueLength:4});await page.evaluate(async()=>{await (window as any).__mobileNative.command({type:'shuffle',value:true});});const dialog=await openQueue(page);
+ await expect(dialog.locator('.queue-track').first()).toHaveAccessibleName('Riproduci Stanze vuote');await dialog.getByRole('button',{name:'Salva playlist'}).click();await page.getByRole('dialog',{name:'Salva la coda'}).getByRole('button',{name:'Salva playlist'}).click();
+ const library=await page.evaluate(async()=>(window as any).__mobileNative.library());expect(library.playlists.at(-1).items.map((t:any)=>t.title)).toEqual(['Stanze vuote','Fiori d’inverno','Orizzonti','A luci spente']);
+});
+test('pointer reorder commits once on release and cancellation allows the next gesture',async({page})=>{
+ await fixture(page,{queueLength:4});const dialog=await openQueue(page);const handle=dialog.getByRole('button',{name:'Sposta: Fiori d’inverno'});const from=(await handle.boundingBox())!,to=(await dialog.getByRole('button',{name:'Sposta: Orizzonti'}).boundingBox())!;
+ await page.mouse.move(from.x+24,from.y+24);await page.mouse.down();await page.mouse.move(to.x+24,to.y+24,{steps:5});expect((await operations(page)).filter(o=>o.type==='move')).toHaveLength(0);await page.mouse.up();await expect.poll(async()=>(await operations(page)).filter(o=>o.type==='move').length).toBe(1);expect((await state(page)).position).toBe(84);
+ const updated=dialog.getByRole('button',{name:'Sposta: Fiori d’inverno'}),box=(await updated.boundingBox())!;await page.mouse.move(box.x+24,box.y+24);await page.mouse.down();await page.mouse.move(box.x+24,box.y+40);await updated.dispatchEvent('pointerdown',{pointerId:99,button:0,clientY:50});await updated.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();await expect(dialog.locator('.is-dragging')).toHaveCount(0);expect((await operations(page)).filter(o=>o.type==='move')).toHaveLength(1);await updated.click();await expect(dialog.getByRole('button',{name:'Sposta giù'})).toBeVisible();
+});
+test('stale queue positions are rejected and the fresh snapshot stays visible',async({page})=>{
+ await fixture(page,{queueLength:4});const dialog=await openQueue(page);await page.evaluate(()=>{(window as any).__mobileState().queueRevision++;});await dialog.getByRole('button',{name:'Sposta: Fiori d’inverno'}).click();await dialog.getByRole('button',{name:'Sposta su'}).click();await expect(page.getByRole('status').filter({hasText:/La coda è cambiata/})).toBeVisible();expect((await state(page)).items[2].title).toBe('Fiori d’inverno');expect((await state(page)).position).toBe(84);
+});
+test('dragging near the edge scrolls the actual sheet content in a long queue',async({page})=>{
+ await fixture(page,{queueLength:4});await page.evaluate(()=>{const s=(window as any).__mobileState();const first=s.items[0];s.items=Array.from({length:25},(_,i)=>({...first,videoId:`test${String(i).padStart(7,'0')}`,title:`Brano ${i+1}`}));s.order=s.items.map((_:any,i:number)=>i);s.queueRevision++;(window as any).__mobileUpdate();});const dialog=await openQueue(page);const content=dialog.locator('.sheet-content'),handle=dialog.getByRole('button',{name:'Sposta: Brano 2',exact:true}),box=(await handle.boundingBox())!,bounds=(await content.boundingBox())!;
+ await page.mouse.move(box.x+24,box.y+24);await page.mouse.down();await page.mouse.move(box.x+24,bounds.y+bounds.height-12,{steps:6});await expect.poll(()=>content.evaluate(el=>el.scrollTop)).toBeGreaterThan(0);await handle.dispatchEvent('pointercancel',{pointerId:1});await page.mouse.up();expect((await operations(page)).filter(o=>o.type==='move')).toHaveLength(0);
+});
+test('end-of-track timer replaces minutes and can be cancelled without playback reset',async({page})=>{
+ await fixture(page);await page.getByRole('button',{name:/Apri il player:/}).click();await page.getByRole('button',{name:'Timer',exact:true}).click();await page.getByRole('button',{name:'30 minuti',exact:true}).click();await expect(page.getByText(/Arresto alle/)).toBeVisible();await page.getByRole('button',{name:'Alla fine del brano'}).click();await expect(page.getByRole('status').filter({hasText:'Pausa alla fine del brano attuale'})).toBeVisible();await expect(page.getByText(/Arresto alle/)).toHaveCount(0);await page.getByRole('button',{name:'Annulla timer'}).click();await expect(page.getByText('Pausa alla fine del brano attuale')).toHaveCount(0);expect((await state(page)).position).toBe(84);expect((await operations(page)).filter(o=>o.method==='playTracks')).toHaveLength(0);
+});
+test('capture queue and timer extension with declared browser provenance',async({page})=>{
+ const output=process.env.RITVIO_ANDROID10==='1'?'.impeccable/review/android-10/regression-android3-ui.spec':process.env.RITVIO_ANDROID8==='1'?'.impeccable/review/android-8/regression-queue':process.env.RITVIO_ANDROID7==='1'?'.impeccable/review/android-7/regression-queue':process.env.RITVIO_MOBILE_REVIEW==='1'?'.impeccable/review/android-review/regression-queue':test.info().config.configFile?.match(/android[56]/)?'.impeccable/review/android-6/regression-queue':test.info().config.configFile?.includes('android4')?'.impeccable/review/android-4/regression-queue':'.impeccable/review/android-3';
+ await fixture(page,{queueLength:4});await mkdir(output,{recursive:true});await page.evaluate(()=>document.fonts.load('16px "Ancizar Sans"'));const dialog=await openQueue(page);await expect(dialog).toHaveCSS('opacity','1');await page.screenshot({path:`${output}/web-queue-393.png`,animations:'disabled'});
+ await dialog.getByRole('button',{name:'Sposta: Orizzonti'}).click();await page.screenshot({path:`${output}/web-queue-reorder-393.png`,animations:'disabled'});await page.setViewportSize({width:360,height:740});await page.emulateMedia({reducedMotion:'reduce'});await page.screenshot({path:`${output}/web-queue-360.png`});expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.goBack();await page.getByRole('button',{name:'Timer',exact:true}).click();await page.getByRole('button',{name:'Alla fine del brano'}).click();await page.screenshot({path:`${output}/web-timer-360.png`,animations:'disabled'});
+});

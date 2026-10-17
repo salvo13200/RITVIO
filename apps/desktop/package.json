@@ -1,0 +1,7 @@
+{
+  "name": "@ritvio/desktop",
+  "version": "0.7.2",
+  "private": true,
+  "main": "main.cjs",
+  "license": "GPL-3.0-only"
+}

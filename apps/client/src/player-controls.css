@@ -1,0 +1,17 @@
+/* User revision: stationary, vertically breathing timeline and classic volume. */
+.timeline .wave-time-preview{width:max-content;min-width:calc(5ch + 18px);height:auto;padding:5px 9px;font-size:.875rem;line-height:1.3;font-weight:600;text-align:center;white-space:nowrap;box-sizing:border-box;color:var(--text);left:clamp(var(--seek-tip-inset,36px),var(--seek-tip,50%),calc(100% - var(--seek-tip-inset,36px)))}
+.timeline>span{width:auto;flex:0 0 auto}
+.like-with-label{gap:10px}
+.like-with-label>svg{flex:none}
+.wave-timeline .wave-flow{animation:wave-breathe 1700ms ease-in-out infinite alternate;animation-play-state:paused;transform-box:view-box;transform-origin:50% 50%}
+.wave-timeline .wave-pulse-1{animation-duration:2100ms;animation-delay:-700ms}
+.wave-timeline .wave-pulse-2{animation-duration:1900ms;animation-delay:-1100ms}
+.wave-timeline[data-animated=true] .wave-flow{animation-play-state:running}
+.volume-drawing{position:absolute;left:6px;right:6px;top:11px;height:6px;border-radius:6px;overflow:hidden;pointer-events:none;background:color-mix(in srgb,var(--muted) 42%,transparent)}
+.volume-fill{height:100%;border-radius:inherit;background:var(--accent)}
+.wave-volume[data-muted=true] .volume-fill{opacity:.65}
+.player-extras .wave-volume{width:104px;flex-basis:104px}
+@keyframes wave-breathe{from{transform:scaleY(.65)}to{transform:scaleY(1.1)}}
+@media(min-width:801px) and (max-width:1280px){.player-extras{gap:8px}.player-extras .wave-volume{width:72px;flex-basis:72px}}
+[data-motion=essential] .wave-timeline .wave-flow{animation:none!important;transform:none}
+@media(prefers-reduced-motion:reduce){.wave-timeline .wave-flow{animation:none!important;transform:none}}

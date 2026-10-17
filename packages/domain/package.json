@@ -1,0 +1,7 @@
+{
+  "name": "@ritvio/domain",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "GPL-3.0-only"
+}

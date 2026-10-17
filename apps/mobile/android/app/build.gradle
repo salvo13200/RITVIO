@@ -1,0 +1,84 @@
+apply plugin: 'com.android.application'
+apply plugin: 'org.jetbrains.kotlin.android'
+apply plugin: 'com.chaquo.python'
+
+android {
+    namespace = "it.ritvio.android"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "it.ritvio.android"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode 15
+        versionName "1.0.4"
+        ndk { abiFilters 'arm64-v8a', 'x86_64' }
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_21; targetCompatibility JavaVersion.VERSION_21 }
+    kotlinOptions { jvmTarget = '21' }
+    signingConfigs {
+        localRelease {
+            if (project.hasProperty('ritvioKeyStore')) {
+                storeFile file(project.property('ritvioKeyStore'))
+                storePassword project.property('ritvioKeyPassword')
+                keyAlias 'ritvio'
+                keyPassword project.property('ritvioKeyPassword')
+            }
+        }
+    }
+    buildTypes {
+        release {
+            signingConfig signingConfigs.localRelease
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    testBuildType 'release'
+}
+
+chaquopy {
+    defaultConfig {
+        version = '3.13'
+        if (System.getenv('RITVIO_BUILD_PYTHON')) buildPython(System.getenv('RITVIO_BUILD_PYTHON'))
+        pip {
+            install 'yt-dlp==2026.8.19'
+            install 'yt-dlp-ejs==0.8.0'
+            install 'ytmusicapi==1.12.3'
+            install 'requests==2.34.2'
+            install 'certifi==2026.7.22'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-session:1.11.1'
+    implementation 'androidx.media3:media3-datasource:1.11.1'
+    implementation 'app.cash.zipline:zipline-android:1.23.0'
+    androidTestImplementation 'androidx.test:runner:1.7.0'
+    androidTestImplementation 'androidx.test:rules:1.7.0'
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    testImplementation 'org.json:json:20250517'
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+

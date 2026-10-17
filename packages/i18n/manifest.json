@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "fallback": "en",
+  "available": ["it", "en"],
+  "languages": [
+    {"code":"it","name":"Italiano","locale":"it-IT"},
+    {"code":"en","name":"English","locale":"en-GB"},
+    {"code":"es","name":"Español","locale":"es-ES"},
+    {"code":"fr","name":"Français","locale":"fr-FR"},
+    {"code":"de","name":"Deutsch","locale":"de-DE"}
+  ]
+}

@@ -1,0 +1,84 @@
+name: Build release candidate
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: release-candidate
+  cancel-in-progress: false
+jobs:
+  build:
+    if: github.ref == 'refs/heads/main'
+    runs-on: windows-latest
+    environment: release
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm setup:resolver
+      - run: pnpm release:check
+      - run: pnpm check:locales
+      - run: pnpm i18n:check
+      - run: pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts
+      - run: pnpm package:windows
+      - run: pnpm android:setup
+      - name: Select downloaded JDK 21
+        shell: pwsh
+        run: |
+          $jdk = Get-ChildItem -LiteralPath .packaging/android-tools/jdk -Directory | Select-Object -First 1
+          if (-not $jdk) { throw 'JDK 21 download was not found' }
+          "JAVA_HOME=$($jdk.FullName)" | Add-Content -LiteralPath $env:GITHUB_ENV
+      - name: Restore official Android signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        shell: pwsh
+        run: |
+          if (-not $env:KEYSTORE_BASE64 -or -not $env:KEYSTORE_PASSWORD) { throw 'Official signing secrets are required. Refusing to create a replacement key.' }
+          New-Item -ItemType Directory -Force -Path .local/android-signing | Out-Null
+          [IO.File]::WriteAllBytes((Join-Path $PWD '.local/android-signing/ritvio.jks'), [Convert]::FromBase64String($env:KEYSTORE_BASE64))
+          @{password=$env:KEYSTORE_PASSWORD} | ConvertTo-Json | Set-Content -LiteralPath .local/android-signing/credentials.json
+      - name: Build Android and JVM tests
+        shell: pwsh
+        run: |
+          $env:RITVIO_BUILD_PYTHON = (Get-Command python).Source
+          pnpm android:build --with-tests
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          ./scripts/gradle-android.ps1 -Task @(':app:testReleaseUnitTest')
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/check-android-apk.py release/RITVIO-Android-1.0.4.apk
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - run: pnpm release:source
+      - run: node scripts/archive-resolver-sources.mjs
+      - name: Validate and manifest candidates
+        run: node scripts/release-manifest.mjs
+      - name: Remove private signing material
+        if: always()
+        shell: pwsh
+        run: |
+          $target = [IO.Path]::GetFullPath((Join-Path $PWD '.local/android-signing'))
+          $allowed = [IO.Path]::GetFullPath((Join-Path $PWD '.local')) + [IO.Path]::DirectorySeparatorChar
+          if (-not $target.StartsWith($allowed, [StringComparison]::OrdinalIgnoreCase)) { throw 'Unsafe cleanup path' }
+          if (Test-Path -LiteralPath $target) { Remove-Item -LiteralPath $target -Recurse -Force }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: RITVIO-candidate-${{ github.sha }}
+          path: |
+            release/*.exe
+            release/*.apk
+            release/RITVIO-public-source.zip
+            release/RITVIO-resolver-sources.zip
+            release/RELEASE-MANIFEST.json
+            release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

@@ -1,0 +1,12 @@
+import {createServer} from 'vite';
+import {spawn} from 'node:child_process';
+import electron from 'electron';
+import {buildApi} from './build.mjs';
+await buildApi();
+const vite=await createServer();await vite.listen();
+const child=spawn(electron,['apps/desktop/main.cjs'],{stdio:'inherit',windowsHide:true,env:{...process.env,RITVIO_DEV_URL:'http://127.0.0.1:5173',RITVIO_NODE_PATH:process.execPath}});
+const stop=async()=>{child.kill();await vite.close();};
+process.on('SIGINT',()=>void stop());process.on('SIGTERM',()=>void stop());
+child.on('error',async e=>{console.error(e.message);await vite.close();process.exitCode=1;});
+child.on('exit',async code=>{await vite.close();process.exitCode=code??0;});
+console.log('RITVIO: avvio desktop. Le modifiche al frontend si aggiornano automaticamente.');

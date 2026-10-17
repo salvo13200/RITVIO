@@ -1,0 +1,36 @@
+name: Bug report
+description: Report a reproducible problem in RITVIO
+body:
+  - type: markdown
+    attributes:
+      value: Please remove account details, tokens, private playlist data and personal paths from logs. For vulnerabilities, read SECURITY.md.
+  - type: input
+    id: version
+    attributes:
+      label: RITVIO version
+      placeholder: Windows 0.7.2 portable / Android 1.0.4
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device and OS version
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps, expected behaviour and actual behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Sanitised logs or screenshots
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I checked existing issues and removed private data.
+          required: true

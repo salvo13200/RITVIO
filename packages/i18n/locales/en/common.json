@@ -1,0 +1,11 @@
+{
+  "language.title": "Language",
+  "language.system": "Follow system",
+  "language.hint": "Changes apply immediately and are saved on this device.",
+  "language.unavailable": "This language is not available yet.",
+  "language.saveFailed": "Could not save your language. Try again.",
+  "language.sessionOnly": "The language preference could not be restored.",
+  "language.saving": "Saving…",
+  "items_one": "{{count}} item",
+  "items_other": "{{count}} items"
+}

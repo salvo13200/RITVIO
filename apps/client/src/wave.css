@@ -1,0 +1,36 @@
+/* The native range owns pointer, touch and keyboard interaction; SVG is decoration. */
+.wave-time-preview{position:absolute;bottom:calc(100% + 5px);left:var(--seek-tip,50%);transform:translateX(-50%);padding:4px 9px;border-radius:7px;background:var(--surface-2);color:var(--text);font-size:14px;font-variant-numeric:tabular-nums;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity var(--motion-fast) ease;z-index:15}
+.wave-timeline:hover .wave-time-preview,.wave-timeline:focus-within .wave-time-preview,.wave-timeline[data-dragging=true] .wave-time-preview{opacity:1}
+.wave-slider[data-dragging=true] .wave-fill{transition:none}
+.wave-slider { position: relative; min-width: 0; height: 28px; isolation: isolate; }
+.timeline > .wave-slider { flex: 1; }
+.wave-drawing { position: absolute; inset: 0 6px; overflow: hidden; pointer-events: none; }
+.wave-drawing svg,.wave-fill { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.wave-drawing path { fill: none; stroke: currentColor; stroke-width: 1.4px; stroke-linecap: round; }
+.wave-rail { color: color-mix(in srgb,var(--muted) 75%,transparent); }
+.wave-progress { color: var(--accent); }
+.wave-amplitude { transform: scaleY(var(--wave-amplitude)); transform-box: view-box; transform-origin: center; transition: transform var(--motion-normal) var(--motion-ease); }
+.wave-flow { animation-play-state: paused; }
+.wave-slider[data-animated=true] .wave-flow { animation-play-state: running; }
+.wave-fill { transition: clip-path 180ms linear,opacity var(--motion-fast) ease; }
+.wave-slider[data-disabled=true] { opacity: .4; }
+.wave-slider:focus-within .wave-fill,.wave-slider[data-dragging=true] .wave-fill { transition: none; }
+.wave-slider > input[type=range] { position: relative; z-index: 1; display: block; width: 100%; min-width: 0; height: 28px; margin: 0; padding: 0; border: 0; border-radius: 6px; appearance: none; background: transparent; opacity: 1; cursor: pointer; }
+.wave-slider > input[type=range]::-webkit-slider-runnable-track { height: 28px; background: transparent; }
+.wave-slider > input[type=range]::-webkit-slider-thumb { appearance: none; height: 12px; width: 12px; margin-top: 8px; border: 2px solid var(--base); border-radius: 50%; background: var(--accent); box-shadow: none; transition: transform var(--motion-fast) var(--motion-ease),box-shadow var(--motion-fast) ease; }
+.wave-slider:hover > input[type=range]::-webkit-slider-thumb,.wave-slider:focus-within > input[type=range]::-webkit-slider-thumb { transform: scale(1.12); box-shadow: 0 0 0 3px var(--soft-accent); }
+.wave-slider > input[type=range]::-moz-range-track { height: 28px; background: transparent; }
+.wave-slider > input[type=range]::-moz-range-progress { background: transparent; }
+.wave-slider > input[type=range]::-moz-range-thumb { height: 9px; width: 9px; border: 2px solid var(--base); border-radius: 50%; background: var(--accent); }
+.wave-slider > input[type=range]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.wave-slider > input[type=range]:disabled { cursor: default; }
+.player-extras > .wave-volume { width: 75px; flex: 0 0 75px; }
+.settings-volume > .wave-volume { width: 95px; flex: 0 0 95px; }
+@media(max-width:1200px) { .player-extras > .wave-volume { width: 55px; flex-basis: 55px; } }
+@media(max-width:1060px) { .player-extras > .wave-volume { width: 43px; flex-basis: 43px; } }
+@media(max-width:800px) { .player-extras > .wave-volume { display: none; } }
+@media(max-width:640px) { .settings-volume > .wave-volume { width: 80px; flex-basis: 80px; } }
+@media(prefers-reduced-motion:reduce) {
+  .wave-flow { animation: none !important; }
+  .wave-amplitude,.wave-fill,.wave-slider > input[type=range]::-webkit-slider-thumb { transition: none !important; }
+}

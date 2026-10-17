@@ -1,0 +1,88 @@
+/* Approved UI-5: a central reader and a dedicated audio preferences surface. */
+.app{overflow:clip}
+.preferences-page{min-width:0}
+.preferences-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 26px}
+.preferences-heading h1{font-size:var(--r-page-title-font,40px);line-height:1.15;margin:0 0 12px;letter-spacing:-.025em}
+.preferences-heading p{font-size:1.125rem;color:var(--muted);line-height:1.5;margin:0;max-width:65ch}
+.preference-tabs{display:flex;gap:12px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.preference-tabs button{display:flex;align-items:center;justify-content:center;gap:10px;flex:1;min-width:0;min-height:56px;padding:12px 8px;font-size:1rem;color:var(--muted);position:relative}
+.preference-tabs button::after{content:'';position:absolute;inset:auto 10px -1px;height:3px;border-radius:3px;background:var(--accent);transform:scaleX(0);transition:transform 180ms var(--motion-ease)}
+.preference-tabs button[aria-selected=true]{color:var(--accent);font-weight:600}
+.preference-tabs button[aria-selected=true]::after{transform:scaleX(1)}
+.preference-section{min-width:0;padding:8px 0 20px}
+.preference-section .settings-row{gap:24px}
+.preferences-page select{background:var(--surface-2);border:1px solid var(--line);border-radius:8px;color:var(--text);font:inherit;padding:10px 12px;min-height:44px;max-width:100%}
+.preference-volume{margin:20px 0 0;padding:16px 0;border-top:1px solid var(--line)}
+.audio-workspace{margin:0}
+.audio-eq-surface{padding:24px 28px;background:var(--surface-2);border-radius:12px}
+.audio-workspace .audio-controls-heading{margin:0 0 18px}
+.audio-workspace .audio-controls-heading h2{font-size:1.75rem;margin:0 0 8px;line-height:1.25;letter-spacing:-.015em}
+.audio-workspace .audio-controls-heading p{font-size:1rem}
+.audio-preset-toolbar{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+.audio-workspace .audio-preset-row{margin:0;justify-content:flex-start;gap:16px}
+.audio-workspace .audio-preset-row select{min-width:180px}
+.audio-toolbar-actions{display:flex;gap:10px;flex-wrap:wrap}
+.audio-toolbar-actions .audio-reset{margin:0}
+.audio-band-workspace{display:grid;grid-template-columns:60px minmax(0,1fr);gap:14px}
+.audio-db-scale{display:flex;flex-direction:column;justify-content:space-between;padding:25px 0 45px;font-size:.875rem;color:var(--muted);font-variant-numeric:tabular-nums;text-align:right}
+.audio-workspace .audio-bands{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.audio-workspace .audio-band{display:flex;flex-direction:column;align-items:center;gap:12px;min-width:0}
+.audio-workspace .audio-band label{text-align:center;display:flex;flex-direction:column;gap:4px}
+.audio-workspace .audio-band label span{font-size:1rem;font-weight:600;white-space:nowrap;color:var(--text)}
+.audio-workspace .audio-band label strong{display:none}
+.audio-workspace .audio-band input[type=range]{writing-mode:vertical-lr;direction:rtl;width:44px;height:174px;background:transparent;margin:0}
+.audio-workspace .audio-band input::-webkit-slider-runnable-track{width:6px;height:100%;border-radius:6px;background:linear-gradient(to top,var(--accent) calc(var(--audio-position)*100%),var(--muted) calc(var(--audio-position)*100%))}
+.audio-workspace .audio-band input::-webkit-slider-thumb{width:20px;height:20px;margin:0 0 0 -7px;background:var(--accent);border:0;border-radius:50%;box-shadow:none}
+.audio-workspace .audio-band input::-moz-range-track{width:6px;height:100%;border-radius:6px;background:var(--muted)}
+.audio-workspace .audio-band input::-moz-range-progress{width:6px;background:var(--accent)}
+.audio-workspace .audio-band output{font-size:1rem;line-height:1.5;text-align:center;min-width:64px;border:1px solid var(--line);border-radius:10px;padding:4px 6px;font-variant-numeric:tabular-nums}
+.audio-workspace fieldset.audio-aux{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;margin:14px 0 0;border:0}
+.audio-workspace .audio-aux>div{background:var(--surface-2);border-radius:12px;padding:18px 20px;min-width:0}
+.audio-workspace .audio-aux label{font-size:1.0625rem;font-weight:600;line-height:1.4;gap:8px;margin-bottom:16px}
+.audio-workspace .audio-aux output{font-weight:400;color:var(--accent);font-variant-numeric:tabular-nums}
+.audio-range-ends{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.875rem;margin-top:4px}
+.audio-workspace .audio-hint{font-size:.875rem;line-height:1.5;margin-top:12px}
+.has-lyrics-reader .page-surface{display:flex;flex-direction:column;min-height:100%}
+.has-lyrics-reader .content-footer{display:none}
+.lyrics-reader{padding:0;gap:16px;overflow:visible;flex:1;min-width:0}
+.lyrics-reader .lyrics-heading{align-items:center;gap:18px;flex-wrap:wrap;margin:0 0 16px}
+.lyrics-reader .lyrics-heading>.cover{width:100px;height:100px;flex:0 0 100px;border-radius:10px}
+.lyrics-reader .lyrics-heading>.lyrics-reading-tools{flex:0 1 auto;min-width:0}
+.lyrics-reader .lyrics-heading>.lyrics-action-disclosure{flex:none}
+.lyrics-reader .lyrics-song-heading{flex:1;min-width:120px}
+.lyrics-reader .lyrics-heading :is(h1,h2){font-size:2.125rem;font-weight:700;line-height:1.15;letter-spacing:-.02em;overflow-wrap:anywhere;margin:0}
+.lyrics-reader .lyrics-heading p{font-size:1.25rem;margin-top:10px}
+.lyrics-reading-tools{display:flex;align-items:center;flex-wrap:wrap;gap:14px}
+.lyrics-action-disclosure{position:relative;align-self:center}
+.lyrics-action-disclosure>.icon-button{width:48px;height:48px;border:1px solid var(--line);border-radius:12px}
+.lyrics-action-disclosure .lyrics-tools{position:fixed;inset:auto;margin:0;width:240px;padding:8px;display:grid;border:1px solid var(--line);border-radius:12px;background:var(--surface-2);color:var(--text)}
+.lyrics-action-disclosure .lyrics-tools:not(:popover-open){display:none}
+.lyrics-action-disclosure .lyrics-tools button{text-align:left;justify-content:flex-start}
+.lyrics-modes{display:flex;gap:0;flex-wrap:nowrap;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.lyrics-modes button{padding:10px 16px;border:0;min-height:46px;white-space:nowrap}
+.lyrics-modes button[aria-pressed=true]{background:var(--accent);color:var(--on-accent);font-weight:600}
+.lyrics-follow{display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:10px 14px;min-height:48px;text-align:center;white-space:nowrap;color:var(--text)}
+.lyrics-follow[aria-pressed=true]{color:var(--muted)}
+.lyrics-reader .lyrics-scroll,.lyrics-reader .lyrics-scroll.is-synced{order:3;flex:0 0 auto;min-height:360px;max-height:620px;height:clamp(360px,55dvh,620px);width:100%;padding:24px 40px 38px;scrollbar-gutter:stable;overscroll-behavior-y:auto}
+.player-track #lyrics-reader-trigger{display:inline-flex;flex:none;color:var(--muted)}
+.player-track #lyrics-reader-trigger.active{color:var(--accent);background:var(--soft-accent)}
+.lyrics-reader .lyric-line{font-size:clamp(1.625rem,2.5vw,2.5rem);line-height:1.4;min-height:74px;padding:14px 0;font-weight:500;transform-origin:left center;transition:color 160ms var(--motion-ease),font-weight 160ms var(--motion-ease)}
+.lyrics-reader .lyric-line[aria-current=true]{color:var(--accent);font-weight:700}
+.lyrics-reader .lyrics-plain{font-size:clamp(1.25rem,2vw,1.875rem);line-height:1.8}
+.lyrics-reader .lyrics-source{order:4;padding:0 40px;margin-bottom:12px;min-height:28px;font-size:.9375rem}
+.lyrics-reader .lyrics-remove,.lyrics-reader .lyrics-footnote{order:5}
+.lyrics-reader .lyrics-footnote{font-size:.875rem;padding:0 40px}
+.lyrics-reader .lyrics-edition{order:2}
+.lyrics-reader .lyrics-search{max-width:720px;padding:12px 0}
+.recent-artwork{height:auto;aspect-ratio:1;background:transparent}
+.now-artwork{width:100%;margin:14px 0}
+.now-artwork .large-cover{width:100%;max-width:none;aspect-ratio:1}
+.highlight-art img,.library-track-play img{object-fit:cover}
+.cover img{object-position:center}
+.now-artwork,.recent-artwork,.home-mix>.cover{padding:0}
+.app:not(.show-panel) .panel-slot{transform:none;overflow:clip}
+@container(max-width:730px){.lyrics-reader .lyrics-reading-tools{order:2;flex:1 0 100%;justify-content:flex-start}.lyrics-reader .lyrics-action-disclosure{order:1}.lyrics-reader .lyrics-heading>.cover{width:76px;height:76px;flex-basis:76px}.lyrics-reader .lyrics-scroll,.lyrics-reader .lyrics-scroll.is-synced{padding-inline:12px}.lyrics-reader .lyrics-source,.lyrics-reader .lyrics-footnote{padding-inline:12px}.audio-workspace .audio-preset-toolbar{gap:14px}.audio-workspace .audio-db-scale{display:none}.audio-band-workspace{grid-template-columns:minmax(0,1fr)}.audio-eq-surface{padding:20px 16px}.audio-workspace .audio-aux{gap:12px}}
+@media(max-width:640px){.preferences-heading h1{font-size:1.875rem}.preferences-heading p{font-size:1rem}.preference-tabs{gap:0}.preference-tabs button{gap:6px;padding-inline:3px;font-size:.9375rem}.preference-tabs button svg{width:16px}.lyrics-reader .lyrics-heading{gap:12px}.lyrics-reader .lyrics-heading h2{font-size:1.75rem}.lyrics-reading-tools{gap:8px}.lyrics-modes button{padding-inline:12px}.lyrics-follow{white-space:normal}.lyrics-reader .lyrics-scroll,.lyrics-reader .lyrics-scroll.is-synced{padding-inline:2px;min-height:300px;height:50dvh}.lyrics-reader .lyric-line{font-size:1.625rem;min-height:64px}.lyrics-reader .lyrics-source,.lyrics-reader .lyrics-footnote{padding-inline:2px}.audio-eq-surface{padding:18px 12px}.audio-workspace .audio-bands{gap:3px}.audio-workspace .audio-band label strong{display:none}.audio-workspace .audio-band label span{font-size:.875rem}.audio-workspace .audio-band output{min-width:0;padding:4px 3px;font-size:.875rem}.audio-workspace .audio-band input[type=range]{height:160px}.audio-workspace .audio-aux{grid-template-columns:1fr!important}.audio-workspace .audio-preset-row{flex-wrap:wrap;gap:8px}.audio-workspace .audio-preset-row select{min-width:0}.preference-section .settings-row{flex-wrap:wrap;gap:12px}.preferences-page .settings-footnote{overflow-wrap:anywhere}}
+[data-motion=essential] .lyric-line,[data-motion=essential] .preference-tabs button::after{transition:none}
+@media(max-width:640px){.preference-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}.preference-tabs button{justify-content:flex-start;gap:10px;padding-inline:10px;font-size:1rem}.lyrics-reader .lyrics-heading :is(h1,h2){font-size:1.75rem}}
+@media(prefers-reduced-motion:reduce){.lyric-line,.preference-tabs button::after{transition:none}}

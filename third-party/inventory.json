@@ -1,0 +1,932 @@
+{
+  "scope": "Installed production JavaScript dependency closure and resolver Python environment. Android native components are described in android/THIRD-PARTY-NOTICES.txt; this is not an exhaustive native binary SBOM.",
+  "javascript": [
+    {
+      "name": "@babel/runtime",
+      "version": "7.29.10",
+      "license": "MIT",
+      "repository": "https://github.com/babel/babel.git",
+      "notices": [
+        "javascript/@babel__runtime@7.29.10/LICENSE"
+      ]
+    },
+    {
+      "name": "@capacitor/android",
+      "version": "8.5.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/ionic-team/capacitor.git",
+      "notices": [
+        "javascript/@capacitor__android@8.5.3/LICENSE"
+      ]
+    },
+    {
+      "name": "@capacitor/core",
+      "version": "8.5.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/ionic-team/capacitor.git",
+      "notices": [
+        "javascript/@capacitor__core@8.5.3/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/accept-negotiator",
+      "version": "2.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/accept-negotiator.git",
+      "notices": [
+        "javascript/@fastify__accept-negotiator@2.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/ajv-compiler",
+      "version": "4.0.6",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/ajv-compiler.git",
+      "notices": [
+        "javascript/@fastify__ajv-compiler@4.0.6/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/cors",
+      "version": "11.3.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify-cors.git",
+      "notices": [
+        "javascript/@fastify__cors@11.3.1/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/error",
+      "version": "4.2.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify-error.git",
+      "notices": [
+        "javascript/@fastify__error@4.2.0/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/fast-json-stringify-compiler",
+      "version": "5.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fast-json-stringify-compiler.git",
+      "notices": [
+        "javascript/@fastify__fast-json-stringify-compiler@5.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/forwarded",
+      "version": "3.0.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/forwarded.git",
+      "notices": [
+        "javascript/@fastify__forwarded@3.0.2/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/merge-json-schemas",
+      "version": "0.2.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/merge-json-schemas.git",
+      "notices": [
+        "javascript/@fastify__merge-json-schemas@0.2.1/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/proxy-addr",
+      "version": "5.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/proxy-addr.git",
+      "notices": [
+        "javascript/@fastify__proxy-addr@5.1.1/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/send",
+      "version": "4.1.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/send.git",
+      "notices": [
+        "javascript/@fastify__send@4.1.1/LICENSE"
+      ]
+    },
+    {
+      "name": "@fastify/static",
+      "version": "8.3.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify-static.git",
+      "notices": [
+        "javascript/@fastify__static@8.3.0/LICENSE"
+      ]
+    },
+    {
+      "name": "@isaacs/cliui",
+      "version": "9.0.0",
+      "license": "BlueOak-1.0.0",
+      "repository": "git+ssh://git@github.com:isaacs/cliui",
+      "notices": [
+        "javascript/@isaacs__cliui@9.0.0/LICENSE.md"
+      ]
+    },
+    {
+      "name": "@lukeed/ms",
+      "version": "2.0.2",
+      "license": "MIT",
+      "repository": "lukeed/ms",
+      "notices": [
+        "javascript/@lukeed__ms@2.0.2/license"
+      ]
+    },
+    {
+      "name": "@pinojs/redact",
+      "version": "0.4.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/pinojs/redact.git",
+      "notices": [
+        "javascript/@pinojs__redact@0.4.0/LICENSE"
+      ]
+    },
+    {
+      "name": "abstract-logging",
+      "version": "2.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/jsumners/abstract-logging.git",
+      "notices": [
+        "javascript/abstract-logging@2.0.1/MIT.html"
+      ]
+    },
+    {
+      "name": "ajv-formats",
+      "version": "3.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/ajv-validator/ajv-formats.git",
+      "notices": [
+        "javascript/ajv-formats@3.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "ajv",
+      "version": "8.20.0",
+      "license": "MIT",
+      "repository": "ajv-validator/ajv",
+      "notices": [
+        "javascript/ajv@8.20.0/LICENSE"
+      ]
+    },
+    {
+      "name": "atomic-sleep",
+      "version": "1.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/davidmarkclements/atomic-sleep.git",
+      "notices": [
+        "javascript/atomic-sleep@1.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "avvio",
+      "version": "9.3.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/avvio.git",
+      "notices": [
+        "javascript/avvio@9.3.0/LICENSE"
+      ]
+    },
+    {
+      "name": "balanced-match",
+      "version": "4.0.4",
+      "license": "MIT",
+      "repository": "git://github.com/juliangruber/balanced-match.git",
+      "notices": [
+        "javascript/balanced-match@4.0.4/LICENSE.md"
+      ]
+    },
+    {
+      "name": "brace-expansion",
+      "version": "5.0.12",
+      "license": "MIT",
+      "repository": "git+https://github.com/juliangruber/brace-expansion.git",
+      "notices": [
+        "javascript/brace-expansion@5.0.12/LICENSE"
+      ]
+    },
+    {
+      "name": "content-disposition",
+      "version": "0.5.4",
+      "license": "MIT",
+      "repository": "jshttp/content-disposition",
+      "notices": [
+        "javascript/content-disposition@0.5.4/LICENSE"
+      ]
+    },
+    {
+      "name": "cookie",
+      "version": "1.1.1",
+      "license": "MIT",
+      "repository": "jshttp/cookie",
+      "notices": [
+        "javascript/cookie@1.1.1/LICENSE"
+      ]
+    },
+    {
+      "name": "cross-spawn",
+      "version": "7.0.6",
+      "license": "MIT",
+      "repository": "git@github.com:moxystudio/node-cross-spawn.git",
+      "notices": [
+        "javascript/cross-spawn@7.0.6/LICENSE"
+      ]
+    },
+    {
+      "name": "depd",
+      "version": "2.0.0",
+      "license": "MIT",
+      "repository": "dougwilson/nodejs-depd",
+      "notices": [
+        "javascript/depd@2.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "dequal",
+      "version": "2.0.3",
+      "license": "MIT",
+      "repository": "lukeed/dequal",
+      "notices": [
+        "javascript/dequal@2.0.3/license"
+      ]
+    },
+    {
+      "name": "dotenv",
+      "version": "17.4.2",
+      "license": "BSD-2-Clause",
+      "repository": "git://github.com/motdotla/dotenv.git",
+      "notices": [
+        "javascript/dotenv@17.4.2/LICENSE"
+      ]
+    },
+    {
+      "name": "escape-html",
+      "version": "1.0.3",
+      "license": "MIT",
+      "repository": "component/escape-html",
+      "notices": [
+        "javascript/escape-html@1.0.3/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-decode-uri-component",
+      "version": "1.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/delvedor/fast-decode-uri-component.git",
+      "notices": [
+        "javascript/fast-decode-uri-component@1.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/epoberezkin/fast-deep-equal.git",
+      "notices": [
+        "javascript/fast-deep-equal@3.1.3/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-json-stringify",
+      "version": "7.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fast-json-stringify.git",
+      "notices": [
+        "javascript/fast-json-stringify@7.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-querystring",
+      "version": "1.1.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/anonrig/fast-querystring.git",
+      "notices": [
+        "javascript/fast-querystring@1.1.2/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-uri",
+      "version": "3.1.8",
+      "license": "BSD-3-Clause",
+      "repository": "git+https://github.com/fastify/fast-uri.git",
+      "notices": [
+        "javascript/fast-uri@3.1.8/LICENSE"
+      ]
+    },
+    {
+      "name": "fast-uri",
+      "version": "4.2.1",
+      "license": "BSD-3-Clause",
+      "repository": "git+https://github.com/fastify/fast-uri.git",
+      "notices": [
+        "javascript/fast-uri@4.2.1/LICENSE"
+      ]
+    },
+    {
+      "name": "fastify-plugin",
+      "version": "5.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify-plugin.git",
+      "notices": [
+        "javascript/fastify-plugin@5.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "fastify-plugin",
+      "version": "6.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify-plugin.git",
+      "notices": [
+        "javascript/fastify-plugin@6.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "fastify",
+      "version": "5.12.5",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/fastify.git",
+      "notices": [
+        "javascript/fastify@5.12.5/LICENSE"
+      ]
+    },
+    {
+      "name": "fastq",
+      "version": "1.20.3",
+      "license": "ISC",
+      "repository": "git+https://github.com/mcollina/fastq.git",
+      "notices": [
+        "javascript/fastq@1.20.3/LICENSE"
+      ]
+    },
+    {
+      "name": "find-my-way",
+      "version": "9.9.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/delvedor/find-my-way.git",
+      "notices": [
+        "javascript/find-my-way@9.9.0/LICENSE"
+      ]
+    },
+    {
+      "name": "foreground-child",
+      "version": "3.3.1",
+      "license": "ISC",
+      "repository": "git+https://github.com/tapjs/foreground-child.git",
+      "notices": [
+        "javascript/foreground-child@3.3.1/LICENSE"
+      ]
+    },
+    {
+      "name": "glob",
+      "version": "11.1.0",
+      "license": "BlueOak-1.0.0",
+      "repository": "git@github.com:isaacs/node-glob.git",
+      "notices": [
+        "javascript/glob@11.1.0/LICENSE.md"
+      ]
+    },
+    {
+      "name": "html-parse-stringify",
+      "version": "4.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/i18next/html-parse-stringify.git",
+      "notices": [
+        "javascript/html-parse-stringify@4.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "http-errors",
+      "version": "2.0.1",
+      "license": "MIT",
+      "repository": "jshttp/http-errors",
+      "notices": [
+        "javascript/http-errors@2.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "i18next",
+      "version": "26.4.7",
+      "license": "MIT",
+      "repository": "https://github.com/i18next/i18next.git",
+      "notices": [
+        "javascript/i18next@26.4.7/LICENSE"
+      ]
+    },
+    {
+      "name": "inherits",
+      "version": "2.0.4",
+      "license": "ISC",
+      "repository": "git://github.com/isaacs/inherits",
+      "notices": [
+        "javascript/inherits@2.0.4/LICENSE"
+      ]
+    },
+    {
+      "name": "ipaddr.js",
+      "version": "2.5.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/whitequark/ipaddr.js.git",
+      "notices": [
+        "javascript/ipaddr.js@2.5.0/LICENSE"
+      ]
+    },
+    {
+      "name": "isexe",
+      "version": "2.0.0",
+      "license": "ISC",
+      "repository": "git+https://github.com/isaacs/isexe.git",
+      "notices": [
+        "javascript/isexe@2.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "jackspeak",
+      "version": "4.2.3",
+      "license": "BlueOak-1.0.0",
+      "repository": "git+https://github.com/isaacs/jackspeak.git",
+      "notices": [
+        "javascript/jackspeak@4.2.3/LICENSE.md"
+      ]
+    },
+    {
+      "name": "json-schema-ref-resolver",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/json-schema-ref-resolver.git",
+      "notices": [
+        "javascript/json-schema-ref-resolver@3.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "json-schema-traverse",
+      "version": "1.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/epoberezkin/json-schema-traverse.git",
+      "notices": [
+        "javascript/json-schema-traverse@1.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "light-my-request",
+      "version": "6.6.0",
+      "license": "BSD-3-Clause",
+      "repository": "git+https://github.com/fastify/light-my-request.git",
+      "notices": [
+        "javascript/light-my-request@6.6.0/LICENSE"
+      ]
+    },
+    {
+      "name": "lucide-react",
+      "version": "1.53.0",
+      "license": "ISC",
+      "repository": "https://github.com/lucide-icons/lucide.git",
+      "notices": [
+        "javascript/lucide-react@1.53.0/LICENSE"
+      ]
+    },
+    {
+      "name": "mime",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "https://github.com/broofa/mime",
+      "notices": [
+        "javascript/mime@3.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "minimatch",
+      "version": "10.2.6",
+      "license": "BlueOak-1.0.0",
+      "repository": "git@github.com:isaacs/minimatch",
+      "notices": [
+        "javascript/minimatch@10.2.6/LICENSE.md"
+      ]
+    },
+    {
+      "name": "minipass",
+      "version": "7.1.3",
+      "license": "BlueOak-1.0.0",
+      "repository": "https://github.com/isaacs/minipass",
+      "notices": [
+        "javascript/minipass@7.1.3/LICENSE.md"
+      ]
+    },
+    {
+      "name": "on-exit-leak-free",
+      "version": "2.1.2",
+      "license": "MIT",
+      "repository": "git+https://github.com/mcollina/on-exit-or-gc.git",
+      "notices": [
+        "javascript/on-exit-leak-free@2.1.2/LICENSE"
+      ]
+    },
+    {
+      "name": "package-json-from-dist",
+      "version": "1.0.1",
+      "license": "BlueOak-1.0.0",
+      "repository": "git+https://github.com/isaacs/package-json-from-dist.git",
+      "notices": [
+        "javascript/package-json-from-dist@1.0.1/LICENSE.md"
+      ]
+    },
+    {
+      "name": "path-key",
+      "version": "3.1.1",
+      "license": "MIT",
+      "repository": "sindresorhus/path-key",
+      "notices": [
+        "javascript/path-key@3.1.1/license"
+      ]
+    },
+    {
+      "name": "path-scurry",
+      "version": "2.0.2",
+      "license": "BlueOak-1.0.0",
+      "repository": "git+https://github.com/isaacs/path-scurry",
+      "notices": [
+        "javascript/path-scurry@2.0.2/LICENSE.md"
+      ]
+    },
+    {
+      "name": "pino-abstract-transport",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/pinojs/pino-abstract-transport.git",
+      "notices": [
+        "javascript/pino-abstract-transport@3.0.0/LICENSE"
+      ]
+    },
+    {
+      "name": "pino-std-serializers",
+      "version": "7.1.0",
+      "license": "MIT",
+      "repository": "git+ssh://git@github.com/pinojs/pino-std-serializers.git",
+      "notices": [
+        "javascript/pino-std-serializers@7.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "pino",
+      "version": "10.4.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/pinojs/pino.git",
+      "notices": [
+        "javascript/pino@10.4.0/LICENSE"
+      ]
+    },
+    {
+      "name": "process-warning",
+      "version": "4.0.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/process-warning.git",
+      "notices": [
+        "javascript/process-warning@4.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "process-warning",
+      "version": "5.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/fastify/process-warning.git",
+      "notices": [
+        "javascript/process-warning@5.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "quick-format-unescaped",
+      "version": "4.0.4",
+      "license": "MIT",
+      "repository": "git+https://github.com/davidmarkclements/quick-format.git",
+      "notices": [
+        "javascript/quick-format-unescaped@4.0.4/LICENSE"
+      ]
+    },
+    {
+      "name": "react-dom",
+      "version": "19.3.0",
+      "license": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        "javascript/react-dom@19.3.0/LICENSE"
+      ]
+    },
+    {
+      "name": "react-i18next",
+      "version": "17.0.20",
+      "license": "MIT",
+      "repository": "https://github.com/i18next/react-i18next.git",
+      "notices": [
+        "javascript/react-i18next@17.0.20/LICENSE"
+      ]
+    },
+    {
+      "name": "react",
+      "version": "19.3.0",
+      "license": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        "javascript/react@19.3.0/LICENSE"
+      ]
+    },
+    {
+      "name": "real-require",
+      "version": "1.0.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/pinojs/real-require.git",
+      "notices": [
+        "javascript/real-require@1.0.0/LICENSE.md"
+      ]
+    },
+    {
+      "name": "require-from-string",
+      "version": "2.0.2",
+      "license": "MIT",
+      "repository": "floatdrop/require-from-string",
+      "notices": [
+        "javascript/require-from-string@2.0.2/license"
+      ]
+    },
+    {
+      "name": "ret",
+      "version": "0.5.0",
+      "license": "MIT",
+      "repository": "git://github.com/fent/ret.js.git",
+      "notices": [
+        "javascript/ret@0.5.0/LICENSE"
+      ]
+    },
+    {
+      "name": "reusify",
+      "version": "1.1.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/mcollina/reusify.git",
+      "notices": [
+        "javascript/reusify@1.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "safe-buffer",
+      "version": "5.2.1",
+      "license": "MIT",
+      "repository": "git://github.com/feross/safe-buffer.git",
+      "notices": [
+        "javascript/safe-buffer@5.2.1/LICENSE"
+      ]
+    },
+    {
+      "name": "safe-regex2",
+      "version": "5.1.1",
+      "license": "MIT",
+      "repository": "git://github.com/fastify/safe-regex2.git",
+      "notices": [
+        "javascript/safe-regex2@5.1.1/LICENSE"
+      ]
+    },
+    {
+      "name": "scheduler",
+      "version": "0.28.0",
+      "license": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        "javascript/scheduler@0.28.0/LICENSE"
+      ]
+    },
+    {
+      "name": "secure-json-parse",
+      "version": "4.1.0",
+      "license": "BSD-3-Clause",
+      "repository": "git+https://github.com/fastify/secure-json-parse.git",
+      "notices": [
+        "javascript/secure-json-parse@4.1.0/LICENSE"
+      ]
+    },
+    {
+      "name": "semver",
+      "version": "7.8.5",
+      "license": "ISC",
+      "repository": "git+https://github.com/npm/node-semver.git",
+      "notices": [
+        "javascript/semver@7.8.5/LICENSE"
+      ]
+    },
+    {
+      "name": "set-cookie-parser",
+      "version": "2.7.2",
+      "license": "MIT",
+      "repository": "nfriedly/set-cookie-parser",
+      "notices": [
+        "javascript/set-cookie-parser@2.7.2/LICENSE"
+      ]
+    },
+    {
+      "name": "setprototypeof",
+      "version": "1.2.0",
+      "license": "ISC",
+      "repository": "https://github.com/wesleytodd/setprototypeof.git",
+      "notices": [
+        "javascript/setprototypeof@1.2.0/LICENSE"
+      ]
+    },
+    {
+      "name": "shebang-command",
+      "version": "2.0.0",
+      "license": "MIT",
+      "repository": "kevva/shebang-command",
+      "notices": [
+        "javascript/shebang-command@2.0.0/license"
+      ]
+    },
+    {
+      "name": "shebang-regex",
+      "version": "3.0.0",
+      "license": "MIT",
+      "repository": "sindresorhus/shebang-regex",
+      "notices": [
+        "javascript/shebang-regex@3.0.0/license"
+      ]
+    },
+    {
+      "name": "sonic-boom",
+      "version": "4.2.1",
+      "license": "MIT",
+      "repository": "git+https://github.com/pinojs/sonic-boom.git",
+      "notices": [
+        "javascript/sonic-boom@4.2.1/LICENSE"
+      ]
+    },
+    {
+      "name": "split2",
+      "version": "4.2.0",
+      "license": "ISC",
+      "repository": "https://github.com/mcollina/split2.git",
+      "notices": [
+        "javascript/split2@4.2.0/LICENSE"
+      ]
+    },
+    {
+      "name": "statuses",
+      "version": "2.0.2",
+      "license": "MIT",
+      "repository": "jshttp/statuses",
+      "notices": [
+        "javascript/statuses@2.0.2/LICENSE"
+      ]
+    },
+    {
+      "name": "thread-stream",
+      "version": "4.2.0",
+      "license": "MIT",
+      "repository": "git+https://github.com/mcollina/thread-stream.git",
+      "notices": [
+        "javascript/thread-stream@4.2.0/LICENSE"
+      ]
+    },
+    {
+      "name": "toidentifier",
+      "version": "1.0.1",
+      "license": "MIT",
+      "repository": "component/toidentifier",
+      "notices": [
+        "javascript/toidentifier@1.0.1/LICENSE"
+      ]
+    },
+    {
+      "name": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "repository": "https://github.com/Microsoft/tslib.git",
+      "notices": [
+        "javascript/tslib@2.8.1/LICENSE.txt"
+      ]
+    },
+    {
+      "name": "use-sync-external-store",
+      "version": "1.7.0",
+      "license": "MIT",
+      "repository": "https://github.com/react/react.git",
+      "notices": [
+        "javascript/use-sync-external-store@1.7.0/LICENSE"
+      ]
+    },
+    {
+      "name": "which",
+      "version": "2.0.2",
+      "license": "ISC",
+      "repository": "git://github.com/isaacs/node-which.git",
+      "notices": [
+        "javascript/which@2.0.2/LICENSE"
+      ]
+    },
+    {
+      "name": "zustand",
+      "version": "5.0.15",
+      "license": "MIT",
+      "repository": "git+https://github.com/pmndrs/zustand.git",
+      "notices": [
+        "javascript/zustand@5.0.15/LICENSE"
+      ]
+    }
+  ],
+  "python": [
+    {
+      "name": "brotli",
+      "version": "1.2.0",
+      "license": "MIT",
+      "notices": [
+        "python/brotli-1.2.0.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22",
+      "license": "MPL-2.0",
+      "notices": [
+        "python/certifi-2026.7.22.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "charset-normalizer",
+      "version": "3.5.2",
+      "license": "MIT",
+      "notices": [
+        "python/charset_normalizer-3.5.2.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "idna",
+      "version": "3.20",
+      "license": "BSD-3-Clause",
+      "notices": [
+        "python/idna-3.20.dist-info/licenses/LICENSE.md"
+      ]
+    },
+    {
+      "name": "mutagen",
+      "version": "1.48.1",
+      "license": "GPL-2.0-or-later",
+      "notices": [
+        "python/mutagen-1.48.1.dist-info/licenses/COPYING"
+      ]
+    },
+    {
+      "name": "pycryptodomex",
+      "version": "3.24.0",
+      "license": "BSD, Public Domain",
+      "notices": [
+        "python/pycryptodomex-3.24.0.dist-info/LICENSE.rst"
+      ]
+    },
+    {
+      "name": "requests",
+      "version": "2.34.2",
+      "license": "Apache-2.0",
+      "notices": [
+        "python/requests-2.34.2.dist-info/licenses/LICENSE",
+        "python/requests-2.34.2.dist-info/licenses/NOTICE"
+      ]
+    },
+    {
+      "name": "urllib3",
+      "version": "2.8.0",
+      "license": "MIT",
+      "notices": [
+        "python/urllib3-2.8.0.dist-info/licenses/LICENSE.txt"
+      ]
+    },
+    {
+      "name": "websockets",
+      "version": "17.2",
+      "license": "BSD-3-Clause",
+      "notices": [
+        "python/websockets-17.2.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "yt-dlp",
+      "version": "2026.8.19",
+      "license": "Unlicense",
+      "notices": [
+        "python/yt_dlp-2026.8.19.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "yt-dlp-ejs",
+      "version": "0.8.0",
+      "license": "Unlicense AND MIT AND ISC",
+      "notices": [
+        "python/yt_dlp_ejs-0.8.0.dist-info/licenses/LICENSE"
+      ]
+    },
+    {
+      "name": "ytmusicapi",
+      "version": "1.12.3",
+      "license": "MIT",
+      "notices": [
+        "python/ytmusicapi-1.12.3.dist-info/licenses/LICENSE"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+/* UI-6.3: keyboard affordances and readable selected states. */
+:root{--accent-readable:var(--accent)}
+[data-theme=light]{--accent-readable:#644aa5}
+[data-theme=light] .nav-link.chosen,[data-theme=light] .sidebar-favourites.chosen,
+[data-theme=light] .catalog-track.selected .catalog-track-name>button{color:var(--accent-readable)}
+:where(button,a,input,textarea,select,summary,[tabindex]):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.searchbox:focus-within{outline:2px solid var(--accent);outline-offset:3px}
+.track-name:focus-within,.library-track-title:focus-within{overflow:visible}
+.catalog-inline-link:focus-visible{border-radius:3px;outline-offset:1px;color:var(--accent-readable)}
+.catalog-track-name>button,.catalog-track-name .catalog-inline-link{min-height:24px}
+.catalog-track-name .track-catalog-links{line-height:24px}
+.player-track .scrolling-line{line-height:24px}
+.player-track .player-title-link,.player-track .player-artist-link,.player-track .player-album-link{min-height:24px}
+.player-track .player-artist-line{margin-top:0}
+.player-track .player-album-line{font-size:.8125rem;font-weight:400;color:var(--muted);margin:0}
+.player-track .player-album-link{font:inherit;color:inherit;padding:0;text-align:left;white-space:nowrap}
+.player-album-link:hover,.player-album-link:focus-visible{color:var(--accent-readable);text-decoration:underline;text-underline-offset:3px}
+.scrolling-line:focus-within{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+.scrolling-line button:focus-visible{outline:none}
+.track-album .catalog-inline-link{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:24px;vertical-align:middle;text-align:left}
+.track-album-inline{display:none}
+@container music-content (max-width:620px){
+  .track-album-inline{display:block;margin-top:2px;line-height:24px}
+  .track-album-inline .catalog-inline-link{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-height:24px;text-align:left}
+}
+.panel-tabs>.icon-button{opacity:1}
+.panel-tabs:focus-within>.icon-button{opacity:1}
+.main{scroll-padding-top:100px}
+.main :is(button,a,input,select,textarea,summary,[tabindex]){scroll-margin-block:105px 16px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+@media(forced-colors:active){
+  :where(button,a,input,textarea,select,summary,[tabindex]):focus-visible,.scrolling-line:focus-within,.searchbox:focus-within{outline-color:Highlight}
+  .volume-drawing{background:Canvas;border:1px solid CanvasText;forced-color-adjust:none}
+  .volume-fill{background:Highlight;forced-color-adjust:none}
+  .wave-rail path{stroke:CanvasText}.wave-progress path{stroke:Highlight}
+}

@@ -1,0 +1,12 @@
+.listening-options{position:fixed;inset:auto;top:50%;left:50%;translate:-50% -50%;width:min(360px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;padding:12px;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 40px #0005}
+.listening-options::backdrop{background:#0003}
+.listening-options>strong{display:block;padding:8px 10px;font-size:18px;overflow-wrap:anywhere}
+.listening-options>button{display:flex;align-items:center;gap:12px;width:100%;padding:12px 10px;text-align:left;background:transparent;border-radius:7px;min-height:44px;font-size:16px}
+.listening-options>button:hover{background:var(--hover)}.listening-options svg{flex-shrink:0}.listening-options span{min-width:0;overflow-wrap:anywhere}.listening-options small{display:block;color:var(--muted);font-size:14px;margin-top:4px}
+.excluded-badge{display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-size:13px!important;line-height:1.4;margin-top:4px}
+.exclusion-settings>p{font-size:16px;line-height:1.5;color:var(--muted)}.exclusion-empty{padding:12px 0}.exclusion-settings h4{font-size:17px;margin:20px 0 8px}
+.exclusion-settings ul{list-style:none;padding:0;margin:0;max-height:250px;overflow:auto}.exclusion-settings li{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line)}.exclusion-settings li>span{min-width:0;flex:1}.exclusion-settings strong,.exclusion-settings small{display:block;overflow-wrap:anywhere}.exclusion-settings strong{font-size:16px}.exclusion-settings small{font-size:14px;color:var(--muted);margin-top:4px}.exclusion-settings button{flex-shrink:0;min-height:44px}
+.shuffle-explanation{font-size:14px;color:var(--muted);line-height:1.5;margin:8px 0 16px}.listening-options:popover-open{animation:listening-options-arrival 150ms var(--motion-ease)}
+.settings-dialog .secondary-button{color:var(--text)}
+@keyframes listening-options-arrival{from{opacity:.7;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+@media(prefers-reduced-motion:reduce){.listening-options:popover-open{animation:none}}

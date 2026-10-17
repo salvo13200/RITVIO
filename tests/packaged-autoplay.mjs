@@ -1,0 +1,14 @@
+import {expect} from '@playwright/test';
+import {writeFile} from 'node:fs/promises';
+export async function runNativeAutoplay({page,version,profile,capture}){
+  await page.emulateMedia({reducedMotion:'reduce'});let radioRequests=0;const streams=[];
+  page.on('request',r=>{if(r.url().includes('/v1/catalog/radio/'))radioRequests++;});
+  page.on('response',r=>{if(r.url().includes('/v1/stream/'))streams.push({status:r.status(),type:r.headers()['content-type']});});
+  await page.getByRole('textbox',{name:'Cerca musica'}).fill('Daft Punk One More Time');const row=page.locator('.track-row').first();await expect(row).toBeVisible({timeout:45000});const title=await row.locator('.track-name strong').innerText();await row.getByRole('button',{name:'Riproduci '+title,exact:true}).click();await expect.poll(()=>page.getByRole('slider',{name:'Posizione del brano'}).inputValue().then(Number),{timeout:45000}).toBeGreaterThan(1);
+  await page.locator('#queue-panel-trigger').click();await page.getByRole('button',{name:'Modifica coda',exact:true}).click();await page.locator('.queue-body').getByRole('button',{name:'Svuota i successivi',exact:true}).click();
+  const toggle=page.locator('.queue-body').getByRole('switch',{name:'Continua con brani simili'});await expect(toggle).toHaveAttribute('aria-checked','false');expect(radioRequests).toBe(0);await toggle.click();await expect(page.locator('.queue-body .autoplay-status')).toContainText(/\d+ brani aggiunti/,{timeout:45000});await expect(page.locator('.player-track strong')).toHaveText(title);
+  await expect(page.locator('.queue-autoplay-origin').filter({hasText:'Autoplay · da'})).toHaveCount(10);await expect(page.locator('.queue-autoplay-origin').first()).toBeVisible();expect(radioRequests).toBe(1);
+  await page.getByRole('slider',{name:'Posizione del brano'}).press('End');await expect(page.locator('.player-track strong')).not.toHaveText(title,{timeout:45000});await expect.poll(()=>page.getByRole('slider',{name:'Posizione del brano'}).inputValue().then(Number),{timeout:45000}).toBeGreaterThan(1);await expect(page.locator('.player-error')).not.toBeVisible();
+  await page.getByRole('button',{name:'Pausa',exact:true}).click();await capture('autoplay-native.png');const count=await page.locator('.queue-row').count();await toggle.click();await expect(toggle).toHaveAttribute('aria-checked','false');expect(await page.locator('.queue-row').count()).toBe(count);
+  const record={version,profile,scope:'one real catalog extension and natural advance to real audio, isolated hidden portable with clean Windows PATH; no latency guarantee',title,radioRequests,visibleRowsAfterAdvance:count,addedTracks:10,streams,screenshot:'autoplay-native.png'};await writeFile(`data/analysis/autoplay-native-${version}.json`,JSON.stringify(record,null,2));console.log(JSON.stringify(record));
+}

@@ -1,0 +1,13 @@
+import type {MusicResource,Track,SearchResponse} from './index';
+export type CatalogKind='artist'|'album';
+export const catalogIdPattern=/^[A-Za-z0-9_-]{1,160}$/;
+export type CatalogResource=MusicResource & {kind:CatalogKind;artwork:string|null;artists:MusicResource[];year:string|null;releaseType:string|null};
+export type AlbumEntry={number:number;title:string;duration:number;track:Track|null};
+export type AlbumDetail=CatalogResource & {kind:'album';description:string;entries:AlbumEntry[];reportedCount:number|null;incomplete:boolean};
+export type ArtistDetail=CatalogResource & {kind:'artist';description:string;tracks:Track[];albums:CatalogResource[];singles:CatalogResource[];moreAlbums:boolean;moreSingles:boolean};
+export type CatalogDetail=AlbumDetail|ArtistDetail;
+export type CatalogResult<T>={data:T;cache:SearchResponse['cache']};
+export type CatalogSearch={items:CatalogResource[];truncated:boolean;priorityArtist?:MusicResource};
+export type ArtistReleases={items:CatalogResource[];truncated:boolean};
+export type ArtistSearchKind='track'|'album';
+export type ArtistSearch={kind:'track';items:Track[];truncated:boolean}|{kind:'album';items:CatalogResource[];truncated:boolean};

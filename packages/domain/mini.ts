@@ -1,0 +1,3 @@
+export type MiniSnapshot={title:string;artist:string;videoId:string|null;position:number;duration:number;volume:number;muted:boolean;playing:boolean;loading:boolean;canNext:boolean;canPrevious:boolean;error:string|null;theme:'dark'|'light';motion:'curated'|'essential';pinned?:boolean};
+export type MiniCommand={type:'toggle'|'next'|'previous'|'mute'|'restore'|'pin'|'close'}|{type:'seek'|'volume';value:number};
+export type MiniBridge={openMini:()=>Promise<void>;publishMini:(state:MiniSnapshot)=>Promise<void>;readMini:()=>Promise<MiniSnapshot|null>;miniCommand:(command:MiniCommand)=>Promise<void>;onMiniState:(callback:(state:MiniSnapshot)=>void)=>()=>void;onMiniCommand:(callback:(command:MiniCommand)=>void)=>()=>void};

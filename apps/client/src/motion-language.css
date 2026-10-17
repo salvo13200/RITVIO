@@ -1,0 +1,44 @@
+/* UI-6.2: feedback and continuity, rather than repeated page choreography. */
+:root{--motion-feedback:140ms;--motion-enter:180ms;--motion-exit:100ms;--motion-arrive:cubic-bezier(.16,1,.3,1)}
+.icon-button,.primary-button,.secondary-button,.text-button{transition:background-color var(--motion-feedback) ease-out,color var(--motion-feedback) ease-out,border-color var(--motion-feedback) ease-out}
+.player-track-copy{min-width:0}
+.player-track .scrolling-line{width:100%;min-width:0;overflow:hidden;line-height:1.4;position:relative}
+.player-track .marquee-run{display:inline-flex;align-items:baseline;width:max-content;max-width:none;gap:32px;transform:translateX(0)}
+.player-track .marquee-original,.player-track .player-artist-part{display:inline-flex;flex:none;max-width:none;overflow:visible;white-space:nowrap;margin:0;font:inherit;color:inherit;line-height:inherit}
+.player-track .player-title-line{font-size:1.0625rem;font-weight:600}
+.player-track .player-artist-line{font-size:.9375rem;color:var(--muted);margin-top:4px}
+.player-track .player-title-link,.player-track .player-artist-link{border:0;background:transparent;padding:0;min-height:22px;margin:0;font:inherit;line-height:inherit;color:inherit;white-space:nowrap;cursor:pointer;text-align:left}
+.player-track .player-title-link strong{font:inherit;display:block;white-space:nowrap;overflow:visible}
+.player-track .player-artist-part>span{display:inline;margin:0;font:inherit;overflow:visible}
+.player-title-link:hover,.player-artist-link:hover,.player-title-link:focus-visible,.player-artist-link:focus-visible{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.scrolling-line[data-scroll=true] .marquee-run{animation:player-name-scroll var(--marquee-seconds) linear .8s infinite}
+.scrolling-line:hover .marquee-run{animation-play-state:paused}
+.scrolling-line:focus-within .marquee-run{animation:none;transform:none}
+.scrolling-line:focus-within{overflow:auto;scrollbar-width:none}
+.scrolling-line::-webkit-scrollbar{display:none}
+.scrolling-line[data-overflow=true]{mask-image:linear-gradient(to right,#000 calc(100% - 8px),transparent)}
+.scrolling-line:focus-within{mask-image:none}
+@keyframes player-name-scroll{0%,4%,100%{transform:translateX(0)}48%,54%{transform:translateX(var(--marquee-distance))}}
+.animated-cover{position:relative;isolation:isolate}
+.animated-cover .cover-retained{position:absolute;inset:0;z-index:0;object-fit:cover}
+.animated-cover .cover-incoming{position:relative;z-index:1;object-fit:cover}
+.animated-cover .artwork-loading{position:absolute;right:8px;bottom:8px;z-index:2;display:grid;place-items:center;width:26px;height:26px;margin:0;border-radius:50%;background:var(--surface-2);color:var(--accent)}
+.animated-cover .artwork-loading svg{width:16px;height:16px}
+[data-app-visibility=hidden] .artwork-loading .spin,#listening-panel[aria-hidden=true] .artwork-loading .spin{animation-play-state:paused}
+[data-motion=essential] .artwork-loading .spin{animation:none}
+.app .panel-slot{transition-duration:250ms}
+.catalog-album-entry[data-jump-target=true]{border-radius:8px;background:var(--soft-accent)}
+@supports(transition-behavior:allow-discrete){
+  .listening-options,.lyrics-tools,.timer-popover{opacity:0;transform:translateY(4px) scale(.985);transition:opacity var(--motion-exit) ease-out,transform var(--motion-exit) ease-out,display var(--motion-exit) allow-discrete,overlay var(--motion-exit) allow-discrete;transform-origin:top right}
+  .listening-options:popover-open,.lyrics-tools:popover-open,.timer-popover:popover-open{opacity:1;transform:none;transition-duration:var(--motion-enter)}
+  @starting-style{.listening-options:popover-open,.lyrics-tools:popover-open,.timer-popover:popover-open{opacity:0;transform:translateY(4px) scale(.985)}}
+}
+[data-motion=essential] .scrolling-line .marquee-run,[data-app-visibility=hidden] .scrolling-line .marquee-run{animation:none}
+[data-motion=essential] .app .panel-slot{transition:none}
+[data-motion=essential] :is(.listening-options,.lyrics-tools,.timer-popover){transform:none;transition-duration:90ms}
+@media(prefers-reduced-motion:reduce){
+  .scrolling-line .marquee-run{animation:none!important;transform:none}
+  .artwork-loading .spin{animation:none}
+  .app .panel-slot{transition:none}
+  .listening-options,.lyrics-tools,.timer-popover{transform:none;transition:none}
+}

@@ -1,0 +1,25 @@
+import {readFile,writeFile,readdir} from 'node:fs/promises';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import path from 'node:path';
+const root=path.resolve(import.meta.dirname,'..'),release=path.join(root,'release');
+const desktop=JSON.parse(await readFile(path.join(root,'package.json'),'utf8')),mobile=JSON.parse(await readFile(path.join(root,'apps/mobile/package.json'),'utf8'));
+const gradle=await readFile(path.join(root,'apps/mobile/android/app/build.gradle'),'utf8');
+if(!gradle.includes(`versionName "${mobile.version}"`))throw Error('Android package and Gradle versions differ');
+const names=[`RITVIO-${desktop.version}-portatile.exe`,`RITVIO-${desktop.version}-setup.exe`,`RITVIO-Android-${mobile.version}.apk`,'RITVIO-public-source.zip','RITVIO-resolver-sources.zip'];
+const files=[];
+for(const name of names){const bytes=await readFile(path.join(release,name));if(name.endsWith('.exe')&&bytes.subarray(0,2).toString()!=='MZ')throw Error('Invalid Windows executable');if(/\.(zip|apk)$/.test(name)&&bytes.subarray(0,2).toString()!=='PK')throw Error('Invalid ZIP/APK');files.push({name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
+const jdkBase=path.join(root,'.packaging/android-tools/jdk');
+const jdk=process.env.JAVA_HOME??path.join(jdkBase,(await readdir(jdkBase)).find(name=>name.startsWith('jdk-')));
+const sdk=process.env.ANDROID_HOME??path.join(root,'.packaging/android-tools/sdk');
+const verify=spawnSync(path.join(jdk,'bin',process.platform==='win32'?'java.exe':'java'),['-jar',path.join(sdk,'build-tools/36.0.0/lib/apksigner.jar'),'verify','--verbose','--print-certs',path.join(release,`RITVIO-Android-${mobile.version}.apk`)],{encoding:'utf8',windowsHide:true});
+if(verify.error||verify.status!==0)throw Error('APK cryptographic signature verification failed');
+const signature=verify.stdout;
+await writeFile(path.join(release,`RITVIO-Android-${mobile.version}.apk.signature.txt`),signature);
+const certificate='6cf6e93d7ce553b00afdd29b6c10f5de7ed6fbaca9c8cd81cc3138e3f25963a6';
+if(!signature.toLowerCase().includes(certificate)||!/Verified using v2 scheme[^\r\n]*true/i.test(signature))throw Error('Official APK signature evidence is missing or uses a replacement key');
+const git=spawnSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',windowsHide:true});
+const manifest={schema:1,status:'candidate',desktop:desktop.version,android:mobile.version,androidVersionCode:Number(gradle.match(/versionCode\s+(\d+)/)[1]),androidCertificateSha256:certificate,sourceCommit:git.status===0?git.stdout.trim():null,files,limitations:['Windows executables are not Authenticode-signed.','Current APK physical-device rendering, background playback and Gallery checks remain pending.','GitHub workflow execution and repository protections require the actual GitHub repository.','Do not describe this candidate as a fully verified stable 1.0 release.']};
+await writeFile(path.join(release,'RELEASE-MANIFEST.json'),JSON.stringify(manifest,null,2)+'\n');
+await writeFile(path.join(release,'SHA256SUMS'),files.map(file=>`${file.sha256}  ${file.name}`).join('\n')+'\n');
+console.log(JSON.stringify({desktop:desktop.version,android:mobile.version,files:files.length,status:'candidate',sourceCommit:manifest.sourceCommit}));

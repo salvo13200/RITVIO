@@ -1,0 +1,11 @@
+{
+  "language.title":"Lingua",
+  "language.system":"Segui il sistema",
+  "language.hint":"La modifica è immediata e viene salvata su questo dispositivo.",
+  "language.saving":"Salvataggio…",
+  "language.unavailable":"Questa lingua non è ancora disponibile.",
+  "language.saveFailed":"Impossibile salvare la lingua. Riprova.",
+  "language.sessionOnly":"La lingua è disponibile solo per questa sessione.",
+  "items_one":"{{count}} elemento",
+  "items_other":"{{count}} elementi"
+}

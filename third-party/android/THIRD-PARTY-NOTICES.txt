@@ -1,0 +1,57 @@
+RITVIO Android — third-party software notices
+
+These notices concern software, not rights to streamed music or catalog artwork.
+The named license files in this directory reproduce the upstream notices.
+The additional ritvio-licenses/third-party directory generated during packaging
+includes shared JavaScript notices (including i18next, react-i18next and Zustand),
+the resolver inventory, the RITVIO GPLv3 text and licensing scope document.
+
+Capacitor 8.5.3 — Ionic / OutSystems and contributors, MIT.
+https://github.com/ionic-team/capacitor
+
+AndroidX Media3 1.11.1, AndroidX support libraries and Android platform components
+— The Android Open Source Project, Apache License 2.0.
+https://github.com/androidx/media
+
+Chaquopy 17.1.0 — Chaquo Ltd and contributors, MIT.
+https://github.com/chaquo/chaquopy
+Python 3.13 — Python Software Foundation and contributors; see Python-3.13.txt.
+
+Zipline Android 1.23.0 — Square / Cash App and contributors, Apache License 2.0.
+https://github.com/cashapp/zipline/tree/1.23.0
+Its embedded QuickJS engine carries the MIT notice in QuickJS-MIT.txt.
+RITVIO uses the standalone QuickJs evaluator, without Zipline remote loading.
+
+yt-dlp 2026.8.19 — upstream contributors, Unlicense.
+yt-dlp-ejs 0.8.0 — upstream contributors, Unlicense AND MIT AND ISC.
+https://github.com/yt-dlp/yt-dlp
+https://github.com/yt-dlp/ejs
+EJS bundles JavaScript components under their upstream notices; its full
+distribution license/notices are reproduced in yt_dlp_ejs-0.8.0.dist-info.txt.
+
+ytmusicapi 1.12.3 — upstream authors and contributors, MIT.
+https://github.com/sigma67/ytmusicapi
+Requests 2.34.2 — upstream authors and contributors, Apache License 2.0.
+https://github.com/psf/requests
+urllib3 2.8.0 — upstream authors and contributors, MIT.
+https://github.com/urllib3/urllib3
+idna 3.20 — upstream authors and contributors, BSD 3-Clause.
+https://github.com/kjd/idna
+charset-normalizer 3.5.2 — upstream authors and contributors, MIT.
+https://github.com/jawah/charset_normalizer
+certifi 2026.7.22 — Mozilla CA bundle, Mozilla Public License 2.0.
+https://github.com/certifi/python-certifi
+
+React / React DOM 19.3.0 — Meta and contributors, MIT.
+https://github.com/facebook/react
+Lucide icons 1.53.0 — Lucide contributors, ISC; includes Feather's MIT notice.
+https://github.com/lucide-icons/lucide
+Ancizar Sans — upstream font authors, SIL Open Font License 1.1.
+See AncizarSans-OFL.txt, identical to the desktop font distribution notice.
+
+Kotlin standard libraries, kotlinx libraries, Guava/ListenableFuture and Okio
+used transitively by Android components retain their Apache License 2.0 notices.
+The Apache-2.0.txt text is included. Upstream package metadata and embedded
+runtime license files remain part of the corresponding distributions.
+
+There is no SimpMusic, NewPipeExtractor or youtubedl-android code in this APK.
