@@ -1,0 +1,257 @@
+{
+  "schema": 1,
+  "language": "en",
+  "encoding": "metadata-free lossless WebP; decoded capture pixels unchanged",
+  "capture": "Actual React UI with isolated synthetic fixtures, Microsoft Edge. No private profile or live provider requests; not native-device execution.",
+  "banner": "AI-generated for RITVIO with its existing waveform app icon as the only reference; no app UI is generated inside the banner.",
+  "files": [
+    {
+      "file": "banner.webp",
+      "kind": "generated-brand-banner",
+      "width": 2172,
+      "height": 724,
+      "bytes": 1071124,
+      "sha256": "5d7e83b32dddb20a9dd49d72565550cf805e662ee38a0915e9405b22b3d39143"
+    },
+    {
+      "file": "desktop-home.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 375578,
+      "sha256": "1c636493b17bb3708536b84f77de8653da42983281c3f9d0741d798176d5aa16"
+    },
+    {
+      "file": "desktop-library.webp",
+      "kind": "browser-interface-capture",
+      "width": 1400,
+      "height": 1120,
+      "bytes": 467174,
+      "sha256": "3595d4cb9f02e926db92ea4c5215db6412cd8daca3559dc3422dbb70d1ff3141"
+    },
+    {
+      "file": "desktop-lyrics.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 150934,
+      "sha256": "7b0d31d91dc24eef2f98187b25eb001171430247e1de855dd05fbca40923e86d"
+    },
+    {
+      "file": "desktop-immersive.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 557944,
+      "sha256": "39301cc85686dfb7983f8947b0fb405704ef3e73b5a9077fc7585b17c42eafac"
+    },
+    {
+      "file": "desktop-mini.webp",
+      "kind": "browser-interface-capture",
+      "width": 480,
+      "height": 260,
+      "bytes": 12320,
+      "sha256": "be7e627da481ac5b05cc7529996b1bb6ff58967eaaa272813229ae9e3b1e0dbf"
+    },
+    {
+      "file": "desktop-activity.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 98878,
+      "sha256": "65accc954046bd09e91889667d7aafa8de8286f36de33d7a38c1dc6b7f79a205"
+    },
+    {
+      "file": "desktop-taste.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 95156,
+      "sha256": "b6cd782759074b15c2fec2853d23350153af9b3def1359306740e2e39748df1a"
+    },
+    {
+      "file": "desktop-history.webp",
+      "kind": "browser-interface-capture",
+      "width": 1600,
+      "height": 1000,
+      "bytes": 157896,
+      "sha256": "a6147e70b84506f38058c835e429b576170a2a2bc2467ace17cf233160eca20e"
+    },
+    {
+      "file": "mobile-home.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 121474,
+      "sha256": "60f9f00dbf675c8a9d1187839ffcf9e97a3a755b4acf85f410530510c548e594"
+    },
+    {
+      "file": "mobile-search.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 59408,
+      "sha256": "47d815a47af6b9e6a13f436106e76e1d7674d9b09a1b914b832ff2dfc3eb893a"
+    },
+    {
+      "file": "mobile-library.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 135356,
+      "sha256": "8307a5e1ce4e5a1058ff3578d7feaa75e556c366e77d7a1caf63e4484c2421cc"
+    },
+    {
+      "file": "mobile-player.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 217338,
+      "sha256": "c17f6639c94deb915f4750051e6a3e2e25036bae133e1d43be1a77ef08b2525b"
+    },
+    {
+      "file": "mobile-lyrics.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 45358,
+      "sha256": "17126d83cc04adaa1467d00993b8e9759155ca89cf38f3998ef6cb902333c0c3"
+    },
+    {
+      "file": "mobile-queue.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 46920,
+      "sha256": "e204e4d26c6b213014b282f6a6347c8d22d97d6b77b166267257510af3d3cf96"
+    },
+    {
+      "file": "mobile-audio.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 20458,
+      "sha256": "c4bacae479ec41466c1024be6115cd2cca3770bfdc50376f933257768b0c2750"
+    },
+    {
+      "file": "mobile-timer.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 47182,
+      "sha256": "1773a59648eac359b0673a7c4fbe626377855f966e197c7eb456ba3409d05d20"
+    },
+    {
+      "file": "mobile-radio.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 55916,
+      "sha256": "c8c3f41103592b6cacc63c484468fa163e43fb5e0ea9d61d74d4be7f1e552e67"
+    },
+    {
+      "file": "mobile-favourites.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 120060,
+      "sha256": "19b5370d59f0243c633b2a0dbbd61e6c1401dac251ef9341e7ea1d7f13506578"
+    },
+    {
+      "file": "mobile-playlist.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 118374,
+      "sha256": "323144903a1b3f1663073bff8430570745218a4820f0b28e0b650da7ffb709eb"
+    },
+    {
+      "file": "mobile-playlist-actions.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 25720,
+      "sha256": "d7dd6ef1044c825d7ca1587e84094c7195fb0ca27998e94199b2f1d4f83321d8"
+    },
+    {
+      "file": "mobile-artist.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 86008,
+      "sha256": "71d86cf99f7248f41a8cd29146890952f35f7a55e4e670e4d0907c1e546e620c"
+    },
+    {
+      "file": "mobile-album.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 114192,
+      "sha256": "bcb8ec97360024734ba11015a5b4d6fc9cfe430e8432bd778846426e6d760f17"
+    },
+    {
+      "file": "mobile-import.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 35604,
+      "sha256": "6bbd54c8b46cb1b87fca2be588974808a96b54dac5744c5bb486972887c99b5f"
+    },
+    {
+      "file": "mobile-export.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 50138,
+      "sha256": "24bed4ba7daa590d0688271b41c7a6dcb41dc8f2292ab4e22b6387961d24438d"
+    },
+    {
+      "file": "mobile-settings.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 50432,
+      "sha256": "0e53acefc3b17860b44e447fedbf3c2bf974d29cc072d1c8999796b8e732ebde"
+    },
+    {
+      "file": "mobile-share-track.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 101062,
+      "sha256": "c55f5ef9b3bfe8c434eccb5e56a54ff3782508ddeb03abfe6ebd24068569bbe9"
+    },
+    {
+      "file": "mobile-share-selection.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 36018,
+      "sha256": "43e92a43fed41ecc00d4a3f810f02be1352c9e190956d1ba00e81a4b51e6e6bd"
+    },
+    {
+      "file": "mobile-share-lyrics.webp",
+      "kind": "browser-interface-capture",
+      "width": 393,
+      "height": 852,
+      "bytes": 43102,
+      "sha256": "e00e49ee1f08256f855e8107efe39215e6fdd4e2431057ad04dbba90faa843b8"
+    },
+    {
+      "file": "share-card-track.webp",
+      "kind": "demo-share-export",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 979304,
+      "sha256": "dc761ad71dc832023a63343c9c818195e9c4fce020f5b8b3c14a06b9a314cfab"
+    },
+    {
+      "file": "share-card-lyrics.webp",
+      "kind": "demo-share-export",
+      "width": 1080,
+      "height": 1920,
+      "bytes": 253602,
+      "sha256": "fab633aeb8d605d3309f9d80f4684660900f1e30683ae94af7679c933776da3e"
+    }
+  ]
+}

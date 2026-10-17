@@ -46,4 +46,8 @@ docs/*
 !docs/openapi.json
 !docs/ARCHITECTURE.md
 !docs/TESTING.md
+!docs/README.md
+!docs/FEATURES.md
+!docs/SCREENSHOTS.md
+!docs/media/
 

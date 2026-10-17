@@ -4,15 +4,17 @@ import {spawnSync} from 'node:child_process';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {imageMetadataIssue} from './check-assets.mjs';
+import showcase from './showcase-files.json' with {type:'json'};
 
-const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md']);
+const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md']);
+const publicMedia=new Set(['README.md','manifest.json','logo.svg','banner.webp',...showcase.views.map(view=>`${view.name}.webp`)]);
 const rootFiles=new Set(['LICENSE','README.md','README.en.md','README.it.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','THIRD_PARTY_NOTICES.md','.gitignore','.gitattributes','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements-resolver.txt','tsconfig.json','vite.config.ts']);
 export function isPublicSource(file){
   const name=file.replaceAll('\\','/'),parts=name.split('/');
   if(parts.some(p=>['..','.git','.local','.packaging','.agents','.impeccable','.venv','node_modules','data','release','dist','web-dist','build','.gradle','.idea','__pycache__','test-results','playwright-report','capacitor-cordova-android-plugins'].includes(p)))return false;
   if(/\.(jks|keystore|apk|aab|exe|sqlite(?:-shm|-wal)?|log|pyc|hprof)$/i.test(name)||parts.includes('local.properties')||parts.includes('credentials.json'))return false;
   if(parts.length===1)return rootFiles.has(name)||/^playwright\.[\w.-]+\.ts$/.test(name);
-  if(parts[0]==='docs')return parts.length===2&&publicDocs.has(parts[1]);
+  if(parts[0]==='docs')return (parts.length===2&&publicDocs.has(parts[1]))||(parts.length===3&&parts[1]==='media'&&publicMedia.has(parts[2]));
   if(!['apps','packages','scripts','tests','build-resources','third-party','.github'].includes(parts[0]))return false;
   if(name==='apps/mobile/ANDROID-0-BRIEF.md'||/\/com\/getcapacitor\/myapp\/Example\w+Test\.java$/.test(name))return false;
   if(/\/(DESIGN|PRODUCT)\.md$/.test(name))return false;
@@ -28,7 +30,7 @@ export async function publicFiles(root){
     for(const item of await readdir(path.join(root,directory),{withFileTypes:true})){
       const relative=[directory,item.name].filter(Boolean).join('/');
       if(item.isDirectory()){
-        if(isPublicSource(`${relative}/probe`)||relative==='docs')await walk(relative);
+        if(isPublicSource(`${relative}/probe`)||relative==='docs'||relative==='docs/media')await walk(relative);
       }else if(isPublicSource(relative)){
         if(item.isSymbolicLink()||(await lstat(path.join(root,relative))).isSymbolicLink())throw Error(`Symlink not allowed in public source: ${relative}`);
         files.push(relative);
