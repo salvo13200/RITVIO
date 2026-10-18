@@ -50,7 +50,7 @@ The manually dispatched `Build release candidate` workflow builds Windows and An
 
 ## 5. Create a prerelease with corresponding source
 
-For an Android-only update, use a separate versioned tag such as `android-v1.1.1`, attach the exact tested signed APK, corresponding RITVIO/upstream source archives, `SHA256SUMS` and `RELEASE-MANIFEST.json`. Link to the existing Windows release rather than attaching old Windows binaries to a new source tag. Keep earlier releases for rollback. Prepare a draft and finish the owner-controlled source merge before publication.
+For an Android-only update, use a separate versioned tag such as `android-v1.2.0`, attach the exact tested signed APK, corresponding RITVIO/upstream source archives, `SHA256SUMS` and `RELEASE-MANIFEST.json`. Link to the existing Windows release rather than attaching old Windows binaries to a new source tag. Keep earlier releases for rollback. Prepare a draft and finish the owner-controlled source merge before publication.
 
 Use [the release checklist](RELEASE_CHECKLIST.md). Current native phone checks are open, so mark the initial public build as a **prerelease**, with the limitations from [release notes](RELEASE_NOTES.md). Keep Windows and Android version numbers distinct; do not reset the Android versionCode/signing key to call both apps 1.0.
 

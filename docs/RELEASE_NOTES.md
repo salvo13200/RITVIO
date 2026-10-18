@@ -1,5 +1,16 @@
 # Release notes
 
+## Android 1.2.0 — 18 October 2026 (public preview, version code 18)
+
+[Android 1.2.0 APK, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.0). This Android-only update preserves the signing certificate and local data when installed over the official app. Windows remains on 0.7.2; previous Android releases remain available for rollback.
+
+- Native preloading prepares up to the next five seconds of the following track after playback settles, yielding to current loading.
+- Up to 60 seconds of played audio can remain in RAM for faster backward seeks. Startup/rebuffer targets are 500/1000 ms; these are buffer settings, not measured click-to-sound times. No disk audio cache or offline download is added.
+- Same-track stream requests share work, selected tracks have a separate bounded resolver lane, and expiring metadata is cached. Cancelled skips do not mark the previous song as failed; real rate limits still use backoff.
+- Native events update visible playback controls directly. Settings can copy a local timing report without titles, identifiers or stream URLs; nothing is uploaded automatically.
+
+Verification: the exact signed APK passed 200 core tests, 44 browser tests and 60 native JVM tests. Signature/upgrade certificate and all 20 native libraries passed the 16 KB ELF/ZIP checks. The maintainer tested it on the phone and reported a clear speed improvement; there is no instrumented-device benchmark or percentage claim. Unprepared tracks and seeks outside the available buffer still depend on the network. Comprehensive accessibility, Bluetooth, audio-focus and prolonged background coverage remains incomplete. Preloading may fetch a short fragment of a next track that is subsequently skipped.
+
 ## Android 1.1.1 — 18 October 2026 (public preview, version code 17)
 
 [Android 1.1.1 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.1.1). This Android-only update keeps the previous `public-preview-1` release available; Windows remains on 0.7.2.
