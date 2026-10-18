@@ -33,7 +33,7 @@ android {
     }
     buildTypes {
         release {
-            signingConfig signingConfigs.localRelease
+            if (project.hasProperty('ritvioKeyStore')) signingConfig signingConfigs.localRelease
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

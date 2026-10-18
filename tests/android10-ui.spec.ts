@@ -37,7 +37,8 @@ test('player stays fixed at compact, large-text and landscape sizes with every c
   await expect(full).toHaveCSS('overflow-y','hidden');
   const bounds=await full.evaluate(el=>({height:el.clientHeight,scrollHeight:el.scrollHeight,width:el.clientWidth,scrollWidth:el.scrollWidth,buttons:[...el.querySelectorAll('button')].map(b=>{const r=b.getBoundingClientRect();return{name:b.getAttribute('aria-label')||b.textContent,x:r.x,y:r.y,w:r.width,h:r.height};})}));
   expect(bounds.scrollHeight,JSON.stringify(size)).toBeLessThanOrEqual(bounds.height+1);expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width+1);
-  for(const b of bounds.buttons.filter(b=>b.w>0&&b.h>0)){expect(b.y+b.h,`${JSON.stringify(size)} ${b.name}`).toBeLessThanOrEqual(size.height+1);expect(b.x+b.w).toBeLessThanOrEqual(size.width+1);expect(b.w).toBeGreaterThanOrEqual(48);expect(b.h).toBeGreaterThanOrEqual(48);}
+  // Chromium transforms can report 47.999969px for an exact 48px hit target.
+  for(const b of bounds.buttons.filter(b=>b.w>0&&b.h>0)){expect(b.y+b.h,`${JSON.stringify(size)} ${b.name}`).toBeLessThanOrEqual(size.height+1);expect(b.x+b.w).toBeLessThanOrEqual(size.width+1);expect(Math.round(b.w*100)/100).toBeGreaterThanOrEqual(48);expect(Math.round(b.h*100)/100).toBeGreaterThanOrEqual(48);}
   await page.screenshot({path:`${output}/web-player-${size.width}x${size.height}-text${size.font}.png`,animations:'disabled'});
   await page.mouse.move(size.width/2,size.height/2);await page.mouse.wheel(0,450);expect(await full.evaluate(el=>el.scrollTop)).toBe(0);
  }
