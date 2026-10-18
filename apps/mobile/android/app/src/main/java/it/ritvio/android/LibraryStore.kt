@@ -61,17 +61,18 @@ class LibraryStore internal constructor(context:Context,databaseName:String="lib
         fun playlist():JSONObject{val id=input.getString("id");return (0 until playlists.length()).map{playlists.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:throw IllegalArgumentException("Playlist missing")}
         fun name():String=input.getString("name").trim().also{require(it.length in 1..100)}
         fun touch(p:JSONObject){p.put("updatedAt",System.currentTimeMillis()).put("revision",p.optLong("revision",1)+1)}
+        var removedCover:String?=null
         when(input.getString("type")){
             "like"->{val track=TrackData.parse(input.getJSONObject("track"));val remaining=without(likes){item,_->item.getString("videoId")!=track.videoId};if(input.getBoolean("liked")){require(remaining.length()<3000);remaining.put(track.json())};state.put("likes",remaining)}
             "create"->{require(playlists.length()<100);playlists.put(JSONObject().put("id",UUID.randomUUID().toString()).put("name",name()).put("items",JSONArray()).put("updatedAt",System.currentTimeMillis()))}
             "createFromTracks"->{require(playlists.length()<100);val parsed=TrackData.parseList(input.getJSONArray("items"));val title=name();playlists.put(JSONObject().put("id",UUID.randomUUID().toString()).put("name",title).put("items",JSONArray().apply{parsed.forEach{put(it.json())}}).put("updatedAt",System.currentTimeMillis()))}
             "rename"->{val p=playlist();p.put("name",name());touch(p)}
-            "delete"->{val id=input.getString("id");state.put("playlists",without(playlists){item,_->item.getString("id")!=id})}
+            "delete"->{removedCover=playlist().optString("cover");val id=input.getString("id");state.put("playlists",without(playlists){item,_->item.getString("id")!=id})}
             "add"->{val p=playlist();val items=p.getJSONArray("items");require(items.length()<1000);items.put(TrackData.parse(input.getJSONObject("track")).json());touch(p)}
             "remove"->{val p=playlist();val items=p.getJSONArray("items");val index=input.getInt("index");require(index in 0 until items.length());p.put("items",without(items){_,i->i!=index});touch(p)}
             "follow"->{val resource=input.getJSONObject("resource");val id=resource.getString("id");require(TrackData.resourceId.matches(id));val kind=resource.getString("kind");require(kind in listOf("artist","album"));val title=resource.getString("name");require(title.length in 1..300);val artwork=resource.optString("artwork","");if(artwork.isNotEmpty()&&artwork!="null")TrackData.parse(JSONObject().put("videoId","abcdefghijk").put("title","Artwork").put("artist","Artwork").put("thumbnail",artwork));val remaining=without(follows){item,_->item.getString("id")!=id};if(input.getBoolean("followed")){require(remaining.length()<1000);remaining.put(JSONObject().put("id",id).put("kind",kind).put("name",title).put("artwork",artwork.takeIf{it!="null"}?:""))};state.put("follows",remaining)}
             else->throw IllegalArgumentException("Unknown library command")
-        };save(state);return state
+        };save(state);artworkStore.discard(removedCover);return state
     }
     companion object{@Volatile private var instance:LibraryStore?=null;fun get(context:Context)=instance?:synchronized(this){instance?:LibraryStore(context.applicationContext).also{instance=it}}}
 }

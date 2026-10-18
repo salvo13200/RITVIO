@@ -48,7 +48,7 @@ internal class ArtworkStore(private val context: Context) {
     }
     fun portable(uri: String): String? {
         val file=owned(uri)?:return null
-        val bitmap=BitmapFactory.decodeFile(file.path,BitmapFactory.Options().apply{inSampleSize=4})?:return null
-        return try{val bytes=ByteArrayOutputStream();check(bitmap.compress(Bitmap.CompressFormat.JPEG,80,bytes));check(bytes.size()<=140_000);"data:image/jpeg;base64,"+android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP)}finally{bitmap.recycle()}
+        val bitmap=BitmapFactory.decodeFile(file.path,BitmapFactory.Options().apply{inSampleSize=2})?:return null
+        return try{val bytes=ByteArrayOutputStream();for(quality in listOf(85,70,55)){bytes.reset();check(bitmap.compress(Bitmap.CompressFormat.JPEG,quality,bytes));if(bytes.size()<=140_000)break};check(bytes.size()<=140_000);"data:image/jpeg;base64,"+android.util.Base64.encodeToString(bytes.toByteArray(),android.util.Base64.NO_WRAP)}finally{bitmap.recycle()}
     }
 }

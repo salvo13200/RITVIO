@@ -53,7 +53,7 @@ test('loading, playback errors and missing artwork keep a fixed usable player',a
   await page.setViewportSize(size);await page.evaluate(()=>{const w=window as any;w.__mobileState().loading=false;w.__mobileState().error='Il flusso audio non è riproducibile. Riprova.';w.__mobileState().items[0].thumbnail=null;w.__mobileUpdate();});
   await expect(page.locator('.player-cover img')).toHaveCount(0);await expect(full.getByRole('button',{name:'Riprova',exact:true})).toBeVisible();
   const metrics=await full.evaluate(el=>({scroll:el.scrollHeight,height:el.clientHeight}));expect(metrics.scroll,JSON.stringify({size,metrics})).toBeLessThanOrEqual(metrics.height+1);const retry=(await full.getByRole('button',{name:'Riprova',exact:true}).boundingBox())!;expect(retry.y+retry.height).toBeLessThanOrEqual(size.height+1);
-  await full.getByRole('button',{name:'Riprova',exact:true}).click();await page.evaluate(()=>{const w=window as any;w.__mobileState().error=null;w.__mobileState().loading=true;w.__mobileUpdate();});await expect(full.getByText('Preparazione del brano…')).toBeVisible();expect(await full.evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+  await full.getByRole('button',{name:'Riprova',exact:true}).click();await page.evaluate(()=>{const w=window as any;w.__mobileState().error=null;w.__mobileState().loading=true;w.__mobileUpdate();});await expect(full.getByText('Preparazione del brano…')).toHaveCount(0);await expect(full.locator(".play-primary")).toHaveAttribute("aria-busy","true");expect(await full.evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
  }
 });
 

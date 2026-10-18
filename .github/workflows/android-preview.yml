@@ -33,6 +33,7 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:locales
       - run: pnpm i18n:check
+      - run: pnpm setup:resolver
       - run: pnpm licenses:collect
       - run: pnpm --dir apps/mobile build
       - name: Copy native runtime sources and notices
