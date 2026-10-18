@@ -26,6 +26,8 @@ Use previous/next, seeking, shuffle/repeat and a queue you can edit. Set a sleep
 
 Android 1.2.0 preloads the next track, retains a bounded RAM back buffer and shares duplicate stream requests to reduce waiting. Unprepared tracks and seeks outside available audio still require the network; there is no offline audio cache. Use **Settings → Copy playback diagnostics** to copy local timing evidence without track titles, identifiers or stream URLs. Nothing is uploaded automatically.
 
+Windows 0.7.3 prepares one next track after current playback has enough buffered audio, shares duplicate resolution work and reuses encoded ranges in a bounded 16 MiB RAM proxy buffer. There is no disk audio cache. Unprepared tracks and seeks outside available audio remain network-dependent. The installer is recommended for daily use because the portable extracts on launch.
+
 Features and audio effects depend on the platform/device. Native background playback, audio focus and OEM battery restrictions must be checked on the phone; browser captures cannot validate them.
 
 ## Read and share
