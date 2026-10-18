@@ -588,5 +588,8 @@
   "Energia": "Energia",
   "Elettronica": "Elettronica",
   "Sonno": "Sonno",
-  "Romantico": "Romantico"
+  "Romantico": "Romantico",
+  "Copia diagnostica audio": "Copia diagnostica audio",
+  "Diagnostica audio copiata": "Diagnostica audio copiata",
+  "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.": "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi."
 }

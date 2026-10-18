@@ -209,7 +209,8 @@ internal object NativeText {
         "Questa lista non è supportata. Usa una playlist condivisibile; radio, Mix personali, Guarda più tardi e Preferiti richiedono altri flussi." to R.string.msg_5f1ae8776b1e,
         "Identificativo video non valido." to R.string.msg_d0e5b671d07e,
         "Durata del timer non valida." to R.string.msg_60aaffce9fb3,
-        "Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova." to R.string.msg_b88e34d7b299
+        "Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova." to R.string.msg_b88e34d7b299,
+        "Impossibile copiare la diagnostica audio. Riprova." to R.string.msg_190fd08e039e
     )
     fun isMessage(source:String)=messages.containsKey(source)
     fun text(context:Context,source:String):String=messages[source]?.let{context.getString(it)}?:source

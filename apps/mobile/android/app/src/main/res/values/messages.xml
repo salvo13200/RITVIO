@@ -206,4 +206,5 @@
     <string name="msg_d0e5b671d07e" formatted="false">"Invalid video ID."</string>
     <string name="msg_60aaffce9fb3" formatted="false">"Invalid timer duration."</string>
     <string name="msg_b88e34d7b299" formatted="false">"Could not load the photo. Choose a valid image up to 20 MB and try again."</string>
+    <string name="msg_190fd08e039e" formatted="false">"Could not copy playback diagnostics. Try again."</string>
 </resources>

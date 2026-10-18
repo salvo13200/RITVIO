@@ -8,7 +8,7 @@ import com.chaquo.python.Python
 import com.chaquo.python.android.AndroidPlatform
 import org.json.JSONObject
 import java.io.IOException
-import java.util.concurrent.Semaphore
+import java.util.concurrent.atomic.AtomicLong
 
 data class AudioDescriptor(val uri: Uri, val headers: Map<String,String>, val expires: Long)
 class RadioCooldownException(val until:Long):IOException("Attendi prima di richiedere altri suggerimenti")
@@ -16,8 +16,13 @@ class RadioCooldownException(val until:Long):IOException("Attendi prima di richi
 class Resolver private constructor(context: Context) {
     private val app=context.applicationContext
     private val cache=SearchCache(app)
-    private val audio=object:LinkedHashMap<String,AudioDescriptor>(8,.75f,true){override fun removeEldestEntry(eldest:MutableMap.MutableEntry<String,AudioDescriptor>?)=size>8}
-    private val resolving=Semaphore(1,true)
+    private val audio=DescriptorCache<AudioDescriptor>({System.currentTimeMillis()/1000})
+    private val preparation=AudioSingleFlight<DescriptorCache.Key,AudioDescriptor>{key,background->resolveLocked(key,background)}
+    private val cacheHits=AtomicLong()
+    private val networkResolutions=AtomicLong()
+    private val lastResolutionMs=AtomicLong()
+    private val lastForegroundMs=AtomicLong()
+    private val lastBackgroundMs=AtomicLong()
     private val radioLock=Any()
     private var radioNextAllowed=0L
     private var playlistNextAllowed=0L
@@ -40,7 +45,7 @@ class Resolver private constructor(context: Context) {
         for(index in 0 until items.length())TrackData.parse(items.getJSONObject(index))
         cache.write(key,result.toString());return result.put("cached",false)
     }
-    fun invalidate(id:String) { synchronized(audio){audio.remove(id)} }
+    fun invalidate(id:String) { audio.invalidate(id) }
     fun playlistPreview(id:String,cancellation:ImportCancellation):JSONObject{
         require(TransferRules.playlistId.matches(id));val key="playlist:"+id
         cache.read(key)?.let{return it.put("cached",true)}
@@ -84,38 +89,36 @@ class Resolver private constructor(context: Context) {
             if(result.optBoolean("instrumental")||hasText)cache.write(key,result.toString())
         }
     }
-    fun resolve(id:String):AudioDescriptor {
+    fun resolve(id:String,speculative:Boolean=false):AudioDescriptor {
         require(TrackData.idPattern.matches(id))
-        synchronized(audio){audio[id]?.takeIf { it.expires>System.currentTimeMillis()/1000+90 }?.let{return it}}
-        try { resolving.acquire() } catch(error:InterruptedException){Thread.currentThread().interrupt();throw IOException("Preparazione annullata",error)}
-        try {
-            synchronized(audio){audio[id]?.takeIf { it.expires>System.currentTimeMillis()/1000+90 }?.let{return it}}
-            return resolveLocked(id)
-        }finally{resolving.release()}
+        audio.cached(id)?.let{cacheHits.incrementAndGet();return it}
+        try{return preparation.get(audio.key(id),speculative)}
+        catch(error:InterruptedException){Thread.currentThread().interrupt();throw IOException("Preparazione annullata",error)}
     }
-    /** No waiting behind foreground work, one descriptor only, never media bytes. */
-    fun prepare(id:String):Boolean {
-        require(TrackData.idPattern.matches(id))
-        if(!resolving.tryAcquire())return false
-        try{resolveLocked(id,speculative=true);return true}finally{resolving.release()}
-    }
-    private fun resolveLocked(id:String,speculative:Boolean=false):AudioDescriptor {
-        synchronized(audio){audio[id]?.takeIf{it.expires>System.currentTimeMillis()/1000+90}?.let{return it}}
+    fun diagnostics()=JSONObject().put("cacheHits",cacheHits.get()).put("networkResolutions",networkResolutions.get()).put("joinedRequests",preparation.joined.get()).put("pendingRequests",preparation.pending()).put("lastResolutionMs",lastResolutionMs.get()).put("lastForegroundResolutionMs",lastForegroundMs.get()).put("lastBackgroundResolutionMs",lastBackgroundMs.get()).put("cachedDescriptors",audio.count()).put("cooldownRemainingMs",(audioCooldownUntil-System.currentTimeMillis()).coerceAtLeast(0))
+    private fun resolveLocked(key:DescriptorCache.Key,speculative:Boolean=false):AudioDescriptor {
+        val id=key.id
+        audio.cached(id)?.let{return it}
+        if(!audio.current(key))throw IOException("Preparazione annullata")
         val now=System.currentTimeMillis()
         if(now<audioCooldownUntil || synchronized(failures){(failures[id]?:0)>now})throw IOException("Preparazione temporaneamente sospesa. Riprova tra poco.")
+        val started=System.nanoTime()
         try{
+            networkResolutions.incrementAndGet()
             initialize()
             val raw=JSONObject(Python.getInstance().getModule("ritvio_resolver").callAttr("resolve",id).toString())
             val uri=Uri.parse(raw.getString("url"));require(uri.scheme=="https" && uri.host.orEmpty().endsWith(".googlevideo.com") && uri.userInfo==null && uri.port in listOf(-1,443))
             val expires=raw.getLong("expires");require(expires>System.currentTimeMillis()/1000+20)
             val headers=raw.getJSONObject("headers");val allowed=setOf("user-agent","referer","origin","accept","accept-language")
             val map=buildMap { for(key in headers.keys()){val value=headers.getString(key);require(key.lowercase() in allowed && !value.contains('\n') && !value.contains('\r'));put(key,value)} }
-            val result=AudioDescriptor(uri,map,expires);synchronized(audio){audio[id]=result};return result
+            val result=AudioDescriptor(uri,map,expires);audio.store(key,result,expires);return result
         }catch(error:Exception){
-            if(!speculative)synchronized(failures){failures.entries.removeAll{it.value<now};failures[id]=System.currentTimeMillis()+10000}
             if(error.toString().contains("429")||error.toString().contains("Too Many Requests",true))audioCooldownUntil=System.currentTimeMillis()+60000
+            // A loader cancelled by a skip must not negatively cache the old track.
+            if(Thread.currentThread().isInterrupted)throw IOException("Preparazione annullata",error)
+            if(!speculative)synchronized(failures){failures.entries.removeAll{it.value<now};failures[id]=System.currentTimeMillis()+10000}
             throw IOException("Il servizio musicale non risponde. Riprova tra poco.",error)
-        }
+        }finally{val elapsed=(System.nanoTime()-started)/1_000_000;lastResolutionMs.set(elapsed);if(speculative)lastBackgroundMs.set(elapsed)else lastForegroundMs.set(elapsed)}
     }
     companion object {
         @Volatile private var instance:Resolver?=null

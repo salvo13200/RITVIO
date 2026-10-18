@@ -14,7 +14,6 @@ import java.util.concurrent.Executors
 internal class DiscoveryController(private val host:PlaybackService,private val resolver:Resolver){
     private val handler=Handler(Looper.getMainLooper())
     private val worker=Executors.newSingleThreadExecutor()
-    private val warmer=Executors.newSingleThreadExecutor()
     private val gate=DiscoveryGate()
     private val prefs=host.getSharedPreferences("discovery",Context.MODE_PRIVATE)
     var enabled=prefs.getBoolean("enabled",false);private set
@@ -23,7 +22,6 @@ internal class DiscoveryController(private val host:PlaybackService,private val 
     private var status="idle";private var message:String?=null;private var mode:String?=null;private var retryAfter:Long?=null
     private var lastAttemptSeed:String?=null
     private var changedAt=SystemClock.elapsedRealtime()
-    private var warmKey:String?=null;private var warmBusy=false;private var warmAfter=0L
     private var closed=false
     init{runCatching{val array=JSONArray(prefs.getString("seen","[]"));for(i in maxOf(0,array.length()-200) until array.length()){val item=array.getJSONObject(i);val id=item.getString("id");val edition=item.getString("edition");if(TrackData.idPattern.matches(id)&&edition.length<=6000)seen.addLast(SuggestionKey(id,edition))}}}
     private fun key(track:TrackData)=SuggestionKey(track.videoId,DiscoveryRules.edition(track.title,track.artist,track.people.map{it.first}))
@@ -31,8 +29,8 @@ internal class DiscoveryController(private val host:PlaybackService,private val 
     private fun save(){prefs.edit().putBoolean("enabled",enabled).putString("origin",origin?.json()?.toString()).putString("seen",JSONArray().apply{seen.forEach{put(JSONObject().put("id",it.videoId).put("edition",it.edition))}}.toString()).apply()}
     fun state():JSONObject=JSONObject().put("enabled",enabled).put("status",status).put("loading",mode!=null).put("mode",mode?:JSONObject.NULL).put("origin",origin?.json()?:JSONObject.NULL).put("message",message?:JSONObject.NULL).put("retryAfter",retryAfter?:JSONObject.NULL)
     fun invalidate(){gate.invalidate();mode=null;status="idle";message=null;retryAfter=null;lastAttemptSeed=null}
-    fun reset(){invalidate();origin=null;seen.clear();changedAt=SystemClock.elapsedRealtime();warmKey=null;save()}
-    fun trackChanged(){changedAt=SystemClock.elapsedRealtime();warmKey=null}
+    fun reset(){invalidate();origin=null;seen.clear();changedAt=SystemClock.elapsedRealtime();save()}
+    fun trackChanged(){changedAt=SystemClock.elapsedRealtime()}
     fun removed(track:TrackData?){if(track!=null)remember(listOf(track));invalidate()}
     fun toggle(value:Boolean){invalidate();enabled=value;if(!value){host.removeFutureAutomatic();origin=null};save()}
     fun cancelRadio(){if(mode=="radio")invalidate()}
@@ -84,15 +82,8 @@ internal class DiscoveryController(private val host:PlaybackService,private val 
     }
     fun tick(){
         if(closed)return
-        val now=SystemClock.elapsedRealtime();val player=host.player
+        val now=SystemClock.elapsedRealtime()
         if(now-changedAt>=4000)requestAutomatic()
-        if(warmBusy||mode=="radio"||now<warmAfter||now-changedAt<8000||!player.isPlaying||host.sleeping()||player.repeatMode==Player.REPEAT_MODE_ONE)return
-        val next=player.nextMediaItemIndex;if(next<0)return
-        val id=player.getMediaItemAt(next).mediaId
-        if(id==player.currentMediaItem?.mediaId)return
-        val pair="${player.currentMediaItem?.mediaId}:$id";if(pair==warmKey)return
-        warmKey=pair;warmBusy=true;warmAfter=now+30000
-        warmer.execute{runCatching{resolver.prepare(id)};handler.post{warmBusy=false}}
     }
-    fun close(){closed=true;gate.invalidate();worker.shutdownNow();warmer.shutdownNow();handler.removeCallbacksAndMessages(null)}
+    fun close(){closed=true;gate.invalidate();worker.shutdownNow();handler.removeCallbacksAndMessages(null)}
 }
