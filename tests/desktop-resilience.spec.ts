@@ -1,5 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
-import {tracks} from './fixtures';
+import {tracks,toneWav} from './fixtures';
 const base='http://127.0.0.1:5199';
 test.beforeEach(async({page,request})=>{
   await request.post(base+'/test-reset-library');
@@ -60,4 +60,34 @@ test('resilience: returning to the app resumes a suspended audio graph only for 
  await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect.poll(contextState).toBe('running');
  await page.getByRole('button',{name:'Pausa',exact:true}).click();await page.evaluate(async()=>{const path='/src/audio-engine.ts';await(await import(path)).audioEngine()?.context.suspend();window.dispatchEvent(new Event('focus'));});
  await page.waitForTimeout(200);await expect.poll(contextState).toBe('suspended');await expect(page.getByRole('button',{name:'Riproduci',exact:true})).toBeVisible();
+});
+
+test('resilience: a pending track uses its own duration instead of clamping to the previous recording',async({page})=>{
+ await choose(page);await advancing(page);
+ const wav=toneWav(80);await page.route('**/resilience-long.wav',route=>{
+  const range=route.request().headers().range?.match(/^bytes=(\d+)-(\d*)$/),start=Number(range?.[1]??0),end=Math.min(range?.[2]?Number(range[2]):wav.length-1,wav.length-1);
+  return route.fulfill({status:range?206:200,contentType:'audio/wav',headers:{'access-control-allow-origin':'*','accept-ranges':'bytes','content-length':String(end-start+1),...(range?{'content-range':`bytes ${start}-${end}/${wav.length}`}:{})},body:wav.subarray(start,end+1)});
+ });
+ let release!:()=>void;const gate=new Promise<void>(resolve=>release=resolve);let pending=false;
+ await page.route('**/v1/media/*/playback**',async route=>{if(route.request().url().includes('prepare=true'))return route.continue();const response=await route.fetch(),descriptor=await response.json();pending=true;await gate;await route.fulfill({response,json:{...descriptor,url:base+'/resilience-long.wav'}}).catch(()=>{});});
+ try{
+  await page.evaluate(async track=>{const path='/src/store.ts';(await import(path)).usePlayer.getState().play({...track,duration:80});},tracks[0]);await expect.poll(()=>pending).toBe(true);
+  await page.evaluate(async()=>{const path='/src/player.tsx';(await import(path)).seek(50);});
+  await expect(page.getByRole('slider',{name:'Posizione del brano'})).toHaveValue('50');release();
+  await expect.poll(()=>page.evaluate(async()=>{const path='/src/player.tsx';return(await import(path)).audio.currentTime;})).toBeGreaterThanOrEqual(50);
+ }finally{release();}
+});
+
+test('resilience: prolonged offline waiting terminates and does not revive playback on reconnect',async({page})=>{
+ test.setTimeout(45000);await page.addInitScript(()=>Object.defineProperty(navigator,'onLine',{get:()=>false}));
+ let calls=0;await page.route('**/v1/media/*/playback**',route=>{calls++;return route.fulfill(failure());});
+ await choose(page);await expect(page.locator('.player-error')).toBeVisible({timeout:35000});expect(calls).toBe(1);
+ await page.evaluate(()=>window.dispatchEvent(new Event('online')));await page.waitForTimeout(200);expect(calls).toBe(1);await expect(page.getByRole('button',{name:'Riproduci',exact:true})).toBeVisible();
+});
+
+test('resilience: stale media events cannot skip the current track or leave its loading indicator stuck',async({page})=>{
+ await choose(page);await advancing(page);
+ await page.evaluate(async()=>{const path='/src/player.tsx';const audio=(await import(path)).audio;audio.dispatchEvent(new Event('ended'));audio.dispatchEvent(new Event('waiting'));});
+ await page.waitForTimeout(200);await expect(page.locator('.player-track strong')).toHaveText('Secondo brano');
+ expect(await page.evaluate(async()=>{const path='/src/store.ts';return(await import(path)).usePlayer.getState().loading;})).toBe(false);await advancing(page);
 });

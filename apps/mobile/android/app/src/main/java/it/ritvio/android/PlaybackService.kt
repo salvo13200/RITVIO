@@ -80,7 +80,7 @@ class PlaybackService:MediaSessionService(){
         player.addListener(object:Player.Listener{
             override fun onPlayWhenReadyChanged(playWhenReady:Boolean,reason:Int){
                 if(!playWhenReady){discovery.invalidate();cancelRecovery()}
-                else if(lastError!=null&&player.playbackState==Player.STATE_IDLE){lastError=null;resetRecovery();player.currentMediaItem?.mediaId?.let{resolver.invalidate(it)};player.prepare()}
+                else if(player.playbackState==Player.STATE_IDLE&&player.mediaItemCount>0){lastError=null;resetRecovery();player.currentMediaItem?.mediaId?.let{resolver.invalidate(it)};player.prepare()}
                 if(sleepAtEnd && !playWhenReady && reason==Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM)cancelSleep()
                 updatePreloading()
             }

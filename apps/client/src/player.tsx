@@ -13,13 +13,15 @@ audio.crossOrigin='anonymous';
 const keyOfPlayer=()=>{const state=usePlayer.getState();return `${state.queue[state.index]?.queueId}:${state.activation}`;};
 let cancelSeek:(()=>void)|undefined;
 let seekRevision=0;
+let resourceKey='';
 export function seek(seconds:number){
   if(!Number.isFinite(seconds))return;
   seekRevision++;
   if(usePlayer.getState().autoplayWaiting)usePlayer.getState().interruptAutoplay();
-  const limit=Number.isFinite(audio.duration)?audio.duration:usePlayer.getState().duration;
+  const ownsResource=resourceKey===keyOfPlayer();
+  const limit=ownsResource&&Number.isFinite(audio.duration)?audio.duration:usePlayer.getState().duration;
   const position=Math.max(0,Math.min(seconds,limit||seconds));
-  if(audio.readyState>0&&Math.abs(audio.currentTime-position)>.01){
+  if(ownsResource&&audio.readyState>0&&Math.abs(audio.currentTime-position)>.01){
     cancelSeek?.();const timing=beginPlayback('seek'),events=new AbortController();
     let buffered=false;for(let i=0;i<audio.buffered.length;i++)if(position>=audio.buffered.start(i)&&position<=audio.buffered.end(i))buffered=true;
     timing.bufferedSeek(buffered);
@@ -56,12 +58,12 @@ export function AudioController(){
     const onTime=()=>{if(matches()&&!restoring.current&&!audio.seeking&&audio.readyState>0)usePlayer.setState({position:audio.currentTime});};
     const onDuration=()=>{if(matches()&&Number.isFinite(audio.duration))usePlayer.setState({duration:audio.duration});};
     const onPlaying=()=>{
-      if(!matches())return;
+      if(!matches()||restoring.current||audio.paused||audio.readyState<3)return;
       usePlayer.setState({loading:false});const s=usePlayer.getState();const track=s.queue[s.index];
       if(track&&recordRecentAllowed())s.heard(track);
     };
-    const onWaiting=()=>{if(matches()&&usePlayer.getState().playing)usePlayer.setState({loading:true});};
-    const onEnded=()=>{if(matches())usePlayer.getState().next(true);};
+    const onWaiting=()=>{if(matches()&&!audio.paused&&audio.readyState<3&&usePlayer.getState().playing)usePlayer.setState({loading:true});};
+    const onEnded=()=>{if(matches()&&audio.ended)usePlayer.getState().next(true);};
     const listeners={timeupdate:onTime,durationchange:onDuration,playing:onPlaying,waiting:onWaiting,ended:onEnded};
     for(const [event,listener] of Object.entries(listeners))audio.addEventListener(event,listener);
     return()=>{for(const [event,listener] of Object.entries(listeners))audio.removeEventListener(event,listener);};
@@ -74,15 +76,15 @@ export function AudioController(){
     const firstData=()=>timing?.firstData(),startedPlaying=()=>timing?.playing();
     const alive=()=>!controller.signal.aborted&&keyOfPlayer()===key&&usePlayer.getState().playing;
     audio.pause();
-    if(!current){loaded.current='';audio.removeAttribute('src');audio.load();return;}
+    if(!current){loaded.current=resourceKey='';audio.removeAttribute('src');audio.load();return;}
     if(!playing){usePlayer.setState({loading:false});return;}
     audio.addEventListener('loadeddata',firstData);audio.addEventListener('playing',startedPlaying);
-    const fail=(message:string)=>{if(alive()){clearRetry();clearTimeout(stallTimer);timing?.fail();loaded.current='';usePlayer.setState({loading:false,playing:false,error:message});}};
+    const fail=(message:string)=>{if(alive()){clearRetry();clearTimeout(stallTimer);timing?.fail();loaded.current=resourceKey='';usePlayer.setState({loading:false,playing:false,error:message});}};
     const retryNetwork=(message:string,fresh:boolean)=>{
       if(!alive()||retryAction)return;
       if(networkRetries>=2){fail(message);return;}
       const delay=[1000,3000][networkRetries++];
-      timing?.fail();loaded.current='';usePlayer.setState({loading:true,error:null});
+      timing?.fail();loaded.current=resourceKey='';usePlayer.setState({loading:true,error:null});
       const deadline=performance.now()+30000;
       const attempt=()=>{
         if(!alive()||!usePlayer.getState().playing)return;
@@ -105,7 +107,7 @@ export function AudioController(){
         const [prepared]=await Promise.all([preparePlayback(current,fresh,controller.signal),prepareAudio(audio,usePlayer.getState().audioPreferences)]);
         const {descriptor}=prepared;attempt.stages(prepared);
         if(!isCurrent())return;
-        loaded.current=key;expires.current=Date.parse(descriptor.expiresAt);restoring.current=true;
+        loaded.current=resourceKey=key;expires.current=Date.parse(descriptor.expiresAt);restoring.current=true;
         if(metadata)audio.removeEventListener('loadedmetadata',metadata);
         metadata=()=>{if(isCurrent()){const position=seekAtStart===seekRevision?resume:usePlayer.getState().position;if(position>0&&Number.isFinite(audio.duration))audio.currentTime=Math.min(position,Math.max(0,audio.duration-.1));restoring.current=false;}};
         audio.addEventListener('loadedmetadata',metadata,{once:true});audio.src=descriptor.url;audio.load();
@@ -119,7 +121,7 @@ export function AudioController(){
     };
     const recover=()=>{
       if(!alive()||refreshing)return;
-      if(retries===0){timing?.fail();retries=1;refreshing=true;loaded.current='';void prepare(true).finally(()=>{refreshing=false;});}
+      if(retries===0){timing?.fail();retries=1;refreshing=true;loaded.current=resourceKey='';void prepare(true).finally(()=>{refreshing=false;});}
       else fail(t("player.il.flusso.audio.non.e.riproducibile.riprova.o.scegli.un.altro.bra"));
     };
     // The outgoing media can still report a queued error while the incoming
@@ -143,7 +145,7 @@ export function AudioController(){
       }
       const ownGeneration=generation;
       void prepareAudio(audio,usePlayer.getState().audioPreferences).then(()=>{if(alive()&&ownGeneration===generation)return audio.play();}).catch(()=>{if(alive()&&ownGeneration===generation)recover();});
-    }else {const fresh=loaded.current===key;loaded.current='';void prepare(fresh);}
+    }else {const fresh=loaded.current===key;loaded.current=resourceKey='';void prepare(fresh);}
     return()=>{controller.abort();clearRetry();clearTimeout(stallTimer);timing?.cancel();audio.removeEventListener('loadeddata',firstData);audio.removeEventListener('playing',startedPlaying);audio.removeEventListener('error',onError);audio.removeEventListener('waiting',onStalled);audio.removeEventListener('stalled',onStalled);audio.removeEventListener('playing',onProgress);window.removeEventListener('online',onOnline);if(metadata)audio.removeEventListener('loadedmetadata',metadata);};
   },[key,playing]);
   useEffect(()=>{
