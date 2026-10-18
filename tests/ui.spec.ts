@@ -408,7 +408,7 @@ test('long exclusion names, exact-name fallback and narrow result rows remain op
 });
 test.beforeEach(async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');
-  await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
+  await page.addInitScript(()=>{localStorage.setItem('ritvio.language.v1',JSON.stringify({schema:1,preference:'it'}));window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
   await page.route('https://*.ytimg.com/**',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#c4b5fd"/></svg>'}));
 });
 test('desktop home and responsive queue remain usable',async({page})=>{

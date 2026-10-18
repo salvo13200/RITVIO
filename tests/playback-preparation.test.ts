@@ -28,3 +28,12 @@ test('fresh bypasses memory cache; expired descriptors are resolved again and sh
 test('cancelling the only queued consumer prevents obsolete work from running',async()=>{
   const s=setup(),a=s.preparation.resolve('a'),b=s.preparation.resolve('b');await turn();const controller=new AbortController(),c=s.preparation.resolve('c',false,{signal:controller.signal});const rejected=assert.rejects(c);controller.abort();await rejected;s.finish('a');s.finish('b');await Promise.all([a,b]);await turn();assert.deepEqual(s.calls,['a','b']);s.preparation.close();
 });
+
+test('a fresh retry replaces in-flight speculative work and cannot receive its old descriptor',async()=>{
+  let calls=0;const s=new PlaybackPreparation<Value>((id,fresh,signal)=>new Promise((resolve,reject)=>{
+    calls++;if(fresh)resolve({id:'new',expires:Date.now()+60000});else signal.addEventListener('abort',()=>reject(Error('cancelled')),{once:true});
+  }),()=>true);
+  try{const old=s.resolve('a',false,{priority:'prefetch'}),cancelled=assert.rejects(old);await turn();
+    assert.equal((await s.resolve('a',true)).id,'new');await cancelled;await turn();assert.equal((await s.resolve('a')).id,'new');assert.equal(calls,2);
+  }finally{s.close();}
+});

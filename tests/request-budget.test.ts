@@ -13,7 +13,9 @@ test('production budgets isolate repeated playback and Range/seek from search an
       const result=await app.inject({method:'POST',url:`/v1/media/${tracks[0].id}/playback${i%2?'?prepare=true':''}`,headers});assert.equal(result.statusCode,200);
       assert.equal((await app.inject({url:result.json().url,headers:{range:'bytes=0-2'}})).statusCode,206);
     }
-    assert.equal(streamCalls,120);
+    assert.equal(streamCalls,1,'Repeated byte ranges reuse RAM while all 120 essential HTTP requests remain allowed');
+    const diagnostics=(await app.inject({url:'/v1/playback/diagnostics',headers})).json();
+    assert.ok(diagnostics.audioBuffer.hits>=119);
     assert.equal((await app.inject({url:'/v1/me/library',headers})).statusCode,200);
     assert.equal((await app.inject({url:'/v1/search?q=Musica%20test',headers})).statusCode,200);
   }finally{await app.close();}
