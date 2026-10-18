@@ -67,3 +67,31 @@ Use the existing opt-in Windows `tests/packaged-desktop.mjs --latency --exe-vers
 The published 0.7.3 EXEs match [Windows preview run 39158729658](https://github.com/salvo13200/RITVIO/actions/runs/39158729658): 211 core tests, 13 focused browser/player tests and isolated installer lifecycle checks passed. The downloaded portable passed the real-provider playback/next/pause/resume/seek harness, and the maintainer approved the candidate for publication. A small sequential comparison (three prepared track changes per version) measured a median 317.5 ms in 0.7.2 and 87.7 ms in 0.7.3; the uncached first track remained about 2.8 seconds and paused seek completion stayed around 8–9 ms. These are HTML media events, not speaker-output measurements or a universal speed claim.
 
 Record portable startup separately: the first fresh launch exceeded a 90-second probe budget; a follow-up with a fresh profile reached the UI in 26.8 seconds, then the complete harness passed. Prefer the installer to avoid per-launch extraction. This is not a measured installer startup result or comprehensive Windows-device/accessibility coverage. Exact files, source/build provenance and limitations are recorded in the [release manifest and notes](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.3).
+
+## Playback reliability candidate: Windows 0.7.4 / Android 1.2.1
+
+These versions are test candidates, not new public downloads. Keep the released README links unchanged until the maintainer approves them.
+
+Windows adds at most two automatic transient-network retries (1/3-second backoff), with a bounded 30-second offline wait per attempt. An online notification can resume a pending attempt, but cannot restart an exhausted, paused or superseded session. Rate-limit and non-transient descriptor errors retain the explicit Retry flow. A resource that stops producing data while buffering gets a bounded recovery after 20 seconds. A seek made during descriptor preparation is applied when metadata arrives; rapid paused seeks retain the last target without starting audio.
+
+Android adds at most two service-owned transient-network/expired-URL attempts per activation, with 1/3-second backoff and a 30-second pending deadline. Recovery waits for a validated default network and respects audio suppression. Pause, sleep expiry, clear, a new track and service destruction invalidate delayed callbacks. Explicit retries clear the track's short negative cache, while the resolver's global rate-limit cooldown stays enforced. The service does not request new permissions. Monotonic service/sequence stamps prevent late bridge responses or old service events from replacing newer track, artwork, position or pause state.
+
+Automated coverage: `pnpm test:playback` includes controlled transient failure, exhaustion, pause/cancellation, offline/online notification, rate-limit and pending-seek cases with actual browser audio. `pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts` covers artwork ownership and late native-bridge responses. JVM `PlaybackRecoveryTest` exercises deadlines, retry bounds and cancelled callbacks; it does not establish real device connectivity, Bluetooth or audio-focus behaviour. Media3 error/state semantics are documented in [Player.Listener](https://developer.android.com/reference/androidx/media3/common/Player.Listener#onPlayerError(androidx.media3.common.PlaybackException)).
+
+### Native acceptance run (record results for each exact candidate)
+
+Do not substitute fixture or JVM results for this checklist. Use the official update signature and keep a backup; do not uninstall or erase the real library.
+
+| Scenario | Acceptance | Required environment |
+| --- | --- | --- |
+| 60 minutes of listening, including screen locked | Correct track/cover/queue; no crash, accumulating covers or indefinite loading | Physical Android phone; installed Windows app |
+| Rapid next/previous and queue jumps, including duplicate tracks | Only the final selected item can own playback and update the interface | Both native apps |
+| Repeated forward/backward seeks, including while loading or paused | Last target wins; pause remains paused; no stale position restores | Both native apps |
+| Disable connectivity, then restore it within the pending window | Buffered audio may continue; transient failure recovers the current intent within the retry budget | Phone Wi-Fi/mobile handoff and Windows network |
+| Pause or change track before connectivity returns | No unsolicited playback or old-track recovery | Both native apps |
+| Network unavailable longer than the recovery deadline, or provider rejection | Finite loading/retries, actionable error, explicit Retry still available; no request storm | Both native apps |
+| Incoming call, transient/permanent audio focus loss, unplugged headphones and Bluetooth reconnect | Respect system pause/suppression; no unwanted speaker playback or recovery overriding pause | Physical phone/accessories |
+| Sleep timer during retry; app/PC suspend and resume | Timer/pause intent respected; no delayed callback revives playback | Both native apps |
+| Restart after queue edits and seek | Correct saved queue/track/position; restart remains paused; library unchanged | Both native apps |
+
+Record app version, exact SHA-256, device/OS, connection, duration, result and diagnostic report when available. Strip personal listening identifiers before sharing reports. No hour-long phone trial or Bluetooth/call pass is implied by building these candidates.

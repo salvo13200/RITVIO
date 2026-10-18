@@ -15,13 +15,15 @@ import { ImportPlaylistPanel, ExportPlaylistPanel } from './playlist-transfer';
 import { StoryComposer } from './story-sharing';
 import {BrowsePage, type BrowseCategory} from './browse';
 import { emptyMobilePlayback, emptyMobileLibrary, type MobilePlayback, type NativeTrack, type MobileCommand, type MobileLibrary, type MobileResource, type MobileAudio, type MobileCollection } from '../../../packages/domain/mobile';
+import {acceptPlaybackSnapshot} from '../../../packages/domain/playback-snapshot';
 type Tab = 'home' | 'search' | 'library';
 type TrackContext = {
     playlistId?: string;
     index: number;
 };
 export function App() {
-    const [state, setState] = useState<MobilePlayback>(emptyMobilePlayback), [library, setLibrary] = useState<MobileLibrary>(emptyMobileLibrary), [libraryError, setLibraryError] = useState(false), [librarySearch, setLibrarySearch] = useState(false);
+    const [state, updateState] = useState<MobilePlayback>(emptyMobilePlayback), [library, setLibrary] = useState<MobileLibrary>(emptyMobileLibrary), [libraryError, setLibraryError] = useState(false), [librarySearch, setLibrarySearch] = useState(false);
+    const setState=(incoming:MobilePlayback)=>updateState(current=>acceptPlaybackSnapshot(current,incoming));
     const [tab, setTab] = useState<Tab>('home'), [route, setRoute] = useState(location.hash.slice(1)), [query, setQuery] = useState(''), [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<DetailTarget | null>(null), [selectedTrack, setSelectedTrack] = useState<NativeTrack | null>(null), [context, setContext] = useState<TrackContext | undefined>();
     const [browse, setBrowse] = useState<BrowseCategory | null>(null);
