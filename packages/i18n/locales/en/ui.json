@@ -588,5 +588,8 @@
   "Energia": "Energy",
   "Elettronica": "Electronic",
   "Sonno": "Sleep",
-  "Romantico": "Romance"
+  "Romantico": "Romance",
+  "Copia diagnostica audio": "Copy playback diagnostics",
+  "Diagnostica audio copiata": "Playback diagnostics copied",
+  "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.": "To report slow loading, copy the player timings. Track titles and URLs are not included."
 }

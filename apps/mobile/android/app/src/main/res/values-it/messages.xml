@@ -206,4 +206,5 @@
     <string name="msg_d0e5b671d07e" formatted="false">"Identificativo video non valido."</string>
     <string name="msg_60aaffce9fb3" formatted="false">"Durata del timer non valida."</string>
     <string name="msg_b88e34d7b299" formatted="false">"Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova."</string>
+    <string name="msg_190fd08e039e" formatted="false">"Impossibile copiare la diagnostica audio. Riprova."</string>
 </resources>

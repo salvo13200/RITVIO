@@ -7,6 +7,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import androidx.media3.common.Player
 import com.getcapacitor.JSObject
 import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
@@ -37,18 +38,32 @@ class RitvioPlaybackPlugin:Plugin(){
     private fun stories()=StoryMedia(context)
     private val handler=Handler(Looper.getMainLooper())
     private var visible=true
+    private var destroyed=false
     private val searches=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(2))
     private val catalogWorker=ThreadPoolExecutor(2,2,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(4))
     private val libraryWorker=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(12))
     private val transferWorker=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(1))
     private val transfers=PlaylistTransfers()
     @Volatile private var exportFile:File?=null
-    private val updates=object:Runnable{override fun run(){if(visible){PlaybackService.instance?.let{notifyListeners("playback",JSObject(it.snapshot().toString()))};handler.postDelayed(this,500)}}}
-    override fun load(){controller=MediaController.Builder(context,SessionToken(context,ComponentName(context,PlaybackService::class.java))).buildAsync();handler.post(updates)}
+    private fun publishPlayback(){if(visible&&!destroyed)PlaybackService.instance?.let{notifyListeners("playback",JSObject(it.snapshot().toString()))}}
+    private val playbackEvents=object:Player.Listener{override fun onEvents(player:Player,events:Player.Events){
+        if(events.containsAny(Player.EVENT_PLAYBACK_STATE_CHANGED,Player.EVENT_PLAY_WHEN_READY_CHANGED,Player.EVENT_IS_PLAYING_CHANGED,Player.EVENT_MEDIA_ITEM_TRANSITION,Player.EVENT_PLAYER_ERROR,Player.EVENT_POSITION_DISCONTINUITY,Player.EVENT_TIMELINE_CHANGED))publishPlayback()
+    }}
+    private val updates=object:Runnable{override fun run(){if(visible&&!destroyed){publishPlayback();handler.postDelayed(this,500)}}}
+    override fun load(){
+        controller=MediaController.Builder(context,SessionToken(context,ComponentName(context,PlaybackService::class.java))).buildAsync()
+        controller.addListener({if(!destroyed)runCatching{controller.get().addListener(playbackEvents);publishPlayback()}},ContextCompat.getMainExecutor(context))
+        handler.post(updates)
+    }
     private fun service(call:PluginCall,action:(PlaybackService)->Unit){
         controller.addListener({try{controller.get();val service=PlaybackService.instance?:error("No service");action(service)}catch(_:Exception){call.reject(NativeText.text(context,"Il player non è disponibile. Riapri l’app."),"PLAYER_UNAVAILABLE")}},ContextCompat.getMainExecutor(context))
     }
     @PluginMethod fun snapshot(call:PluginCall){service(call){call.resolve(JSObject(it.snapshot().toString()))}}
+    @PluginMethod fun copyPlaybackDiagnostics(call:PluginCall){service(call){service->try{
+        val clipboard=context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("RITVIO playback diagnostics",service.playbackDiagnostics().toString(2)))
+        call.resolve()
+    }catch(_:Exception){call.reject(NativeText.text(context,"Impossibile copiare la diagnostica audio. Riprova."),"DIAGNOSTICS_FAILED")}}}
     @PluginMethod fun radio(call:PluginCall){service(call){service->try{service.startRadio(TrackData.parse(call.getObject("track")?:throw IllegalArgumentException()));call.resolve(JSObject(service.snapshot().toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Attendi la preparazione in corso e riprova."),"DISCOVERY_BUSY")}}}
     @PluginMethod fun discoveryCommand(call:PluginCall){service(call){service->try{service.discoveryCommand(call.data);call.resolve(JSObject(service.snapshot().toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Impossibile aggiornare l’autoplay. Riprova."),"DISCOVERY_FAILED")}}}
     @PluginMethod fun catalog(call:PluginCall){try{catalogWorker.execute{try{call.resolve(JSObject(Resolver.get(context).catalog(call.data).toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Il catalogo non risponde. Riprova tra poco."),"CATALOG_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il caricamento in corso."),"CATALOG_BUSY")}}
@@ -173,5 +188,5 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun command(call:PluginCall){service(call){service->try{service.command(call.getString("type")?:"",call.data.opt("value"));call.resolve(JSObject(service.snapshot().toString()))}catch(error:Exception){if(error.message=="QUEUE_CHANGED")call.reject(NativeText.text(context,"La coda è cambiata. Riprova sulla posizione aggiornata."),"QUEUE_CHANGED")else call.reject(NativeText.text(context,"Comando non valido."),"INVALID_COMMAND")}}}
     override fun handleOnPause(){visible=false;handler.removeCallbacks(updates)}
     override fun handleOnResume(){visible=true;handler.removeCallbacks(updates);handler.post(updates);publishLanguage()}
-    override fun handleOnDestroy(){visible=false;handler.removeCallbacks(updates);transfers.close();storyWorker.shutdownNow();transferWorker.shutdownNow();searches.shutdownNow();catalogWorker.shutdownNow();libraryWorker.shutdownNow();MediaController.releaseFuture(controller)}
+    override fun handleOnDestroy(){destroyed=true;visible=false;handler.removeCallbacks(updates);transfers.close();storyWorker.shutdownNow();transferWorker.shutdownNow();searches.shutdownNow();catalogWorker.shutdownNow();libraryWorker.shutdownNow();if(controller.isDone&&!controller.isCancelled)runCatching{controller.get().removeListener(playbackEvents)};MediaController.releaseFuture(controller)}
 }

@@ -203,5 +203,6 @@
   "Questa lista non è supportata. Usa una playlist condivisibile; radio, Mix personali, Guarda più tardi e Preferiti richiedono altri flussi.": "This list is unsupported. Use a shareable playlist; radio, personal Mixes, Watch Later and Liked Music require other flows.",
   "Identificativo video non valido.": "Invalid video ID.",
   "Durata del timer non valida.": "Invalid timer duration.",
-  "Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova.": "Could not load the photo. Choose a valid image up to 20 MB and try again."
+  "Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova.": "Could not load the photo. Choose a valid image up to 20 MB and try again.",
+  "Impossibile copiare la diagnostica audio. Riprova.": "Could not copy playback diagnostics. Try again."
 }
