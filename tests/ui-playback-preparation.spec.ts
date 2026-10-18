@@ -4,7 +4,7 @@ import {writeFile} from 'node:fs/promises';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'};
 test.beforeEach(async({page,request})=>{
   await request.post(base+'/test-reset-library');
-  await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
+  await page.addInitScript(()=>{localStorage.setItem('ritvio.language.v1',JSON.stringify({schema:1,preference:'it'}));window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
 });
 async function start(page:import('@playwright/test').Page){await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');await page.getByRole('button',{name:'Riproduci Secondo brano',exact:true}).click();await expect.poll(()=>page.getByRole('slider',{name:'Posizione del brano'}).inputValue().then(Number)).toBeGreaterThan(0);}
 async function metrics(page:import('@playwright/test').Page){return page.evaluate(async()=>{const path='/src/playback-metrics.ts';return (await import(path)).playbackMetrics();});}
@@ -50,19 +50,19 @@ test('preparation: pausing cancels pending background work and resume prepares t
   await start(page);await expect.poll(()=>count).toBe(1);await page.getByRole('button',{name:'Pausa',exact:true}).click();release();await pending;
   await page.getByRole('button',{name:'Riproduci',exact:true}).click();await expect.poll(()=>count).toBe(2);await expect(page.locator('.player-error')).not.toBeVisible();
 });
-test('preparation: thirty real player skips stay playable under production request budgets',async({page,request})=>{
-  test.setTimeout(60000);await request.get(base+'/v1/search?q=Musica%20test',{headers});await page.emulateMedia({reducedMotion:'reduce'});
-  await page.addInitScript(tracks=>{localStorage.setItem('ritvio-player-v1',JSON.stringify({version:1,state:{queue:Array.from({length:31},(_,i)=>({...tracks[i%2],queueId:'stress-'+i,source:'collection'})),index:0,playing:false,position:0,volume:.2}}));},tracks);
+test('preparation: fifty real player skips stay playable under production request budgets',async({page,request})=>{
+  test.setTimeout(90000);await request.get(base+'/v1/search?q=Musica%20test',{headers});await page.emulateMedia({reducedMotion:'reduce'});
+  await page.addInitScript(tracks=>{localStorage.setItem('ritvio-player-v1',JSON.stringify({version:1,state:{queue:Array.from({length:51},(_,i)=>({...tracks[i%2],queueId:'stress-'+i,source:'collection'})),index:0,playing:false,position:0,volume:.2}}));},tracks);
   let mediaRequests=0;page.on('request',r=>{if(r.url().includes('/v1/media/')||r.url().includes('/v1/stream/'))mediaRequests++;});
   await page.goto('/');await page.locator('.play-button').click();
   const position=page.getByRole('slider',{name:'Posizione del brano'});
-  for(let i=0;i<31;i++){
+  for(let i=0;i<51;i++){
     try{await expect(page.locator('.player-error')).not.toBeVisible();await expect.poll(()=>position.inputValue().then(Number)).toBeGreaterThan(0);}
     catch(error){
       const diagnostic=await page.evaluate(async()=>{const playerPath='/src/player.tsx',statePath='/src/store.ts',metricsPath='/src/playback-metrics.ts';const audio=(await import(playerPath)).audio,s=(await import(statePath)).usePlayer.getState();return {index:s.index,activation:s.activation,playing:s.playing,loading:s.loading,position:s.position,error:s.error,audio:{currentTime:audio.currentTime,paused:audio.paused,readyState:audio.readyState,networkState:audio.networkState,error:audio.error?.code??null},metrics:(await import(metricsPath)).playbackMetrics().slice(-4)};});
       await writeFile('data/analysis/skip-browser-diagnostic.json',JSON.stringify({iteration:i,mediaRequests,...diagnostic},null,2));throw error;
     }
-    if(i<30)await page.getByRole('button',{name:'Brano successivo',exact:true}).click();
+    if(i<50)await page.getByRole('button',{name:'Brano successivo',exact:true}).click();
   }
   expect(mediaRequests).toBeGreaterThan(90);await expect(page.locator('.player-error')).not.toBeVisible();
 });

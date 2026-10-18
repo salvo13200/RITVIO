@@ -10,4 +10,6 @@ Android saving a share card writes a PNG through MediaStore into Pictures/RITVIO
 
 Logs can contain catalogue metadata, URLs and local paths. Review and redact them before posting issues. Unofficial providers may set their own logs and limits; RITVIO cannot control their retention. This document describes the code shipped here, not a claim about every downstream build.
 
+Playback can preload a short fragment of the next track and temporarily retain received audio in bounded RAM buffers. A preloaded track may subsequently be skipped. The Windows proxy buffer is scoped to expiring stream URLs and disappears when the app closes; it does not create audio files, offline downloads or a persistent music cache. Local playback diagnostics contain aggregate counters and recent timing records, and are not uploaded automatically.
+
 Optional donation links appear only on GitHub and in its README, not inside the applications. Clicking them takes you to PayPal or Buy Me a Coffee, which process the payment and related personal information under their own policies. No payment information is collected by RITVIO code.

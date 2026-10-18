@@ -14,6 +14,7 @@ export class PlaybackPreparation<T>{
     if(!fresh&&cached&&this.valid(cached)){this.cache.delete(id);this.cache.set(id,cached);this.hits++;return Promise.resolve(cached);}
     if(cached)this.cache.delete(id);
     let job=this.jobs.get(id);
+    if(fresh&&job){this.cancel(job);this.jobs.delete(id);job=undefined;}
     if(job?.controller.signal.aborted){this.jobs.delete(id);job=undefined;}
     if(!job){
       if(priority==='prefetch'&&[...this.jobs.values()].some(j=>!j.controller.signal.aborted))return Promise.reject(new AppError(429,'RESOLVER_BUSY','Preparazione in attesa.'));

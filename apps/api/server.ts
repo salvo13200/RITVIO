@@ -27,6 +27,7 @@ export async function createApi(options: { config?: Config; root?: string; packa
   const config = options.config ?? loadConfig(options.root,options.packagedRuntime);
   const store = new Store(config.database);
   const resolver = options.resolver ?? new Resolver(config);
+  if(!options.resolver)void resolver.installed();
   const catalog = new ResolverCatalog(config,store,resolver);
   const app = Fastify({ logger:false, bodyLimit:4096, requestIdHeader:false,ajv:{customOptions:{removeAdditional:false}} });
   const originAllowed = (origin: string) => origin === options.devOrigin || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) && origin === app.listeningOrigin;
@@ -87,7 +88,7 @@ export async function createApi(options: { config?: Config; root?: string; packa
     try{const resolved=await resolver.resolve(request.body.videoId,false,{signal:controller.signal});store.saveTrack(resolved.track);return asMedia(resolved.track);}
     finally{reply.raw.removeListener('close',abort);}
   });
-  app.get('/v1/playback/diagnostics',async()=>resolver.diagnostics?.()??{available:false});
+  app.get('/v1/playback/diagnostics',async()=>({...((resolver.diagnostics?.()??{available:false}) as Record<string,unknown>),audioBuffer:streams.diagnostics()}));
   app.post<{Params:{mediaId:string};Querystring:{fresh?:string;prepare?:string}}>('/v1/media/:mediaId/playback',{
     schema:{querystring:{type:'object',additionalProperties:false,properties:{fresh:{type:'string',enum:['true']},prepare:{type:'string',enum:['true']}}}},
   },async (request,reply) => {
@@ -95,7 +96,11 @@ export async function createApi(options: { config?: Config; root?: string; packa
     if (!track) throw new AppError(404,'MEDIA_NOT_FOUND','Questo brano non è più nella cache. Apri nuovamente il link.');
     const controller=new AbortController();const abort=()=>{if(!reply.raw.writableEnded)controller.abort();};
     reply.raw.once('close',abort);
-    try{return streams.issue((await resolver.resolve(track.videoId,request.query.fresh==='true',{priority:request.query.prepare==='true'?'prefetch':'foreground',signal:controller.signal})).playback);}
+    try{
+      const playback=(await resolver.resolve(track.videoId,request.query.fresh==='true',{priority:request.query.prepare==='true'?'prefetch':'foreground',signal:controller.signal})).playback;
+      if(request.query.prepare==='true')await streams.prepare(playback,controller.signal);
+      return streams.issue(playback);
+    }
     finally{reply.raw.removeListener('close',abort);}
   });
   if (options.serveClient) {

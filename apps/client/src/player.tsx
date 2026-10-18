@@ -7,14 +7,27 @@ import {attachActivity,recordRecentAllowed} from './activity-controller';
 import {preparePlayback,attachPlaybackPreparation} from './playback-preparation';
 import {beginPlayback,observePlaybackRequests} from './playback-metrics';
 export const audio=new Audio();
-audio.preload='metadata';
+audio.preload='auto';
 audio.crossOrigin='anonymous';
 const keyOfPlayer=()=>{const state=usePlayer.getState();return `${state.queue[state.index]?.queueId}:${state.activation}`;};
+let cancelSeek:(()=>void)|undefined;
 export function seek(seconds:number){
+  if(!Number.isFinite(seconds))return;
   if(usePlayer.getState().autoplayWaiting)usePlayer.getState().interruptAutoplay();
   const limit=Number.isFinite(audio.duration)?audio.duration:usePlayer.getState().duration;
   const position=Math.max(0,Math.min(seconds,limit||seconds));
-  if(audio.readyState>0)audio.currentTime=position;
+  if(audio.readyState>0&&Math.abs(audio.currentTime-position)>.01){
+    cancelSeek?.();const timing=beginPlayback('seek'),events=new AbortController();
+    let buffered=false;for(let i=0;i<audio.buffered.length;i++)if(position>=audio.buffered.start(i)&&position<=audio.buffered.end(i))buffered=true;
+    timing.bufferedSeek(buffered);
+    const clean=()=>{clearTimeout(timeout);events.abort();if(cancelSeek===cancel)cancelSeek=undefined;};
+    const cancel=()=>{timing.cancel();clean();};cancelSeek=cancel;
+    const timeout=setTimeout(cancel,30000);
+    audio.addEventListener('seeked',()=>{timing.seeked(audio.paused);if(audio.paused)clean();},{once:true,signal:events.signal});
+    audio.addEventListener('playing',()=>{timing.playing();clean();},{once:true,signal:events.signal});
+    audio.addEventListener('error',()=>{timing.fail();clean();},{once:true,signal:events.signal});
+    audio.currentTime=position;
+  }
   usePlayer.setState({position});
 }
 export function AudioController(){
@@ -47,6 +60,7 @@ export function AudioController(){
   },[]);
   useEffect(()=>{
     const controller=new AbortController();let retries=0;let refreshing=false;let generation=0;let metadata:()=>void;let timing:ReturnType<typeof beginPlayback>|undefined;
+    cancelSeek?.();
     const firstData=()=>timing?.firstData(),startedPlaying=()=>timing?.playing();
     const alive=()=>!controller.signal.aborted;
     audio.pause();

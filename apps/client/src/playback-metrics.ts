@@ -1,5 +1,5 @@
 import {usePlayer} from './store';
-type Sample={mode:'new'|'resume'|'refresh';prepared:boolean;restoreMs?:number;descriptorMs?:number;firstDataMs?:number;playingMs?:number;outcome:'pending'|'playing'|'failed'|'cancelled'};
+type Sample={mode:'new'|'resume'|'refresh'|'seek';prepared:boolean;bufferedSeekHint?:boolean;restoreMs?:number;descriptorMs?:number;firstDataMs?:number;playingMs?:number;seekedMs?:number;outcome:'pending'|'playing'|'seeked'|'failed'|'cancelled'};
 let requested=0,key='',lastPlaying=false;
 const samples:Sample[]=[];
 export function observePlaybackRequests(){
@@ -8,8 +8,8 @@ export function observePlaybackRequests(){
   observe();const unsubscribe=usePlayer.subscribe(observe);return()=>{unsubscribe();delete (window as Window&{ritvioPlaybackMetrics?:Sample[]}).ritvioPlaybackMetrics;};
 }
 export function beginPlayback(mode:Sample['mode']){
-  const started=mode==='refresh'?performance.now():requested||performance.now();
+  const started=mode==='refresh'||mode==='seek'?performance.now():requested||performance.now();
   const sample:Sample={mode,prepared:false,outcome:'pending'};samples.push(sample);if(samples.length>40)samples.shift();
-  return {stages:(value:{prepared:boolean;restoreMs:number;descriptorMs:number})=>{sample.prepared=value.prepared;sample.restoreMs=value.restoreMs;sample.descriptorMs=value.descriptorMs;},firstData:()=>{sample.firstDataMs??=performance.now()-started;},playing:()=>{sample.playingMs??=performance.now()-started;sample.outcome='playing';},fail:()=>{sample.outcome='failed';},cancel:()=>{if(sample.outcome==='pending')sample.outcome='cancelled';}};
+  return {stages:(value:{prepared:boolean;restoreMs:number;descriptorMs:number})=>{sample.prepared=value.prepared;sample.restoreMs=value.restoreMs;sample.descriptorMs=value.descriptorMs;},bufferedSeek:(value:boolean)=>{sample.bufferedSeekHint=value;},seeked:(paused:boolean)=>{sample.seekedMs??=performance.now()-started;if(paused)sample.outcome='seeked';},firstData:()=>{sample.firstDataMs??=performance.now()-started;},playing:()=>{sample.playingMs??=performance.now()-started;sample.outcome='playing';},fail:()=>{sample.outcome='failed';},cancel:()=>{if(sample.outcome==='pending')sample.outcome='cancelled';}};
 }
 export function playbackMetrics(){return samples.map(sample=>({...sample}));}
