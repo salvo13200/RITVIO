@@ -1,6 +1,7 @@
 import type {Track,Playback} from '../../../packages/domain/index';
 import {api,ApiError} from './api';
 import {usePlayer,nextPreparedTrack} from './store';
+import {canPreloadAudio} from '../../../packages/domain/audio-preload';
 const descriptors=new Map<string,Playback>();
 const freshEpochs=new Map<string,number>();let epoch=0;
 const valid=(value:Playback)=>Date.parse(value.expiresAt)>Date.now()+60000;
@@ -23,7 +24,7 @@ export async function preparePlayback(track:Track,fresh:boolean,signal:AbortSign
   if(version===freshEpochs.get(track.id))remember(track.id,descriptor);return {descriptor,prepared:false,restoreMs,descriptorMs:performance.now()-started-restoreMs};
 }
 /** Prepare one next descriptor and a bounded server RAM prefix after playback settles. */
-export function attachPlaybackPreparation(){
+export function attachPlaybackPreparation(media:HTMLAudioElement){
   const active=new Set<AbortController>();
   let timer:ReturnType<typeof setTimeout>|undefined,controller:AbortController|undefined,target='',targetKey='',signature:unknown[];
   const cancel=(keep=false)=>{clearTimeout(timer);if(!keep)controller?.abort();controller=undefined;};
@@ -37,7 +38,13 @@ export function attachPlaybackPreparation(){
     cancel(s.playing&&s.queue[s.index]?.id===target);target=nextId;targetKey=identity;
     if(!next)return;
     // Even a known descriptor may have lost its RAM audio after eviction or expiry.
-    timer=setTimeout(()=>{const own=new AbortController();controller=own;active.add(own);void preparePlayback(next,false,own.signal,true).catch(()=>{}).finally(()=>{active.delete(own);if(controller===own)controller=undefined;});},700);
+    const whenReady=()=>{
+      if(targetKey!==identity)return;
+      const ranges=Array.from({length:media.buffered.length},(_,i)=>[media.buffered.start(i),media.buffered.end(i)] as const);
+      if(media.seeking||media.readyState<3||!canPreloadAudio(media.currentTime,media.duration,ranges)){timer=setTimeout(whenReady,500);return;}
+      const own=new AbortController();controller=own;active.add(own);void preparePlayback(next,false,own.signal,true).catch(()=>{}).finally(()=>{active.delete(own);if(controller===own)controller=undefined;});
+    };
+    timer=setTimeout(whenReady,700);
   };
   const unsubscribe=usePlayer.subscribe(update);update();
   return()=>{unsubscribe();cancel();for(const pending of active)pending.abort();};

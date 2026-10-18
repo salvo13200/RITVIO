@@ -41,7 +41,7 @@ export function AudioController(){
   useEffect(()=>{configureAudio(preferences);},[preferences]);
   useEffect(()=>attachActivity(audio,()=>loaded.current===keyOfPlayer()&&!restoring.current),[]);
   useEffect(()=>observePlaybackRequests(),[]);
-  useEffect(()=>attachPlaybackPreparation(),[]);
+  useEffect(()=>attachPlaybackPreparation(audio),[]);
   useEffect(()=>attachAutoplay(),[]);
   useEffect(()=>{
     const matches=()=>{const s=usePlayer.getState();return loaded.current===`${s.queue[s.index]?.queueId}:${s.activation}`;};
