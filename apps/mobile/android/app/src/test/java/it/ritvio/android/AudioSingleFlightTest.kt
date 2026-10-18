@@ -39,8 +39,9 @@ class AudioSingleFlightTest {
         val entered=CountDownLatch(1);var interrupted=false
         val resolver=AudioSingleFlight<String,String>{id,_->if(id=="cancel"){entered.countDown();CountDownLatch(1).await()};id}
         val owner=Thread{try{resolver.get("cancel")}catch(_:InterruptedException){interrupted=Thread.currentThread().isInterrupted}}
-        owner.start();assertTrue(entered.await(3,TimeUnit.SECONDS));owner.interrupt();owner.join(2000)
-        assertFalse(owner.isAlive);assertTrue(interrupted);assertEquals(0,resolver.pending());assertEquals("next",resolver.get("next"))
+        try{owner.start();assertTrue(entered.await(3,TimeUnit.SECONDS));owner.interrupt();owner.join(2000)
+            assertFalse(owner.isAlive);assertTrue(interrupted);assertEquals(0,resolver.pending());assertEquals("next",resolver.get("next"))
+        }finally{owner.interrupt();owner.join(2000)}
     }
     @Test fun cancellingAJoinedConsumerDoesNotCancelTheSharedOwner(){
         val started=CountDownLatch(1);val release=CountDownLatch(1);val pool=Executors.newSingleThreadExecutor()
