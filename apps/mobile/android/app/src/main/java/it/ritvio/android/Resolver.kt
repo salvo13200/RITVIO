@@ -113,8 +113,10 @@ class Resolver private constructor(context: Context) {
             val map=buildMap { for(key in headers.keys()){val value=headers.getString(key);require(key.lowercase() in allowed && !value.contains('\n') && !value.contains('\r'));put(key,value)} }
             val result=AudioDescriptor(uri,map,expires);audio.store(key,result,expires);return result
         }catch(error:Exception){
-            if(!speculative)synchronized(failures){failures.entries.removeAll{it.value<now};failures[id]=System.currentTimeMillis()+10000}
             if(error.toString().contains("429")||error.toString().contains("Too Many Requests",true))audioCooldownUntil=System.currentTimeMillis()+60000
+            // A loader cancelled by a skip must not negatively cache the old track.
+            if(Thread.currentThread().isInterrupted)throw IOException("Preparazione annullata",error)
+            if(!speculative)synchronized(failures){failures.entries.removeAll{it.value<now};failures[id]=System.currentTimeMillis()+10000}
             throw IOException("Il servizio musicale non risponde. Riprova tra poco.",error)
         }finally{val elapsed=(System.nanoTime()-started)/1_000_000;lastResolutionMs.set(elapsed);if(speculative)lastBackgroundMs.set(elapsed)else lastForegroundMs.set(elapsed)}
     }
