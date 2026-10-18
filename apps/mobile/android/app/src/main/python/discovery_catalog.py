@@ -5,6 +5,32 @@ PARAMS = re.compile(r'[A-Za-z0-9_=%+\-]{1,1024}')
 IDENTIFIER = re.compile(r'[A-Za-z0-9_-]{1,160}')
 
 
+def category_playlists(api, params):
+    # ytmusicapi 1.12.3 treats every carousel card as a playlist, but live
+    # categories also contain songs and albums. Read the same bounded browse
+    # response once and accept only cards with an explicit playlist endpoint.
+    response = api._send_request('browse', {'browseId': 'FEmusic_moods_and_genres_category', 'params': params})
+    pending, visited = [(response, 0)], 0
+    while pending and visited < 20_000:
+        node, depth = pending.pop()
+        visited += 1
+        if depth > 40:
+            continue
+        if isinstance(node, dict):
+            card = node.get('musicTwoRowItemRenderer')
+            if isinstance(card, dict):
+                runs = (card.get('title') or {}).get('runs') or []
+                endpoints = [card.get('navigationEndpoint') or {}] + [run.get('navigationEndpoint') or {} for run in runs if isinstance(run, dict)]
+                identifier = next((entry.get('browseEndpoint', {}).get('browseId', '') for entry in endpoints if str(entry.get('browseEndpoint', {}).get('browseId', '')).startswith('VL')), '')
+                if identifier:
+                    images = ((card.get('thumbnailRenderer') or {}).get('musicThumbnailRenderer') or {}).get('thumbnail') or {}
+                    yield {'playlistId': identifier, 'title': ''.join(str(run.get('text') or '') for run in runs if isinstance(run, dict)), 'thumbnails': images.get('thumbnails') or []}
+                continue
+            pending.extend((value, depth + 1) for value in reversed(list(node.values())) if isinstance(value, (dict, list)))
+        elif isinstance(node, list):
+            pending.extend((value, depth + 1) for value in reversed(node) if isinstance(value, (dict, list)))
+
+
 def catalog(payload, client, song, thumbnail):
     operation = payload['operation']
     api = client(language='en')
@@ -30,7 +56,7 @@ def catalog(payload, client, song, thumbnail):
         if not isinstance(params, str) or not PARAMS.fullmatch(params):
             raise ValueError('Invalid category')
         results, seen = [], set()
-        for item in api.get_mood_playlists(params)[:100]:
+        for item in category_playlists(api, params):
             identifier = item.get('playlistId') or item.get('browseId') or ''
             if identifier.startswith('VL'):
                 identifier = identifier[2:]

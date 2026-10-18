@@ -6,7 +6,10 @@ spec=importlib.util.spec_from_file_location('discovery',Path(__file__).resolve()
 discovery=importlib.util.module_from_spec(spec);spec.loader.exec_module(discovery)
 class Provider:
     def get_mood_categories(self):return {'Genres':[{'title':'Pop','params':'pop'},{'title':'Invalid','params':'../../file'},{'title':'Duplicate','params':'pop'}],'Moods & moments':[{'title':'Focus','params':'focus'}]}
-    def get_mood_playlists(self,params):return [{'playlistId':'VLPLAYLIST1','title':'Focus','thumbnails':[]},{'playlistId':'VLPLAYLIST1','title':'Duplicate'},{'playlistId':'bad/id','title':'Invalid'}]
+    def _send_request(self,endpoint,body):
+        assert endpoint=='browse' and body['browseId']=='FEmusic_moods_and_genres_category'
+        def card(title,identifier=None):return {'musicTwoRowItemRenderer':{'title':{'runs':[{'text':title}]},'navigationEndpoint':{'browseEndpoint':{'browseId':identifier}} if identifier else {'watchEndpoint':{'videoId':'abcdefghijk'}}}}
+        return {'contents':[card('Focus','VLPLAYLIST1'),card('A song without browse endpoint'),card('An album','MPREexample'),card('Duplicate','VLPLAYLIST1'),card('Invalid','VLbad/id')]}
     def get_playlist(self,id,limit):return {'title':'Focus','trackCount':3,'tracks':[{'videoId':'abcdefghijk','title':'First'},{'videoId':'12345678901','isAvailable':False},{'videoId':'invalid'}]}
 def load(operation,**args):return discovery.catalog({'operation':operation,**args},lambda **kw:Provider(),lambda item:dict(item),lambda item:None)
 class DiscoveryTest(unittest.TestCase):
