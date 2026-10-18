@@ -4,9 +4,9 @@
 
 **Player musicale gratuito e open source per Windows e Android.** Ricerca, scoperta, libreria locale e interfacce pensate per ciascuna piattaforma.
 
-[English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1) · [Galleria](docs/SCREENSHOTS.md)
+[English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases) · [Galleria](docs/SCREENSHOTS.md)
 
-> Anteprima pubblica: **Windows 0.7.2** e **Android 1.0.4**. Le verifiche native finali dell'ultima APK sono ancora aperte: consulta [note e limiti](docs/RELEASE_NOTES.md).
+> Anteprima pubblica: **Windows 0.7.2** e **Android 1.2.0**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
 
 [![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
 
@@ -29,9 +29,9 @@ Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 | Piattaforma | Download |
 | --- | --- |
 | Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-setup.exe) · [Portatile](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-portatile.exe) |
-| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-Android-1.0.4.apk) |
+| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.2.0/RITVIO-Android-1.2.0.apk) |
 
-Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1).
+Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
 
 ## Documentazione e contributi
 

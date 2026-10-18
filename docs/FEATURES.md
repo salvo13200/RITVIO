@@ -1,16 +1,16 @@
 # What you can do with RITVIO
 
-[Back to RITVIO](../README.md) · [Screenshots](SCREENSHOTS.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1)
+[Back to RITVIO](../README.md) · [Screenshots](SCREENSHOTS.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases)
 
 Every feature group below has a corresponding view in the [illustrated function index](SCREENSHOTS.md#feature-to-screen-index), including separate track-card and lyrics-card exports and the lyrics-selection menu.
 
 ## Discover and return
 
-Search tracks, artists and albums, then browse an artist or a complete available album. Home combines recent listening with global hits and new releases; availability and updates depend on the catalogue provider. A track radio and listening-based suggestions help you continue from a song you like. These are RITVIO/provider-dependent selections, not an official Spotify or Apple Music recommendation service.
+Search tracks, artists and albums, then browse an artist or a complete available album. Home combines recent listening with global hits and new releases; Android also lets you browse catalogue genres and moods/activities; availability and updates depend on the catalogue provider. A track radio and listening-based suggestions help you continue from a song you like. These are RITVIO/provider-dependent selections, not an official Spotify or Apple Music recommendation service.
 
 ## Keep a local library
 
-Like tracks, follow artists/albums, make playlists and keep listening history on your device. Rename playlists, add/remove/reorder tracks and browse the library. Import/export version-1 playlist files or preview supported public playlist links before importing their metadata. Playlist transfer contains references and metadata, not downloaded audio.
+Like tracks, follow artists/albums, make playlists and keep listening history on your device. Rename playlists, add/remove/reorder tracks and browse the library. Import/export version-1 playlist files or preview supported public playlist links before importing their metadata. Playlist transfer contains references and metadata, not downloaded audio. On Android, choose or restore a photo for a personal playlist; track artwork stays supplied by the catalogue. Exported playlist files include a portable version of a custom playlist cover.
 
 No hosted account is required. Windows and Android libraries are separate: automatic cross-device synchronisation and online collaboration are not implemented.
 
@@ -23,6 +23,8 @@ Use previous/next, seeking, shuffle/repeat and a queue you can edit. Set a sleep
 | Keyboard-friendly desktop layout with sidebar and persistent playback bar. | Touch interface with Home, Search, Library and a full-screen player. |
 | Immersive listening view and a separate mini-player. | Media3 playback, Android media-session controls and background service. |
 | Desktop queue/library surfaces and local Fastify/SQLite service. | Native playback ownership and local library through the Capacitor bridge. |
+
+Android 1.2.0 preloads the next track, retains a bounded RAM back buffer and shares duplicate stream requests to reduce waiting. Unprepared tracks and seeks outside available audio still require the network; there is no offline audio cache. Use **Settings → Copy playback diagnostics** to copy local timing evidence without track titles, identifiers or stream URLs. Nothing is uploaded automatically.
 
 Features and audio effects depend on the platform/device. Native background playback, audio focus and OEM battery restrictions must be checked on the phone; browser captures cannot validate them.
 

@@ -5,7 +5,7 @@
 **A free, open-source music player for Windows and Android.** Discover something new, keep a library of your own and make room for the music you love.
 
 <p>
-  <a href="https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1"><strong>Download RITVIO</strong></a> ·
+  <a href="https://github.com/salvo13200/RITVIO/releases"><strong>Download RITVIO</strong></a> ·
   <a href="#a-look-inside">Screenshots</a> ·
   <a href="docs/FEATURES.md">Features</a> ·
   <a href="docs/README.md">Documentation</a> ·
@@ -14,7 +14,7 @@
 
 [![CI](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml/badge.svg)](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml) · [GPL-3.0-only](LICENSE) · [English](README.md) / [Italiano](README.it.md)
 
-> **Public preview:** Windows **0.7.2** · Android **1.0.4**. Both are available now. Read the [release notes and known limits](docs/RELEASE_NOTES.md) before installing; native-device validation is still being completed.
+> **Public preview:** Windows **0.7.2** · Android **1.2.0**. Both are available now. Read the [release notes and known limits](docs/RELEASE_NOTES.md) before installing; device coverage remains limited.
 
 ## A look inside
 
@@ -63,9 +63,9 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 | --- | --- | --- |
 | Windows 10/11 · x64 | Per-user installer | [Download Setup EXE](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-setup.exe) |
 | Windows 10/11 · x64 | Portable app | [Download portable EXE](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-0.7.2-portatile.exe) |
-| Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/public-preview-1/RITVIO-Android-1.0.4.apk) |
+| Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/android-v1.2.0/RITVIO-Android-1.2.0.apk) |
 
-[All release files, source archives and SHA-256 checksums](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1).
+[All release files, source archives and SHA-256 checksums](https://github.com/salvo13200/RITVIO/releases).
 
 <details>
 <summary>Installation and update notes</summary>
@@ -73,7 +73,7 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 - Windows executables include their runtime and are not Authenticode-signed; SmartScreen may display a warning.
 - On Android, install the APK from the release. A differently signed fork cannot update an official installation.
 - Update an existing official installation without uninstalling first to retain local data. Keep your own backups.
-- The initial release is a prerelease. Device rendering, audio focus, locked-screen playback and Gallery export still need final checks for this exact APK; browser and unit tests cannot establish native behaviour.
+- These releases are public previews. Android 1.2.0 passed a maintainer-reported playback-speed trial; comprehensive device/accessibility, Bluetooth and audio-focus coverage remains incomplete. Browser and unit tests cannot establish native behaviour.
 
 </details>
 

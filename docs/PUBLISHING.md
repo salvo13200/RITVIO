@@ -1,6 +1,6 @@
 # Publish RITVIO on GitHub
 
-The source and candidate packages can be prepared locally. No GitHub repository has been created by these scripts. Build workflows do **not** publish a release automatically, merge pull requests or request write permissions.
+RITVIO is published at [salvo13200/RITVIO](https://github.com/salvo13200/RITVIO). Use a branch and pull request for updates; the initial-repository instructions below are retained for a fresh fork. Build workflows do **not** publish a release automatically, merge pull requests or request write permissions.
 
 ## 1. Create the repository from the clean export
 
@@ -49,6 +49,8 @@ Create a protected environment named **release**, restrict it to `main`, and req
 The manually dispatched `Build release candidate` workflow builds Windows and Android sequentially, checks JVM tests and APK alignment, validates the known official certificate, creates source archives/hash manifest and uploads a seven-day workflow artifact. It removes temporary signing material in an always-run cleanup step. Artifacts contain an explicit file list, never `.local/` or credentials. It runs only from `main` and does not create public releases. Review workflow/code changes before allowing them access to the release environment.
 
 ## 5. Create a prerelease with corresponding source
+
+For an Android-only update, use a separate versioned tag such as `android-v1.2.0`, attach the exact tested signed APK, corresponding RITVIO/upstream source archives, `SHA256SUMS` and `RELEASE-MANIFEST.json`. Link to the existing Windows release rather than attaching old Windows binaries to a new source tag. Keep earlier releases for rollback. Prepare a draft and finish the owner-controlled source merge before publication.
 
 Use [the release checklist](RELEASE_CHECKLIST.md). Current native phone checks are open, so mark the initial public build as a **prerelease**, with the limitations from [release notes](RELEASE_NOTES.md). Keep Windows and Android version numbers distinct; do not reset the Android versionCode/signing key to call both apps 1.0.
 
