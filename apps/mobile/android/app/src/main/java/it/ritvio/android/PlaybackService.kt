@@ -29,6 +29,15 @@ class PlaybackService:MediaSessionService(){
     lateinit var player:ExoPlayer;private set
     private var session:MediaSession?=null
     private val tracks=mutableMapOf<String,TrackData>()
+    private val artwork=mutableMapOf<String,String>()
+    private fun mediaItem(track:TrackData,automatic:Boolean=false)=track.item(automatic,artwork[track.videoId])
+    fun artworkChanged(id:String,uri:String?){
+        if(uri==null)artwork.remove(id)else artwork[id]=uri
+        for(index in 0 until player.mediaItemCount){
+            val item=player.getMediaItemAt(index)
+            if(item.mediaId==id){val original=tracks[id]?.thumbnail.orEmpty();val cover=(uri?:original).takeIf{it.isNotEmpty()}?.let{android.net.Uri.parse(it)};player.replaceMediaItem(index,item.buildUpon().setMediaMetadata(item.mediaMetadata.buildUpon().setArtworkUri(cover).build()).build())}
+        }
+    }
     private val handler=Handler(Looper.getMainLooper())
     private var lastError:String?=null
     private var recoveryId:String?=null
@@ -45,6 +54,7 @@ class PlaybackService:MediaSessionService(){
     private val persistence=object:Runnable{override fun run(){persist();handler.postDelayed(this,5000)}}
     override fun onCreate(){
         super.onCreate();instance=this
+        val storedArt=LibraryStore.get(this).snapshot().optJSONObject("artwork");storedArt?.keys()?.forEach{key->artwork[key]=storedArt.getString(key)}
         val resolver=Resolver.get(this)
         val source=ResolvingDataSource.Factory(DefaultHttpDataSource.Factory().setConnectTimeoutMs(12000).setReadTimeoutMs(20000)){spec ->
             require(spec.uri.scheme=="ritvio" && spec.uri.host=="track")
@@ -87,7 +97,7 @@ class PlaybackService:MediaSessionService(){
                 return super.onConnect(session,controller)
             }
             override fun onAddMediaItems(session:MediaSession,controller:MediaSession.ControllerInfo,mediaItems:MutableList<MediaItem>):ListenableFuture<MutableList<MediaItem>> {
-                val safe=mediaItems.take(100).mapNotNull{tracks[it.mediaId]?.item()}.toMutableList()
+                val safe=mediaItems.take(100).mapNotNull{tracks[it.mediaId]?.let{track->mediaItem(track)}}.toMutableList()
                 return Futures.immediateFuture(safe)
             }
         }).build()
@@ -117,7 +127,7 @@ class PlaybackService:MediaSessionService(){
         val remove=(player.mediaItemCount+selected.size-100).coerceAtLeast(0);queueRevision++
         past.take(remove).sortedDescending().forEach{player.removeMediaItem(it)};pruneTracks()
         val originalOrder=queueOrder();val start=player.mediaItemCount
-        selected.forEach{tracks[it.videoId]=it};player.addMediaItems(selected.map{it.item(automatic=true)})
+        selected.forEach{tracks[it.videoId]=it};player.addMediaItems(selected.map{mediaItem(it,automatic=true)})
         if(player.shuffleModeEnabled)player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder((originalOrder+(start until start+selected.size)).toIntArray(),System.nanoTime()))
         if(ended){player.seekTo(start,0);player.prepare();player.play()};persist();return selected
     }
@@ -143,7 +153,7 @@ class PlaybackService:MediaSessionService(){
         if(sleepAtEnd)cancelSleep()
         queueRevision++
         tracks.clear();items.forEach{tracks[it.videoId]=it};lastError=null;recoveryId=null
-        player.setMediaItems(items.map{it.item()},index,0);player.prepare();player.play();persist()
+        player.setMediaItems(items.map{mediaItem(it)},index,0);player.prepare();player.play();persist()
     }
     fun queueOrder():List<Int>{
         val timeline=player.currentTimeline
@@ -157,7 +167,7 @@ class PlaybackService:MediaSessionService(){
         discovery.invalidate()
         val oldOrder=queueOrder();val at=if(next && player.mediaItemCount>0)player.currentMediaItemIndex+1 else player.mediaItemCount
         val shuffled=if(next && player.shuffleModeEnabled)QueueRules.insertedNext(oldOrder,player.currentMediaItemIndex,at)else null
-        queueRevision++;tracks[track.videoId]=track;player.addMediaItem(at,track.item())
+        queueRevision++;tracks[track.videoId]=track;player.addMediaItem(at,mediaItem(track))
         shuffled?.let{player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(it.toIntArray(),System.nanoTime()))};persist()
     }
     fun command(type:String,value:Any?){
@@ -194,7 +204,7 @@ class PlaybackService:MediaSessionService(){
         restoring=true
         try{val raw=getSharedPreferences("playback",MODE_PRIVATE).getString("state",null)?:return;val state=JSONObject(raw);val items=TrackData.parseList(state.getJSONArray("items"));val index=state.optInt("index",0).coerceIn(items.indices);items.forEach{tracks[it.videoId]=it}
             val auto=state.optJSONArray("automatic");val autoIndices=if(auto==null)emptySet()else (0 until auto.length()).map{auto.optInt(it,-1)}.toSet()
-            player.setMediaItems(items.mapIndexed{i,item->item.item(i in autoIndices)},index,(state.optDouble("position",0.0).takeIf{it.isFinite()&&it>=0}?:0.0).times(1000).toLong())
+            player.setMediaItems(items.mapIndexed{i,item->mediaItem(item,i in autoIndices)},index,(state.optDouble("position",0.0).takeIf{it.isFinite()&&it>=0}?:0.0).times(1000).toLong())
             player.volume=state.optDouble("volume",1.0).toFloat().takeIf{it.isFinite()}?.coerceIn(0f,1f)?:1f
             player.shuffleModeEnabled=state.optBoolean("shuffle",false);player.repeatMode=when(state.optString("repeat")){"all"->Player.REPEAT_MODE_ALL;"one"->Player.REPEAT_MODE_ONE;else->Player.REPEAT_MODE_OFF}
             state.optJSONArray("order")?.let{array->val order=(0 until array.length()).map{array.getInt(it)};if(order.size==items.size && order.sorted()==items.indices.toList())player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(order.toIntArray(),System.nanoTime()))}

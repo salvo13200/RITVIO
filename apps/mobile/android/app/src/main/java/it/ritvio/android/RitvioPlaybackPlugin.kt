@@ -54,6 +54,32 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun catalog(call:PluginCall){try{catalogWorker.execute{try{call.resolve(JSObject(Resolver.get(context).catalog(call.data).toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Il catalogo non risponde. Riprova tra poco."),"CATALOG_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il caricamento in corso."),"CATALOG_BUSY")}}
     @PluginMethod fun library(call:PluginCall){libraryTask(call){LibraryStore.get(context).snapshot()}}
     @PluginMethod fun libraryCommand(call:PluginCall){libraryTask(call){LibraryStore.get(context).command(call.data)}}
+    @Volatile private var artworkPicking=false
+    @PluginMethod fun chooseArtwork(call:PluginCall){
+        val kind=call.getString("kind")?:"";val id=call.getString("id")?:""
+        if(kind !in listOf("track","playlist") || (kind=="track"&&!TrackData.idPattern.matches(id)) || (kind=="playlist"&&!Regex("^[A-Za-z0-9-]{1,100}$").matches(id))){call.reject(NativeText.text(context,"Brano non valido."),"INVALID_ARTWORK_TARGET");return}
+        if(artworkPicking){call.reject(NativeText.text(context,"Attendi l’operazione in corso."),"ARTWORK_BUSY");return}
+        artworkPicking=true
+        activity.runOnUiThread{try{
+            val picker=if(Build.VERSION.SDK_INT>=33)Intent(android.provider.MediaStore.ACTION_PICK_IMAGES).setType("image/*") else Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/*")
+            startActivityForResult(call,picker,"artworkChosen")
+        }catch(_:Exception){artworkPicking=false;call.reject(NativeText.text(context,"Selettore documenti non disponibile."),"ARTWORK_PICKER_FAILED")}}
+    }
+    @ActivityCallback private fun artworkChosen(call:PluginCall?,result:ActivityResult){
+        artworkPicking=false
+        if(call==null)return
+        val uri=result.data?.data
+        if(result.resultCode!=Activity.RESULT_OK||uri==null){call.resolve(JSObject().put("cancelled",true));return}
+        libraryTask(call,"Impossibile caricare la foto. Scegli un�immagine valida fino a 20 MB e riprova."){
+            val store=ArtworkStore(context);val image=store.copy(uri)
+            try{
+                val library=LibraryStore.get(context).setArtwork(call.getString("kind")?:"",call.getString("id")?:"",image)
+                if(call.getString("kind")=="track")activity.runOnUiThread{PlaybackService.instance?.artworkChanged(call.getString("id")?:"",image)}
+                JSObject().put("cancelled",false).put("library",library)
+            }catch(error:Throwable){store.discard(image);throw error}
+        }
+    }
+    @PluginMethod fun removeArtwork(call:PluginCall){libraryTask(call){val library=LibraryStore.get(context).setArtwork(call.getString("kind")?:"",call.getString("id")?:"",null);if(call.getString("kind")=="track")activity.runOnUiThread{PlaybackService.instance?.artworkChanged(call.getString("id")?:"",null)};library}}
     private fun transferTask(call:PluginCall,action:()->Unit):Boolean{try{transferWorker.execute{try{action()}catch(error:Exception){val message=error.message?.takeIf{NativeText.isMessage(it)}?.let{NativeText.text(context,it)};call.reject(message?:NativeText.text(context,"Operazione non riuscita. Controlla i dati e riprova."),"TRANSFER_FAILED")}};return true}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi l’operazione in corso."),"TRANSFER_BUSY");return false}}
     @PluginMethod fun previewPlaylist(call:PluginCall){
         val request=try{transfers.begin(call.getString("requestId")?:"")}catch(_:Exception){call.reject(NativeText.text(context,"Attendi la lettura precedente."),"TRANSFER_BUSY");return}
@@ -84,7 +110,9 @@ class RitvioPlaybackPlugin:Plugin(){
         check(exportFile==null)
         val library=LibraryStore.get(context).snapshot().getJSONArray("playlists");val id=call.getString("id")?:""
         val playlist=(0 until library.length()).map{library.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:throw IllegalArgumentException()
-        val filename=TransferRules.filename(playlist.getString("name"));val content=PlaylistTransferCodec.exported(playlist)
+        val portable=JSONObject(playlist.toString());val cover=portable.optString("cover")
+        if(cover.startsWith("file://"))portable.put("cover",ArtworkStore(context).portable(cover)?:JSONObject.NULL)
+        val filename=TransferRules.filename(playlist.getString("name"));val content=PlaylistTransferCodec.exported(portable)
         val directory=exportDirectory();directory.listFiles()?.filter{it.isFile&&it.canonicalFile.parentFile==directory.canonicalFile&&Regex("^[a-f0-9-]{36}\\.ritvio\\.json$").matches(it.name)&&it.lastModified()<System.currentTimeMillis()-86400000}?.forEach{it.delete()}
         val file=File(directory,"${java.util.UUID.randomUUID()}.ritvio.json");file.writeText(content,Charsets.UTF_8)
         if(call.getBoolean("save",false)==true){
@@ -107,7 +135,7 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun audioCommand(call:PluginCall){service(call){service->try{call.resolve(JSObject(service.audioCommand(call.data).toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Controllo audio non disponibile sul dispositivo."),"AUDIO_UNAVAILABLE")}}}
     @PluginMethod fun lyrics(call:PluginCall){try{catalogWorker.execute{try{val track=TrackData.parse(call.getObject("track")?:throw IllegalArgumentException());val result=Resolver.get(context).lyrics(track).toString();call.resolve(JSObject(result))}catch(error:Exception){val limited=error.toString().contains("LYRICS_RATE_LIMIT");call.reject(if(limited)NativeText.text(context,"La fonte dei testi richiede una pausa. Riprova tra poco.") else NativeText.text(context,"Testo non disponibile. Riprova tra poco."),if(limited)"LYRICS_RATE_LIMIT" else "LYRICS_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il caricamento in corso."),"CATALOG_BUSY")}}
     private fun storyTask(call:PluginCall,action:()->Unit){try{storyWorker.execute{try{action()}catch(_:OutOfMemoryError){call.reject(NativeText.text(context,"Memoria insufficiente per l’immagine. Chiudi l’anteprima e riprova."),"STORY_MEMORY")}catch(_:Exception){call.reject(NativeText.text(context,"Immagine non disponibile. Riapri Condividi e riprova."),"STORY_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi la preparazione dell’immagine e riprova."),"STORY_BUSY")}}
-    @PluginMethod fun storyArtwork(call:PluginCall){storyTask(call){call.resolve(JSObject().put("dataUrl",stories().artwork(call.getString("videoId")?:"")))}}
+    @PluginMethod fun storyArtwork(call:PluginCall){storyTask(call){call.resolve(JSObject().put("dataUrl",stories().artwork(call.getString("videoId")?:"",call.getString("thumbnail"))))}}
     @PluginMethod fun exportStory(call:PluginCall){storyTask(call){
         require(storyFile==null)
         val id=call.getString("videoId")?:"";val filename=StoryRules.filename(id);val file=stories().prepare(id,call.getString("base64")?:"")
@@ -136,7 +164,7 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun share(call:PluginCall){
         try{val track=TrackData.parse(call.getObject("track")?:throw IllegalArgumentException());val intent=android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT,"${track.title} — ${track.artist}\nhttps://www.youtube.com/watch?v=${track.videoId}\n${NativeText.text(context,"Condiviso con RITVIO")}");activity.runOnUiThread{try{activity.startActivity(android.content.Intent.createChooser(intent,NativeText.text(context,"Condividi brano")));call.resolve()}catch(_:Exception){call.reject(NativeText.text(context,"Nessuna app di condivisione disponibile."),"SHARE_FAILED")}}}catch(_:Exception){call.reject(NativeText.text(context,"Brano non valido."),"INVALID_TRACK")}
     }
-    private fun libraryTask(call:PluginCall,action:()->org.json.JSONObject){try{libraryWorker.execute{try{call.resolve(JSObject(action().toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Impossibile aggiornare la libreria. Controlla i dati e riprova."),"LIBRARY_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il salvataggio in corso."),"LIBRARY_BUSY")}}
+    private fun libraryTask(call:PluginCall,errorMessage:String="Impossibile aggiornare la libreria. Controlla i dati e riprova.",action:()->org.json.JSONObject){try{libraryWorker.execute{try{call.resolve(JSObject(action().toString()))}catch(_:Exception){call.reject(NativeText.text(context,errorMessage),"LIBRARY_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il salvataggio in corso."),"LIBRARY_BUSY")}}
     @PluginMethod fun search(call:PluginCall){
         val query=call.getString("query")?.trim().orEmpty();if(query.length !in 3..200){call.reject(NativeText.text(context,"Inserisci da 3 a 200 caratteri."),"INVALID_QUERY");return}
         try{searches.execute{try{val result=Resolver.get(context).search(query);call.resolve(JSObject(result.toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Il catalogo non risponde. Controlla la connessione e riprova."),"SEARCH_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi la ricerca in corso."),"SEARCH_BUSY")}

@@ -205,4 +205,5 @@
     <string name="msg_5f1ae8776b1e" formatted="false">"Questa lista non è supportata. Usa una playlist condivisibile; radio, Mix personali, Guarda più tardi e Preferiti richiedono altri flussi."</string>
     <string name="msg_d0e5b671d07e" formatted="false">"Identificativo video non valido."</string>
     <string name="msg_60aaffce9fb3" formatted="false">"Durata del timer non valida."</string>
+    <string name="msg_b88e34d7b299" formatted="false">"Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova."</string>
 </resources>

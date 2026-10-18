@@ -12,9 +12,9 @@ data class TrackData(val videoId: String, val title: String, val artist: String,
     fun json() = JSONObject().put("videoId",videoId).put("title",title).put("artist",artist).put("thumbnail",thumbnail).put("duration",duration)
         .put("album",if(albumId!=null)JSONObject().put("id",albumId).put("name",albumName) else JSONObject.NULL)
         .put("artists",JSONArray().apply{people.forEach{put(JSONObject().put("id",it.first).put("name",it.second))}})
-    fun item(automatic:Boolean=false): MediaItem = MediaItem.Builder().setMediaId(videoId).setUri("ritvio://track/$videoId").setTag(QueueOrigin(automatic))
+    fun item(automatic:Boolean=false,artworkUri:String?=null): MediaItem = MediaItem.Builder().setMediaId(videoId).setUri("ritvio://track/$videoId").setTag(QueueOrigin(automatic))
         .setMediaMetadata(MediaMetadata.Builder().setTitle(title).setArtist(artist)
-            .setArtworkUri(if(thumbnail.isNotEmpty()) Uri.parse(thumbnail) else null).build()).build()
+            .setArtworkUri((artworkUri?:thumbnail).takeIf{it.isNotEmpty()}?.let{Uri.parse(it)}).build()).build()
     companion object {
         val idPattern = Regex("^[A-Za-z0-9_-]{11}$")
         fun parse(value: JSONObject): TrackData {

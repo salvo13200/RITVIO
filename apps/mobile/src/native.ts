@@ -13,6 +13,8 @@ export interface PlaybackPlugin{
   catalog(options:Record<string,unknown>):Promise<MobileCatalog>;
   library():Promise<MobileLibrary>;
   libraryCommand(options:Record<string,unknown>):Promise<MobileLibrary>;
+  chooseArtwork(options:{kind:'track'|'playlist';id:string}):Promise<{cancelled:boolean;library?:MobileLibrary}>;
+  removeArtwork(options:{kind:'track'|'playlist';id:string}):Promise<MobileLibrary>;
   saveQueue(options:{name:string}):Promise<MobileLibrary>;
   previewPlaylist(options:{url:string;requestId:string}):Promise<MobileImportPreview>;
   choosePlaylistFile(options:{requestId:string}):Promise<MobileImportPreview|{cancelled:true}>;
@@ -25,7 +27,7 @@ export interface PlaybackPlugin{
   audioCommand(options:Record<string,unknown>):Promise<MobileAudio>;
   lyrics(options:{track:NativeTrack}):Promise<{plainLyrics:string|null;syncedLyrics:string|null;instrumental:boolean}>;
   share(options:{track:NativeTrack}):Promise<void>;
-  storyArtwork(options:{videoId:string}):Promise<{dataUrl:string}>;
+  storyArtwork(options:{videoId:string;thumbnail?:string|null}):Promise<{dataUrl:string}>;
   exportStory(options:{videoId:string;base64:string;save:boolean}):Promise<{status:'saved'|'opened'|'cancelled';destination?:'gallery'|'document';album?:string}>;
   addListener(event:'playback',listener:(state:MobilePlayback)=>void):Promise<PluginListenerHandle>;
 }

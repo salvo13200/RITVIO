@@ -82,7 +82,7 @@ export function RadioPanel({ track, state, start, openPlayer }: {
             setStarting(false);
         }
     }
-    return <div className="radio-panel"><div className="sheet-track"><Artwork src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></div>
+    return <div className="radio-panel"><div className="sheet-track"><Artwork trackId={track.videoId} src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></div>
   <p className="intro">{msg("Parti da questo brano e scopri musica simile. La radio sostituisce la coda e attiva Autoplay, con ripetizione disattivata.")}</p>
   <p className="source-date">{msg("La musica attuale continua durante la preparazione. Se chiudi questo pannello, la preparazione viene annullata.")}</p>
   {ready ? <><p className="radio-ready" role="status">{msg("La radio \u00E8 pronta.")}</p><button className="primary" onClick={openPlayer}>{msg("Apri il player")}</button></> : <button className="primary" disabled={loading || seconds > 0} onClick={() => void begin()}>{loading ? <LoaderCircle className="spin" size={21}/> : <Radio size={21}/>} {loading ? msg("Preparo la radio\u2026") : seconds > 0 ? msg("Riprova tra {p0} s", { p0: seconds }) : msg("Avvia radio")}</button>}

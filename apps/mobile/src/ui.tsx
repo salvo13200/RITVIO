@@ -3,15 +3,22 @@ import { useEffect, useId, useRef, useState, type ReactNode, type CSSProperties 
 import { Music2, MoreHorizontal, X } from 'lucide-react';
 import type { NativeTrack } from '../../../packages/domain/mobile';
 import { mobileTime } from '../../../packages/domain/mobile';
-export function Artwork({ src, large = false, round = false, children }: {
+import {Capacitor} from '@capacitor/core';
+import {artworkSources} from './artwork';
+import {useTrackArtwork} from './artwork-context';
+export function Artwork({ src, trackId, large = false, round = false, children }: {
     src?: string | null;
+    trackId?: string;
     large?: boolean;
     round?: boolean;
     children?: ReactNode;
 }) {
-    const [failed, setFailed] = useState(false);
-    useEffect(() => setFailed(false), [src]);
-    return <span className={`artwork${large ? ' artwork-large' : ''}${round ? ' artwork-round' : ''}`}>{src && !failed ? <img src={src} alt="" loading={large ? 'eager' : 'lazy'} onError={() => setFailed(true)}/> : children ?? <Music2 aria-hidden="true"/>}</span>;
+    const custom = useTrackArtwork(trackId), source = custom ?? src;
+    const candidates = artworkSources(source?.startsWith('file://') ? Capacitor.convertFileSrc(source) : source, large);
+    const identity = candidates.join('\n');
+    const [failure, setFailure] = useState({identity, index: 0});
+    const index = failure.identity === identity ? failure.index : 0;
+    return <span className={`artwork${large ? ' artwork-large' : ''}${round ? ' artwork-round' : ''}`}>{candidates[index] ? <img src={candidates[index]} alt="" loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => setFailure({identity, index: index + 1})}/> : children ?? <Music2 aria-hidden="true"/>}</span>;
 }
 export function ScrollText({ children }: {
     children: string;
@@ -33,7 +40,7 @@ export function TrackRow({ track, active = false, onPlay, onMore, number, showAc
 }) {
     return <div className={`track-row${active ? ' is-current' : ''}`} aria-current={active ? 'true' : undefined}>
   {number !== undefined && <span className="track-number">{number}</span>}
-  <button className="track-main" aria-label={msg("Riproduci {p0}", { p0: track.title })} onClick={onPlay}><Artwork src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></button>
+  <button className="track-main" aria-label={msg("Riproduci {p0}", { p0: track.title })} onClick={onPlay}><Artwork trackId={track.videoId} src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></button>
   {active && showActivity && <span className={`track-activity${playing ? ' is-playing' : ''}`} aria-label={playing ? msg("In riproduzione") : msg("Brano attuale")}><i /><i /><i /></span>}
   {onMore && <button className="row-more" aria-label={msg("Opzioni: {p0}", { p0: track.title })} onClick={onMore}><MoreHorizontal size={23}/></button>}
  </div>;
