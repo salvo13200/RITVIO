@@ -30,6 +30,8 @@ export async function createApi(options: { config?: Config; root?: string; packa
   if(!options.resolver)void resolver.installed();
   const catalog = new ResolverCatalog(config,store,resolver);
   const app = Fastify({ logger:false, bodyLimit:4096, requestIdHeader:false,ajv:{customOptions:{removeAdditional:false}} });
+  // Cancel owned network work before catalogue hooks wait for their pending reads.
+  app.addHook('preClose',async()=>resolver.close?.());
   const originAllowed = (origin: string) => origin === options.devOrigin || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) && origin === app.listeningOrigin;
   await app.register(cors, { origin(origin, cb) { cb(null,!origin || originAllowed(origin)); }, methods:['GET','POST','PUT','PATCH','DELETE'], allowedHeaders:['Authorization','Content-Type','If-Match','Range'] });
   const rates = new Map<string,{start:number,count:number}>();
@@ -111,7 +113,6 @@ export async function createApi(options: { config?: Config; root?: string; packa
     await app.register(staticFiles,{root:path.join(config.root,'dist/client')});
     app.setNotFoundHandler((req,reply) => req.url.startsWith('/v1/')?reply.code(404).send({error:{code:'NOT_FOUND',message:'Funzione non disponibile in questa fase.',requestId:randomUUID()}}):reply.sendFile('index.html'));
   }
-  app.addHook('preClose',async()=>resolver.close?.());
   app.addHook('onClose',async () => {await playlistImports.close();store.close();});
   return {app,config,store,activity,taste,home};
 }

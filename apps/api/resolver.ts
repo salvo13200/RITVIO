@@ -49,6 +49,9 @@ export class Resolver implements ContentResolver {
   private workers:PlaybackWorkers;
   private preparation:PlaybackPreparation<Resolved>;
   private searching=0;
+  private lifetime=new AbortController();
+  private processes=new Set<Promise<unknown>>();
+  private closing:Promise<void>|undefined;
   constructor(private config: Config) {
     this.workers=new PlaybackWorkers(config);
     this.preparation=new PlaybackPreparation((_id,_fresh,signal)=>this.run(_id,signal),value=>Date.parse(value.playback.expiresAt)>Date.now()+60000);
@@ -62,13 +65,17 @@ export class Resolver implements ContentResolver {
     return this.preparation.resolve(videoId,fresh,options);
   }
   diagnostics(){return {...this.preparation.diagnostics(),workers:this.workers.diagnostics()};}
-  async close(){this.preparation.close();await this.workers.close();}
+  close(){return this.closing??=(async()=>{this.lifetime.abort();this.preparation.close();await Promise.allSettled([...this.processes,this.workers.close()]);})();}
+  private execute(args:string[],input?:unknown,signal?:AbortSignal){
+    const work=runResolverJson(this.config,args,input,signal?AbortSignal.any([signal,this.lifetime.signal]):this.lifetime.signal);
+    this.processes.add(work);const remove=()=>{this.processes.delete(work);};void work.then(remove,remove);return work;
+  }
   async search(query:string,offset=0):Promise<CatalogPage>{
     if(typeof query!=='string'||query.trim().length<3||query.length>200||!Number.isInteger(offset)||offset<0||offset>80||offset%20)throw new AppError(400,'INVALID_REQUEST','Ricerca non valida.');
     if(this.searching>=2)throw new AppError(429,'RESOLVER_BUSY','Altre ricerche sono in corso. Riprova tra poco.');
     this.searching++;
     try{
-      const result=await runResolverJson(this.config,[this.config.catalogScript ?? path.join(this.config.root,'scripts/music-catalog.py')],{query,offset});
+      const result=await this.execute([this.config.catalogScript ?? path.join(this.config.root,'scripts/music-catalog.py')],{query,offset});
       if(!Array.isArray(result.items)||result.items.length>20||(result.nextOffset!==null&&result.nextOffset!==offset+20))throw new AppError(502,'RESOLVER_OUTPUT','Risultati del catalogo non validi.');
       const resource=(value:any)=>value&&typeof value.id==='string'&&/^[A-Za-z0-9_-]{1,160}$/.test(value.id)&&typeof value.name==='string'?{id:value.id,name:value.name.slice(0,300)}:undefined;
       const items:Track[]=result.items.filter((item:any)=>videoIdPattern.test(item.videoId)&&typeof item.title==='string'&&typeof item.artist==='string').map((item:any)=>({id:mediaId(item.videoId),videoId:item.videoId,title:item.title,artist:item.artist,thumbnail:`https://i.ytimg.com/vi/${item.videoId}/mqdefault.jpg`,duration:Math.max(0,Number(item.duration)||0),canonicalUrl:`https://www.youtube.com/watch?v=${item.videoId}`,artists:Array.isArray(item.artists)?item.artists.map(resource).filter(Boolean):[],album:resource(item.album)}));
@@ -78,7 +85,7 @@ export class Resolver implements ContentResolver {
   private async catalogOperation(payload:unknown){
     if(this.searching>=2)throw new AppError(429,'RESOLVER_BUSY','Altre ricerche sono in corso. Riprova tra poco.');
     this.searching++;
-    try{return await runResolverJson(this.config,[this.config.catalogScript??path.join(this.config.root,'scripts/music-catalog.py')],payload);}finally{this.searching--;}
+    try{return await this.execute([this.config.catalogScript??path.join(this.config.root,'scripts/music-catalog.py')],payload);}finally{this.searching--;}
   }
   async homeIndex():Promise<HomeIndex>{return normalizeHomeIndex(await this.catalogOperation({operation:'home-index'}));}
   async situations():Promise<Situation[]>{return situationIndex(await this.catalogOperation({operation:'situation-index'}));}
@@ -135,10 +142,10 @@ export class Resolver implements ContentResolver {
     this.searching++;
     try{
       phase('youtube-music');
-      try{return normalizeRemotePlaylist(await runResolverJson(this.config,[path.join(path.dirname(this.config.catalogScript??path.join(this.config.root,'scripts/music-catalog.py')),'playlist-catalog.py')],{id},signal),id,'youtube-music');}
+      try{return normalizeRemotePlaylist(await this.execute([path.join(path.dirname(this.config.catalogScript??path.join(this.config.root,'scripts/music-catalog.py')),'playlist-catalog.py')],{id},signal),id,'youtube-music');}
       catch(error){if(signal.aborted||error instanceof AppError&&['RESOLVER_MISSING','RESOLVER_BUSY'].includes(error.code))throw error;}
       phase('youtube');
-      const raw=await runResolverJson(this.config,['-m','yt_dlp','--ignore-config','--no-plugin-dirs','--flat-playlist','--skip-download','--dump-single-json','--no-cache-dir','--ignore-errors','--no-warnings','--socket-timeout','12','--retries','0','--playlist-end','1001','--',`https://www.youtube.com/playlist?list=${id}`],undefined,signal);
+      const raw=await this.execute(['-m','yt_dlp','--ignore-config','--no-plugin-dirs','--flat-playlist','--skip-download','--dump-single-json','--no-cache-dir','--ignore-errors','--no-warnings','--socket-timeout','12','--retries','0','--playlist-end','1001','--',`https://www.youtube.com/playlist?list=${id}`],undefined,signal);
       return normalizeFlatPlaylist(raw,id);
     }finally{this.searching--;}
   }

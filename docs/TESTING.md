@@ -78,6 +78,8 @@ Android adds at most two service-owned transient-network/expired-URL attempts pe
 
 Automated coverage: `pnpm test:playback` includes controlled transient failure, exhaustion, pause/cancellation, offline/online notification, rate-limit and pending-seek cases with actual browser audio. `pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts` covers artwork ownership and late native-bridge responses. JVM `PlaybackRecoveryTest` exercises deadlines, retry bounds and cancelled callbacks; it does not establish real device connectivity, Bluetooth or audio-focus behaviour. Media3 error/state semantics are documented in [Player.Listener](https://developer.android.com/reference/androidx/media3/common/Player.Listener#onPlayerError(androidx.media3.common.PlaybackException)).
 
+Shutdown also cancels owned catalogue/search/import subprocesses before Home/collection hooks wait for their reads. Cancellation terminates only the spawned process tree, with a bounded completion wait; it does not record a provider failure in the persistent discovery cache. `tests/resolver-shutdown.test.ts` holds an actual fixture interpreter for 60 seconds and verifies resolver/API closure cancels it promptly, prevents new work and leaves no fake cache error. This regression was added after a Windows installer lifecycle run timed out while closing the app during reinstall; the candidate must pass a fresh complete lifecycle run before delivery.
+
 ### Native acceptance run (record results for each exact candidate)
 
 Do not substitute fixture or JVM results for this checklist. Use the official update signature and keep a backup; do not uninstall or erase the real library.
