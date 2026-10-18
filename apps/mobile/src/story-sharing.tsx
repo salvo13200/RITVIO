@@ -163,7 +163,7 @@ export function StoryComposer({ track }: {
     function reset() { setChoice({ selection: null, problem: null }); }
     const problemText = problem === 'lines' ? msg("Puoi scegliere fino a {p0} righe consecutive.", { p0: excerptLimits.lines }) : problem === 'whole' ? msg("Scegli un estratto: il testo completo resta escluso.") : '';
     return <div className="mobile-story">
-  <div className="sheet-track"><Artwork trackId={track.videoId} src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></div>
+  <div className="sheet-track"><Artwork src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></div>
   <div className="transfer-modes" role="group" aria-label={msg("Contenuto della card")}><button className="tonal" aria-pressed={mode === 'track'} disabled={busy} onClick={() => setMode('track')}><Music2 size={20}/>{msg("Brano")}</button><button className="tonal" aria-pressed={mode === 'lyrics'} disabled={busy} onClick={() => setMode('lyrics')}><Quote size={20}/>{msg("Versi")}</button></div>
   {mode === 'lyrics' && <section className="story-excerpt" aria-label={msg("Seleziona i versi")}>
    <h3>{msg("Scegli i tuoi versi")}</h3><p id="excerpt-help">{choice.selection ? msg("Inizio alla riga {p0}. Tocca l\u2019ultima riga, anche prima dell\u2019inizio.", { p0: choice.selection.anchor + 1 }) : msg("Tocca la prima riga, poi l\u2019ultima. Massimo {p0} righe consecutive, senza limite di caratteri.", { p0: excerptLimits.lines })}</p>

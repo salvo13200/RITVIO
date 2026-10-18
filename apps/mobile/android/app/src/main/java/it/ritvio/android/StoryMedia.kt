@@ -11,8 +11,6 @@ import javax.net.ssl.HttpsURLConnection
 class StoryMedia(private val context:Context){
     fun directory():File=File(context.cacheDir,"story-exports").apply{mkdirs()}
     fun artwork(id:String,source:String?=null):String {
-        val custom=LibraryStore.get(context).artwork("track",id)?.let{ArtworkStore(context).owned(it)}
-        if(custom!=null)return "data:image/jpeg;base64,"+Base64.encodeToString(custom.readBytes(),Base64.NO_WRAP)
         var failure:Exception?=null
         for(url in ArtworkUrls.candidates(source,id))try{return download(url)}catch(error:Exception){failure=error}
         throw failure?:IllegalArgumentException("Missing artwork")

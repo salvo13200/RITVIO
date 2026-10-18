@@ -1,7 +1,7 @@
 import { noticeText } from './messages';
 import { msg, formatLocale } from './messages';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ChevronDown, ChevronRight, ListMusic, Heart, Shuffle, Repeat, Repeat1, SkipBack, SkipForward, Pause, Play, LoaderCircle, Volume2, VolumeX, FileText, SlidersHorizontal, Share2, Timer, ImagePlus } from 'lucide-react';
+import { ChevronDown, ChevronRight, ListMusic, Heart, Shuffle, Repeat, Repeat1, SkipBack, SkipForward, Pause, Play, LoaderCircle, Volume2, VolumeX, FileText, SlidersHorizontal, Share2, Timer } from 'lucide-react';
 import type { MobilePlayback, NativeTrack, MobileCommand, MobileResource, MobileAudio } from '../../../packages/domain/mobile';
 import { parseLyrics, activeLyricsLine, type ParsedLyrics } from '../../../packages/domain/lyrics';
 import { nativePlayback } from './native';
@@ -16,9 +16,7 @@ export function VolumeControl({ value, onChange }: {
     const draft = useRangeDraft(value, onChange);
     return <label className="volume"><VolumeX size={20} aria-hidden="true"/><input aria-label={msg("Volume del player")} type="range" min={0} max={1} step={.01} value={draft.value} style={{ '--fill': `${draft.value * 100}%` } as CSSProperties} onChange={event => draft.change(Number(event.target.value))} onPointerUp={draft.commit} onPointerCancel={draft.cancel} onKeyUp={draft.keyUp} onBlur={draft.commit}/><Volume2 size={23} aria-hidden="true"/></label>;
 }
-export function Player({ editArtwork, artworkBusy, state, liked, onLike, command, close, openQueue, openUtility, openResource, searchArtist, share, children, inactive = false, artworkOrigin = null }: {
-    editArtwork: () => void;
-    artworkBusy: boolean;
+export function Player({ state, liked, onLike, command, close, openQueue, openUtility, openResource, searchArtist, share, children, inactive = false, artworkOrigin = null }: {
     state: MobilePlayback;
     liked: boolean;
     onLike: () => void;
@@ -48,7 +46,7 @@ export function Player({ editArtwork, artworkBusy, state, liked, onLike, command
     return <Modal full inactive={inactive} label={msg("In ascolto")} onClose={dismissal.dismiss}>
   <div className="player-atmosphere" aria-hidden="true"/>
   <header ref={dismissal.header} className="full-header" {...dismissal.events}><button aria-label={msg("Chiudi il player")} onClick={dismissal.dismiss}><ChevronDown size={27}/></button><span>{msg("In ascolto")}</span><button aria-label={msg("Apri coda")} onClick={openQueue}><ListMusic size={25}/></button></header>
-  <div ref={body} className="full-body"><div className="player-cover"><Artwork trackId={track.videoId} src={track.thumbnail} large/><button className="cover-edit" disabled={artworkBusy} aria-label={msg("Cambia copertina brano")} onClick={editArtwork}><ImagePlus size={22}/></button></div>
+  <div ref={body} className="full-body"><div className="player-cover"><Artwork src={track.thumbnail} large/></div>
    <div className="track-identity">{album?.id && <button className="album-link" aria-label={msg("Apri album: {p0}", { p0: album.name })} onClick={() => openResource({ id: album.id, name: album.name, kind: 'album', artwork: track.thumbnail })}><ScrollText>{album.name}</ScrollText><ChevronRight size={18}/></button>}
     <div className="identity-title"><h1>{album?.id ? <button className="player-title-link" aria-label={msg("Apri album del brano: {p0}", { p0: track.title })} onClick={() => openResource({ id: album.id, name: album.name, kind: 'album', artwork: track.thumbnail })}><ScrollText>{track.title}</ScrollText></button> : <ScrollText>{track.title}</ScrollText>}</h1><button aria-label={liked ? msg("Rimuovi dai brani piaciuti") : msg("Salva nei brani piaciuti")} aria-pressed={liked} onClick={onLike}><Heart size={27} fill={liked ? 'currentColor' : 'none'}/></button></div>
     <button className="artist-link" onClick={() => person ? openResource({ id: person.id, name: person.name, kind: 'artist', artwork: null }) : searchArtist()}><ScrollText>{track.artist}</ScrollText></button>

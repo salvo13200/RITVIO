@@ -1,16 +1,16 @@
 # Public preview — published 17 October 2026
 
-## Android 1.1.0 candidate (version code 16)
+## Android 1.1.1 candidate (version code 17)
 
 This development candidate is separate from the published `public-preview-1` APK (1.0.4).
 
-- Choose and restore personal artwork for playlists and individual tracks. Images are copied into private app storage, decoded at a bounded size and stripped of original metadata. No broad photo-library permission is requested.
-- Larger provider artwork with fallback to the original thumbnail; sharing uses the selected track cover.
+- Choose and restore personal artwork for your own playlists only. Images are copied into private app storage, decoded at a bounded size and stripped of original metadata. No broad photo-library permission is requested.
+- Larger provider artwork with fallback to the original thumbnail; track covers and share cards keep the catalogue artwork.
 - Loading appears in Play only. The artist remains visible in the mini-player, and playback errors still offer Retry.
 - Browse real catalogue genres and moods/activities, open their playlists, and play available tracks. Results use the existing bounded native cache.
-- Personal track images are local to Android. Playlist export embeds a smaller portable image; it never includes private file paths or audio.
+- Track artwork editing is not available. Overrides from the 1.1.0 test candidate are retired without changing personal playlist covers. Playlist export embeds a smaller portable image; it never includes private file paths or audio.
 
-Phone checks still required: photo picker (including cancellation), persistence after restart, media controls, image sharing and audio continuity while editing artwork. Browser fixtures and JVM tests do not certify these native behaviours. Install a candidate signed with the existing official key over the current app to preserve data.
+Phone checks still required: photo picker (including cancellation), persistence after restart, media controls, image sharing and audio continuity while editing playlist artwork. Browser fixtures and JVM tests do not certify these native behaviours. Install a candidate signed with the existing official key over the current app to preserve data.
 
 
 Windows **0.7.2** (portable EXE and per-user installer), Android **1.0.4 / versionCode 15** (API24+, ARM64/x86_64). [Release and downloads](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1). This increment packages GPLv3 and upstream notices and public source/build workflows. It preserves the current interface and playback implementation. Previous localisation candidates were Windows 0.7.1 / Android 1.0.3.

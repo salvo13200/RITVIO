@@ -158,7 +158,6 @@ html[data-reduce-motion=true] *,html[data-reduce-motion=true] *::before,html[dat
 
 /* Cover editing is independent of playback and never changes the cover grid's size. */
 .player-cover{position:relative}
-.player-cover>.cover-edit{position:absolute;inset:auto 8px 8px auto;width:48px;height:48px;border-radius:12px;background:var(--surface);color:var(--text);border:1px solid var(--line)}
 .browse-sections>section+section{margin-top:28px}
 .browse-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 .browse-category{min-height:76px;padding:16px;justify-content:space-between;gap:12px;text-align:left;border-radius:12px;background:var(--surface);font-size:1.12rem;font-weight:650}

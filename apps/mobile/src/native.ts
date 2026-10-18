@@ -13,8 +13,8 @@ export interface PlaybackPlugin{
   catalog(options:Record<string,unknown>):Promise<MobileCatalog>;
   library():Promise<MobileLibrary>;
   libraryCommand(options:Record<string,unknown>):Promise<MobileLibrary>;
-  chooseArtwork(options:{kind:'track'|'playlist';id:string}):Promise<{cancelled:boolean;library?:MobileLibrary}>;
-  removeArtwork(options:{kind:'track'|'playlist';id:string}):Promise<MobileLibrary>;
+  chooseArtwork(options:{kind:'playlist';id:string}):Promise<{cancelled:boolean;library?:MobileLibrary}>;
+  removeArtwork(options:{kind:'playlist';id:string}):Promise<MobileLibrary>;
   saveQueue(options:{name:string}):Promise<MobileLibrary>;
   previewPlaylist(options:{url:string;requestId:string}):Promise<MobileImportPreview>;
   choosePlaylistFile(options:{requestId:string}):Promise<MobileImportPreview|{cancelled:true}>;

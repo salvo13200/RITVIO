@@ -5,15 +5,13 @@ import type { NativeTrack } from '../../../packages/domain/mobile';
 import { mobileTime } from '../../../packages/domain/mobile';
 import {Capacitor} from '@capacitor/core';
 import {artworkSources} from './artwork';
-import {useTrackArtwork} from './artwork-context';
-export function Artwork({ src, trackId, large = false, round = false, children }: {
+export function Artwork({ src, large = false, round = false, children }: {
     src?: string | null;
-    trackId?: string;
     large?: boolean;
     round?: boolean;
     children?: ReactNode;
 }) {
-    const custom = useTrackArtwork(trackId), source = custom ?? src;
+    const source = src;
     const candidates = artworkSources(source?.startsWith('file://') ? Capacitor.convertFileSrc(source) : source, large);
     const identity = candidates.join('\n');
     const [failure, setFailure] = useState({identity, index: 0});
@@ -40,7 +38,7 @@ export function TrackRow({ track, active = false, onPlay, onMore, number, showAc
 }) {
     return <div className={`track-row${active ? ' is-current' : ''}`} aria-current={active ? 'true' : undefined}>
   {number !== undefined && <span className="track-number">{number}</span>}
-  <button className="track-main" aria-label={msg("Riproduci {p0}", { p0: track.title })} onClick={onPlay}><Artwork trackId={track.videoId} src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></button>
+  <button className="track-main" aria-label={msg("Riproduci {p0}", { p0: track.title })} onClick={onPlay}><Artwork src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></button>
   {active && showActivity && <span className={`track-activity${playing ? ' is-playing' : ''}`} aria-label={playing ? msg("In riproduzione") : msg("Brano attuale")}><i /><i /><i /></span>}
   {onMore && <button className="row-more" aria-label={msg("Opzioni: {p0}", { p0: track.title })} onClick={onMore}><MoreHorizontal size={23}/></button>}
  </div>;

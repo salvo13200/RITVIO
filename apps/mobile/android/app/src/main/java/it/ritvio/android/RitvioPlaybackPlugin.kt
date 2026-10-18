@@ -57,7 +57,7 @@ class RitvioPlaybackPlugin:Plugin(){
     @Volatile private var artworkPicking=false
     @PluginMethod fun chooseArtwork(call:PluginCall){
         val kind=call.getString("kind")?:"";val id=call.getString("id")?:""
-        if(kind !in listOf("track","playlist") || (kind=="track"&&!TrackData.idPattern.matches(id)) || (kind=="playlist"&&!Regex("^[A-Za-z0-9-]{1,100}$").matches(id))){call.reject(NativeText.text(context,"Brano non valido."),"INVALID_ARTWORK_TARGET");return}
+        try{PlaylistArtworkRules.validate(kind,id)}catch(_:IllegalArgumentException){call.reject(NativeText.text(context,"Operazione non disponibile. Riprova."),"INVALID_ARTWORK_TARGET");return}
         if(artworkPicking){call.reject(NativeText.text(context,"Attendi l’operazione in corso."),"ARTWORK_BUSY");return}
         artworkPicking=true
         activity.runOnUiThread{try{
@@ -70,16 +70,15 @@ class RitvioPlaybackPlugin:Plugin(){
         if(call==null)return
         val uri=result.data?.data
         if(result.resultCode!=Activity.RESULT_OK||uri==null){call.resolve(JSObject().put("cancelled",true));return}
-        libraryTask(call,"Impossibile caricare la foto. Scegli un�immagine valida fino a 20 MB e riprova."){
+        libraryTask(call,"Impossibile caricare la foto. Scegli un’immagine valida fino a 20 MB e riprova."){
             val store=ArtworkStore(context);val image=store.copy(uri)
             try{
                 val library=LibraryStore.get(context).setArtwork(call.getString("kind")?:"",call.getString("id")?:"",image)
-                if(call.getString("kind")=="track")activity.runOnUiThread{PlaybackService.instance?.artworkChanged(call.getString("id")?:"",image)}
                 JSObject().put("cancelled",false).put("library",library)
             }catch(error:Throwable){store.discard(image);throw error}
         }
     }
-    @PluginMethod fun removeArtwork(call:PluginCall){libraryTask(call){val library=LibraryStore.get(context).setArtwork(call.getString("kind")?:"",call.getString("id")?:"",null);if(call.getString("kind")=="track")activity.runOnUiThread{PlaybackService.instance?.artworkChanged(call.getString("id")?:"",null)};library}}
+    @PluginMethod fun removeArtwork(call:PluginCall){libraryTask(call){LibraryStore.get(context).setArtwork(call.getString("kind")?:"",call.getString("id")?:"",null)}}
     private fun transferTask(call:PluginCall,action:()->Unit):Boolean{try{transferWorker.execute{try{action()}catch(error:Exception){val message=error.message?.takeIf{NativeText.isMessage(it)}?.let{NativeText.text(context,it)};call.reject(message?:NativeText.text(context,"Operazione non riuscita. Controlla i dati e riprova."),"TRANSFER_FAILED")}};return true}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi l’operazione in corso."),"TRANSFER_BUSY");return false}}
     @PluginMethod fun previewPlaylist(call:PluginCall){
         val request=try{transfers.begin(call.getString("requestId")?:"")}catch(_:Exception){call.reject(NativeText.text(context,"Attendi la lettura precedente."),"TRANSFER_BUSY");return}

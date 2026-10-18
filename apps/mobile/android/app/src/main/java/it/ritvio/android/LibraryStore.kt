@@ -13,30 +13,25 @@ class LibraryStore internal constructor(context:Context,databaseName:String="lib
     override fun onCreate(db:SQLiteDatabase){db.execSQL("CREATE TABLE library_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)")}
     override fun onUpgrade(db:SQLiteDatabase,oldVersion:Int,newVersion:Int){}
     private fun empty()=JSONObject().put("likes",JSONArray()).put("playlists",JSONArray()).put("recent",JSONArray()).put("follows",JSONArray())
-    @Synchronized fun snapshot():JSONObject=readableDatabase.rawQuery("SELECT data FROM library_state WHERE id=1",null).use{if(it.moveToFirst())JSONObject(it.getString(0)) else empty()}
+    @Synchronized fun snapshot():JSONObject {
+        val state=readableDatabase.rawQuery("SELECT data FROM library_state WHERE id=1",null).use{if(it.moveToFirst())JSONObject(it.getString(0)) else empty()}
+        if(state.has("artwork")){
+            val retired=PlaylistArtworkRules.retireTrackOverrides(state)
+            save(state)
+            retired.forEach{artworkStore.discard(it)}
+        }
+        return state
+    }
     private fun save(state:JSONObject){val data=state.toString();require(data.toByteArray(Charsets.UTF_8).size<=4*1024*1024){"La libreria supera lo spazio disponibile. Nessuna modifica salvata."};writableDatabase.execSQL("INSERT OR REPLACE INTO library_state VALUES (1,?)",arrayOf(data))}
     private fun without(array:JSONArray,keep:(JSONObject,Int)->Boolean)=JSONArray().apply{for(i in 0 until array.length()){val item=array.getJSONObject(i);if(keep(item,i))put(item)}}
-    @Synchronized fun artwork(kind:String,id:String):String? {
-        require(kind in listOf("track","playlist"))
-        val state=snapshot()
-        if(kind=="track") { require(TrackData.idPattern.matches(id)); return state.optJSONObject("artwork")?.optString(id)?.takeIf{it.isNotEmpty()} }
-        return (0 until state.getJSONArray("playlists").length()).map{state.getJSONArray("playlists").getJSONObject(it)}.firstOrNull{it.getString("id")==id}?.optString("cover")?.takeIf{it.isNotEmpty()&&it!="null"}
-    }
     @Synchronized fun setArtwork(kind:String,id:String,uri:String?):JSONObject {
-        require(kind in listOf("track","playlist"))
+        PlaylistArtworkRules.validate(kind,id)
         require(uri==null || artworkStore.owned(uri)!=null)
-        val state=snapshot(); var old:String?=null
-        if(kind=="track") {
-            require(TrackData.idPattern.matches(id))
-            val images=state.optJSONObject("artwork")?:JSONObject().also{state.put("artwork",it)}
-            old=images.optString(id).takeIf{it.isNotEmpty()}
-            if(uri==null)images.remove(id) else { require(images.has(id)||images.length()<3000); images.put(id,uri) }
-        } else {
-            val all=state.getJSONArray("playlists")
-            val p=(0 until all.length()).map{all.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:error("Playlist missing")
-            old=p.optString("cover").takeIf{it.isNotEmpty()}
-            p.put("cover",uri?:JSONObject.NULL).put("revision",p.optLong("revision",1)+1).put("updatedAt",System.currentTimeMillis())
-        }
+        val state=snapshot()
+        val all=state.getJSONArray("playlists")
+        val p=(0 until all.length()).map{all.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:error("Playlist missing")
+        val old=p.optString("cover").takeIf{it.isNotEmpty()}
+        p.put("cover",uri?:JSONObject.NULL).put("revision",p.optLong("revision",1)+1).put("updatedAt",System.currentTimeMillis())
         save(state)
         if(old!=uri)artworkStore.discard(old)
         return state

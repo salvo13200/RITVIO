@@ -1496,8 +1496,6 @@ const texts={
   "Copertina ripristinata": "Original cover restored",
   "Cambia copertina playlist": "Change playlist cover",
   "Ripristina copertina playlist": "Restore playlist cover",
-  "Cambia copertina brano": "Change track cover",
-  "Ripristina copertina brano": "Restore track cover",
   "Generi e mood": "Genres and moods",
   "Generi": "Genres",
   "Mood e attività": "Moods and activities",
