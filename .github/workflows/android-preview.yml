@@ -48,7 +48,9 @@ jobs:
           Copy-Item LICENSE,THIRD_PARTY_NOTICES.md,PRIVACY.md $notices
       - run: pnpm exec cap sync android
         working-directory: apps/mobile
-      - run: pnpm android:setup
+      - name: Set up disposable Android tools
+        shell: pwsh
+        run: ./scripts/setup-android.ps1
       - name: Build unsigned APK and execute JVM tests
         shell: pwsh
         run: |
