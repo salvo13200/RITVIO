@@ -1,8 +1,8 @@
-# Public preview — published 17 October 2026
+# Release notes
 
-## Android 1.1.1 candidate (version code 17)
+## Android 1.1.1 — 18 October 2026 (public preview, version code 17)
 
-This development candidate is separate from the published `public-preview-1` APK (1.0.4).
+[Android 1.1.1 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.1.1). This Android-only update keeps the previous `public-preview-1` release available; Windows remains on 0.7.2.
 
 - Choose and restore personal artwork for your own playlists only. Images are copied into private app storage, decoded at a bounded size and stripped of original metadata. No broad photo-library permission is requested.
 - Larger provider artwork with fallback to the original thumbnail; track covers and share cards keep the catalogue artwork.
@@ -10,8 +10,10 @@ This development candidate is separate from the published `public-preview-1` APK
 - Browse real catalogue genres and moods/activities, open their playlists, and play available tracks. Results use the existing bounded native cache.
 - Track artwork editing is not available. Overrides from the 1.1.0 test candidate are retired without changing personal playlist covers. Playlist export embeds a smaller portable image; it never includes private file paths or audio.
 
-Phone checks still required: photo picker (including cancellation), persistence after restart, media controls, image sharing and audio continuity while editing playlist artwork. Browser fixtures and JVM tests do not certify these native behaviours. Install a candidate signed with the existing official key over the current app to preserve data.
+Verification: clean-checkout CI passed 200 core tests, 41 browser tests and 44 native JVM tests, plus the Python catalogue suites. APK version/signature and all 20 native libraries passed the 16 KB ELF/ZIP checks. The maintainer reported a successful phone trial of this exact APK on a physical phone; this is a smoke-test report, not an instrumented audit of every feature. Wider device/accessibility, Bluetooth, audio-focus and prolonged background coverage remains open. Update the existing official app without uninstalling to preserve local data.
 
+
+## Windows 0.7.2 / Android 1.0.4 — 17 October 2026
 
 Windows **0.7.2** (portable EXE and per-user installer), Android **1.0.4 / versionCode 15** (API24+, ARM64/x86_64). [Release and downloads](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1). This increment packages GPLv3 and upstream notices and public source/build workflows. It preserves the current interface and playback implementation. Previous localisation candidates were Windows 0.7.1 / Android 1.0.3.
 
@@ -25,7 +27,7 @@ Windows **0.7.2** (portable EXE and per-user installer), Android **1.0.4 / versi
 
 ## Known limits and verification boundaries
 
-- The newest APK still requires installed-device checks for rendering, back/scroll behaviour, locked-screen playback, audio focus and Gallery export. Browser and JVM tests cannot close these gates.
+- Physical-device coverage is limited to maintainer-reported smoke testing. Comprehensive accessibility, device/OS, Bluetooth, audio-focus and prolonged background tests remain open. Browser and JVM tests cannot close these gates.
 - Lyrics availability and catalogue/stream resolution depend on external services. Unofficial resolvers may stop working or return rate limits. Retry with backoff rather than rapid repeated skips.
 - Windows executables are not Authenticode-signed. There is no automatic update service. Local library data is not synchronised online.
 - The [repository](https://github.com/salvo13200/RITVIO), CI, owner-controlled merge rules and release downloads are live. Voluntary support is configured on GitHub through [PayPal](https://www.paypal.me/sals126) and [Buy Me a Coffee](https://buymeacoffee.com/Sals126); no donation feature is included in either app.
@@ -35,4 +37,4 @@ Publish this as a **prerelease** while native checks remain open. Do not present
 
 ## Source maintenance after the first release
 
-The repository now separates browser configurations (`tests/config/`), committed image fixtures (`tests/fixtures/artwork/`) and ignored evidence (`test-results/`). Decorative images use metadata-free lossless WebP. Obsolete development briefs, an unimplemented PostgreSQL proposal and template tests were removed. Architecture and image checks run in CI. These source changes do not replace binaries already published under `public-preview-1`; they will be included in the next build. Legacy profile/file imports remain solely for data compatibility; new exports use RITVIO.
+The repository now separates browser configurations (`tests/config/`), committed image fixtures (`tests/fixtures/artwork/`) and ignored evidence (`test-results/`). Decorative images use metadata-free lossless WebP. Obsolete development briefs, an unimplemented PostgreSQL proposal and template tests were removed. Architecture and image checks run in CI. These source changes are included in Android 1.1.1. Binaries already published under `public-preview-1`, including Windows 0.7.2, remain unchanged. Legacy profile/file imports remain solely for data compatibility; new exports use RITVIO.
