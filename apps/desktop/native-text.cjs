@@ -976,7 +976,7 @@ const texts={
   "Musica per il tuo momento": "Music for your moment",
   "Raccolte da esplorare, qualunque sia il ritmo della giornata.": "Collections to explore, whatever the rhythm of your day.",
   "Concentrazione": "Focus",
-  "In viaggio": "On the move",
+  "In viaggio": "Travel",
   "Energia": "Energy",
   "Relax": "Relax",
   "Allenamento": "Workout",
@@ -1491,7 +1491,20 @@ const texts={
   "sources.catalog": "Catalogue and playback: YouTube and YouTube Music through unofficial resolvers. Links to their tracks and public playlists are supported. Availability and content depend on the original services.",
   "sources.metadata": "Optional metadata: iTunes. Lyrics: LRCLIB; a general content licence has not been verified. RITVIO does not grant rights to music, artwork or lyrics.",
   "Raccolta importata": "Imported playlist",
-  "Copia salvata": "Saved copy"
+  "Copia salvata": "Saved copy",
+  "Copertina aggiornata": "Cover updated",
+  "Copertina ripristinata": "Original cover restored",
+  "Cambia copertina playlist": "Change playlist cover",
+  "Ripristina copertina playlist": "Restore playlist cover",
+  "Generi e mood": "Genres and moods",
+  "Generi": "Genres",
+  "Mood e attività": "Moods and activities",
+  "Generi e mood non disponibili al momento.": "Genres and moods are currently unavailable.",
+  "Nessuna categoria disponibile. Puoi continuare dalla ricerca.": "No categories available. You can still search for music.",
+  "Alcuni brani non sono disponibili nel catalogo.": "Some tracks are unavailable in the catalogue.",
+  "Nessun brano disponibile": "No tracks available",
+  "Sonno": "Sleep",
+  "Romantico": "Romance"
 };
 function nativeText(source,state){const preferred=state?.preference==='system'||!state?.preference?(state?.systemLanguages??[]).map(tag=>tag.toLowerCase().split(/[-_]/)[0]).find(tag=>tag==='it'||tag==='en'):state.preference;return preferred==='it'?source:(texts[source]??source);}
 module.exports={nativeText};

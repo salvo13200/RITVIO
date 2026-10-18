@@ -4,7 +4,7 @@ import { msg } from './messages';
 import {version} from '../package.json';
 import { LanguagePreferenceControl } from '../../../packages/i18n/language-control';
 import { useEffect, useRef, useState } from 'react';
-import { Home, Search, Library, Settings, Pause, Play, SkipForward, LoaderCircle, Heart, Plus, ListMusic, Trash2, ChevronLeft, Share2, Pencil, Radio, Download, Upload } from 'lucide-react';
+import { Home, Search, Library, Settings, Pause, Play, SkipForward, LoaderCircle, Heart, Plus, ListMusic, Trash2, ChevronLeft, Share2, Pencil, Radio, Download, Upload, ImagePlus, ImageOff } from 'lucide-react';
 import { nativePlayback, isAndroid } from './native';
 import { Artwork, Modal, Notice, ScrollText, TrackRow, Empty } from './ui';
 import { HomePage, SearchPage, LibraryPage, CatalogDetail, type DetailTarget } from './catalog-pages';
@@ -13,6 +13,7 @@ import { QueuePanel } from './queue';
 import { RadioPanel } from './discovery';
 import { ImportPlaylistPanel, ExportPlaylistPanel } from './playlist-transfer';
 import { StoryComposer } from './story-sharing';
+import {BrowsePage, type BrowseCategory} from './browse';
 import { emptyMobilePlayback, emptyMobileLibrary, type MobilePlayback, type NativeTrack, type MobileCommand, type MobileLibrary, type MobileResource, type MobileAudio, type MobileCollection } from '../../../packages/domain/mobile';
 type Tab = 'home' | 'search' | 'library';
 type TrackContext = {
@@ -23,6 +24,7 @@ export function App() {
     const [state, setState] = useState<MobilePlayback>(emptyMobilePlayback), [library, setLibrary] = useState<MobileLibrary>(emptyMobileLibrary), [libraryError, setLibraryError] = useState(false), [librarySearch, setLibrarySearch] = useState(false);
     const [tab, setTab] = useState<Tab>('home'), [route, setRoute] = useState(location.hash.slice(1)), [query, setQuery] = useState(''), [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<DetailTarget | null>(null), [selectedTrack, setSelectedTrack] = useState<NativeTrack | null>(null), [context, setContext] = useState<TrackContext | undefined>();
+    const [browse, setBrowse] = useState<BrowseCategory | null>(null);
     const [storyTrack, setStoryTrack] = useState<NativeTrack | null>(null);
     const [audio, setAudio] = useState<MobileAudio | null>(null), [name, setName] = useState(''), [saving, setSaving] = useState(false), [addAfterCreate, setAddAfterCreate] = useState(false);
     const [reduced, setReduced] = useState(() => localStorage.getItem('ritvio.mobile.reducedMotion') === 'true');
@@ -31,7 +33,7 @@ export function App() {
     const main = useRef<HTMLElement>(null);
     const track = state.items[state.index], expanded = route.startsWith('player'), sheet = expanded ? route.split('/')[1] : route;
     const playlist = route.startsWith('playlist/') ? library.playlists.find(item => item.id === route.split('/')[1]) : null;
-    const detailVisible = route === 'detail' || route === 'likes' || route === 'recent' || route.startsWith('playlist/');
+    const detailVisible = route === 'browse' || route === 'detail' || route === 'likes' || route === 'recent' || route.startsWith('playlist/');
     const hasModal = expanded && !!track || ['actions', 'pick-playlist', 'create', 'rename', 'delete', 'settings', 'queue', 'clear', 'save-queue', 'radio', 'import', 'export', 'share'].includes(sheet ?? '');
     const liked = !!track && library.likes.some(item => item.videoId === track.videoId);
     const notify = (text: string) => setNotice(text);
@@ -49,12 +51,25 @@ export function App() {
     function changeTab(value: Tab) { scrollPositions.current[tab] = window.scrollY; history.replaceState(null, '', location.pathname); setRoute(''); setTab(value); requestAnimationFrame(() => window.scrollTo(0, scrollPositions.current[value])); }
     function openResource(resource: MobileResource) { const target: DetailTarget = { kind: 'resource', resource }; setDetail(target); history.pushState({ ritvio: true, detail: target }, '', '#detail'); setRoute('detail'); window.scrollTo(0, 0); }
     function openCollection(collection: MobileCollection) { const target: DetailTarget = { kind: 'collection', collection }; setDetail(target); history.pushState({ ritvio: true, detail: target }, '', '#detail'); setRoute('detail'); window.scrollTo(0, 0); }
+    function openBrowse(category: BrowseCategory) { setBrowse(category); navigate('browse'); window.scrollTo(0, 0); }
     function more(value: NativeTrack, origin?: TrackContext) { setSelectedTrack(value); setContext(origin); navigate('actions'); }
     function openSearch(value = '') {
         changeTab('search');
         if (value)
             setQuery(value);
         requestAnimationFrame(() => main.current?.querySelector<HTMLInputElement>('input[type=search]')?.focus());
+    }
+    async function changeArtwork(kind: 'playlist', id: string, remove = false) {
+        if (saving) return;
+        setSaving(true);
+        try {
+            const result = remove ? {cancelled: false, library: await nativePlayback.removeArtwork({kind, id})} : await nativePlayback.chooseArtwork({kind, id});
+            if (!result.cancelled && result.library) {
+                setLibrary(result.library);
+                notify(remove ? msg("Copertina ripristinata") : msg("Copertina aggiornata"));
+            }
+        } catch (error) { reportError(error); }
+        finally { setSaving(false); }
     }
     async function refreshLibrary() {
         try {
@@ -235,13 +250,14 @@ export function App() {
   <main inert={hasModal} ref={main} className="page-content">
    {!isAndroid && <p className="inline-error">{msg("Questa interfaccia usa il servizio nativo nell'APK Android.")}</p>}
    {libraryError && <div className="inline-error" role="alert"><p>{msg("La libreria non \u00E8 disponibile. I dati non sono stati sostituiti.")}</p><button className="text-action" onClick={() => void refreshLibrary()}>{msg("Riprova")}</button></div>}
-   <div hidden={tab !== 'home' || detailVisible}><HomePage {...common} library={library} openCollection={openCollection} openLikes={() => navigate('likes')} openRecent={() => navigate('recent')} openSearch={() => openSearch()} openPlayer={() => showPlayer('.home-resume .artwork')} playback={state} toggleCurrent={() => void command({ type: state.playing ? 'pause' : 'play' })}/></div>
-   <div hidden={tab !== 'search' || detailVisible}><SearchPage {...common} query={query} setQuery={setQuery} playing={state.playing && !state.loading}/></div>
+   <div hidden={tab !== 'home' || detailVisible}><HomePage openBrowse={openBrowse} {...common} library={library} openCollection={openCollection} openLikes={() => navigate('likes')} openRecent={() => navigate('recent')} openSearch={() => openSearch()} openPlayer={() => showPlayer('.home-resume .artwork')} playback={state} toggleCurrent={() => void command({ type: state.playing ? 'pause' : 'play' })}/></div>
+   <div hidden={tab !== 'search' || detailVisible}><SearchPage openBrowse={openBrowse} {...common} query={query} setQuery={setQuery} playing={state.playing && !state.loading}/></div>
    <div hidden={tab !== 'library' || detailVisible}><LibraryPage library={library} openResource={openResource} openPlaylist={item => { navigate(`playlist/${item.id}`); window.scrollTo(0, 0); }} openLikes={() => navigate('likes')} searching={librarySearch}/></div>
+   {route === 'browse' && browse && <BrowsePage key={browse.id} category={browse} close={close} {...common}/>}
    {route === 'detail' && detail && <CatalogDetail key={JSON.stringify(detail)} {...common} target={detail} close={close} library={library} follow={(resource, followed) => void libraryAction({ type: 'follow', resource, followed }, followed ? msg("Aggiunto alla libreria") : msg("Rimosso dalla libreria"))}/>}
-   {(route === 'likes' || route === 'recent' || route.startsWith('playlist/')) && <section className="playlist-page"><button className="back-control" onClick={close}><ChevronLeft size={23}/>{msg("Indietro")}</button><div className="detail-hero"><Artwork src={playlist?.cover ?? playlistTracks[0]?.thumbnail} large>{route === 'likes' ? <Heart size={66}/> : <ListMusic size={66}/>}</Artwork><h1>{route === 'likes' ? msg("Brani piaciuti") : route === 'recent' ? msg("Ascoltati di recente") : playlist?.name ?? msg("Playlist non disponibile")}</h1><p>{playlistTracks.length}{" " + msg("brani \u00B7 sul dispositivo")}</p>{playlist?.description && <p className="playlist-description">{playlist.description}</p>}<div className="detail-actions"><button className="primary" disabled={!playlistTracks.length} onClick={() => void play(playlistTracks, 0)}><Play fill="currentColor" size={20}/>{msg("Ascolta")}</button>{playlist && <><button aria-label={msg("Rinomina playlist")} onClick={() => { setName(playlist.name); setContext({ playlistId: playlist.id, index: 0 }); navigate('rename'); }}><Pencil size={22}/></button><button aria-label={msg("Esporta playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('export'); }}><Upload size={22}/></button><button aria-label={msg("Elimina playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('delete'); }}><Trash2 size={22}/></button></>}</div></div>{playlistTracks.length ? <div className="track-list">{playlistTracks.map((item, index) => <TrackRow key={`${item.videoId}:${index}`} track={item} active={track?.videoId === item.videoId} onPlay={() => void play(playlistTracks, index)} onMore={() => more(item, playlist ? { playlistId: playlist.id, index } : undefined)}/>)}</div> : <Empty title={route === 'likes' ? msg("Tieni vicini i tuoi brani") : msg("Fai spazio alla tua musica")} action={<button className="tonal" onClick={() => openSearch()}>{msg("Cerca un brano")}</button>}>{msg("Aggiungi brani dal player o dal menu accanto a un risultato.")}</Empty>}</section>}
+   {(route === 'likes' || route === 'recent' || route.startsWith('playlist/')) && <section className="playlist-page"><button className="back-control" onClick={close}><ChevronLeft size={23}/>{msg("Indietro")}</button><div className="detail-hero"><Artwork src={playlist?.cover ?? playlistTracks[0]?.thumbnail} large>{route === 'likes' ? <Heart size={66}/> : <ListMusic size={66}/>}</Artwork><h1>{route === 'likes' ? msg("Brani piaciuti") : route === 'recent' ? msg("Ascoltati di recente") : playlist?.name ?? msg("Playlist non disponibile")}</h1><p>{playlistTracks.length}{" " + msg("brani \u00B7 sul dispositivo")}</p>{playlist?.description && <p className="playlist-description">{playlist.description}</p>}<div className="detail-actions"><button className="primary" disabled={!playlistTracks.length} onClick={() => void play(playlistTracks, 0)}><Play fill="currentColor" size={20}/>{msg("Ascolta")}</button>{playlist && <><button aria-label={msg("Cambia copertina playlist")} disabled={saving} onClick={() => void changeArtwork("playlist", playlist.id)}><ImagePlus size={22}/></button><button aria-label={msg("Rinomina playlist")} onClick={() => { setName(playlist.name); setContext({ playlistId: playlist.id, index: 0 }); navigate('rename'); }}><Pencil size={22}/></button><button aria-label={msg("Esporta playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('export'); }}><Upload size={22}/></button><button aria-label={msg("Elimina playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('delete'); }}><Trash2 size={22}/></button></>}</div></div>{playlistTracks.length ? <div className="track-list">{playlistTracks.map((item, index) => <TrackRow key={`${item.videoId}:${index}`} track={item} active={track?.videoId === item.videoId} onPlay={() => void play(playlistTracks, index)} onMore={() => more(item, playlist ? { playlistId: playlist.id, index } : undefined)}/>)}</div> : <Empty title={route === 'likes' ? msg("Tieni vicini i tuoi brani") : msg("Fai spazio alla tua musica")} action={<button className="tonal" onClick={() => openSearch()}>{msg("Cerca un brano")}</button>}>{msg("Aggiungi brani dal player o dal menu accanto a un risultato.")}</Empty>}</section>}
   </main>
-  <div inert={hasModal} className="bottom-dock">{state.error && !expanded && <div className="audio-error" role="alert"><span>{noticeText(state.error)}</span><button onClick={() => void command({ type: 'retry' })}>{msg("Riprova")}</button></div>}{track && <div className="compact-player"><button className="current-track" aria-label={msg("Apri il player: {p0}", { p0: track.title })} onClick={() => showPlayer()}><Artwork src={track.thumbnail}/><span><strong><ScrollText>{track.title}</ScrollText></strong><small><ScrollText>{state.loading ? msg("Preparazione del brano\u2026") : track.artist}</ScrollText></small><span className="mini-progress"><span style={{ transform: `scaleX(${state.duration > 0 ? Math.min(1, state.position / state.duration) : 0})` }}/></span></span></button><button className="compact-play" aria-label={state.playing ? msg("Pausa") : msg("Riproduci")} onClick={() => void command({ type: state.playing ? 'pause' : 'play' })}>{state.loading ? <LoaderCircle className="spin" size={23}/> : state.playing ? <Pause fill="currentColor" size={23}/> : <Play fill="currentColor" size={23}/>}</button><button aria-label={msg("Brano successivo")} onClick={() => void command({ type: 'next' })}><SkipForward size={24} fill="currentColor"/></button></div>}
+  <div inert={hasModal} className="bottom-dock">{state.error && !expanded && <div className="audio-error" role="alert"><span>{noticeText(state.error)}</span><button onClick={() => void command({ type: 'retry' })}>{msg("Riprova")}</button></div>}{track && <div className="compact-player"><button className="current-track" aria-label={msg("Apri il player: {p0}", { p0: track.title })} onClick={() => showPlayer()}><Artwork src={track.thumbnail}/><span><strong><ScrollText>{track.title}</ScrollText></strong><small><ScrollText>{track.artist}</ScrollText></small><span className="mini-progress"><span style={{ transform: `scaleX(${state.duration > 0 ? Math.min(1, state.position / state.duration) : 0})` }}/></span></span></button><button className="compact-play" aria-busy={state.loading} aria-label={state.playing ? msg("Pausa") : msg("Riproduci")} onClick={() => void command({ type: state.playing ? 'pause' : 'play' })}>{state.loading ? <LoaderCircle className="spin" size={23}/> : state.playing ? <Pause fill="currentColor" size={23}/> : <Play fill="currentColor" size={23}/>}</button><button aria-label={msg("Brano successivo")} onClick={() => void command({ type: 'next' })}><SkipForward size={24} fill="currentColor"/></button></div>}
    <nav aria-label={msg("Navigazione principale")}>{([{ id: 'home', name: 'Home', Icon: Home }, { id: 'search', name: msg("Cerca"), Icon: Search }, { id: 'library', name: msg("Libreria"), Icon: Library }] as const).map(({ id, name, Icon }) => <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => changeTab(id)}><Icon size={25}/><span>{name}</span></button>)}</nav>
   </div>
   {expanded && track && <Player artworkOrigin={artworkOrigin.current} inactive={!!sheet} state={state} liked={liked} onLike={() => void libraryAction({ type: 'like', track, liked: !liked }, liked ? msg("Brano rimosso dai piaciuti") : msg("Brano salvato"))} command={input => void command(input)} close={close} openQueue={() => navigate('player/queue')} openUtility={name => navigate(`player/${name}`)} openResource={openResource} searchArtist={() => openSearch(track.artist)} share={() => void share(track)}/>}
@@ -257,7 +273,7 @@ export function App() {
                     return;
                 setSaving(true);
                 void nativePlayback.saveQueue({ name: name.trim() }).then(value => { setLibrary(value); close(); notify(msg("Coda salvata nella libreria")); }).catch(reportError).finally(() => setSaving(false));
-            }}><label>{msg("Nome della playlist")}<input autoFocus required maxLength={100} value={name} onChange={event => setName(event.target.value)}/></label><button className="primary" type="submit" disabled={!name.trim() || saving || !state.items.length}>{saving ? msg("Salvataggio\u2026") : msg("Salva playlist")}</button></form></Modal>}
+            }}>{route === 'rename' && library.playlists.find(item => item.id === context?.playlistId)?.cover && <button type="button" className="tonal" disabled={saving} onClick={() => context?.playlistId && void changeArtwork('playlist', context.playlistId, true)}><ImageOff size={21}/>{msg("Ripristina copertina playlist")}</button>}<label>{msg("Nome della playlist")}<input autoFocus required maxLength={100} value={name} onChange={event => setName(event.target.value)}/></label><button className="primary" type="submit" disabled={!name.trim() || saving || !state.items.length}>{saving ? msg("Salvataggio\u2026") : msg("Salva playlist")}</button></form></Modal>}
   {sheet === 'clear' && <Modal label={msg("Svuotare la coda?")} onClose={close}><p>{msg("La riproduzione si fermer\u00E0. La tua libreria resta salvata.")}</p><button className="tonal" onClick={() => { void command({ type: 'clear' }); close(); }}>{msg("Svuota coda")}</button><button onClick={close}>{msg("Annulla")}</button></Modal>}
   {expanded && sheet === 'lyrics' && track && <Modal label={msg("Testi")} onClose={close}><LyricsPanel track={{ ...track, duration: track.duration > 0 ? track.duration : state.duration }} position={state.position} seek={value => void command({ type: 'seek', value })}/></Modal>}
   {expanded && sheet === 'audio' && <Modal label="Audio" onClose={close}><AudioPanel audio={audio} volume={state.volume} changeVolume={value => void command({ type: 'volume', value })} command={input => void audioCommand(input)}/></Modal>}
@@ -271,7 +287,7 @@ export function App() {
   {route === 'pick-playlist' && selectedTrack && <Modal label={msg("Aggiungi a una playlist")} onClose={close}><button className="tonal" onClick={() => { setName(''); setAddAfterCreate(true); navigate('create'); }}><Plus size={21}/>{msg("Nuova playlist")}</button><div className="action-list">{library.playlists.map(item => <button key={item.id} onClick={() => void libraryAction({ type: 'add', id: item.id, track: selectedTrack }, msg("Aggiunto alla playlist")).then(value => {
                     if (value)
                         close();
-                })}><Artwork src={item.items[0]?.thumbnail}/><span>{item.name}<small>{item.items.length}{" " + msg("brani")}</small></span></button>)}</div></Modal>}
+                })}><Artwork src={item.cover ?? item.items[0]?.thumbnail}/><span>{item.name}<small>{item.items.length}{" " + msg("brani")}</small></span></button>)}</div></Modal>}
   {(route === 'create' || route === 'rename') && <Modal label={route === 'create' ? msg("Nuova playlist") : msg("Rinomina playlist")} onClose={close}><form className="playlist-form" onSubmit={event => {
                 if (route === 'create') {
                     void createPlaylist(event);
@@ -284,7 +300,7 @@ export function App() {
                                 close();
                         });
                 }
-            }}><label>{msg("Nome della playlist")}<input autoFocus required maxLength={100} value={name} onChange={event => setName(event.target.value)}/></label><button className="primary" type="submit" disabled={!name.trim() || saving}>{saving ? msg("Salvataggio\u2026") : msg("Salva")}</button></form></Modal>}
+            }}>{route === 'rename' && library.playlists.find(item => item.id === context?.playlistId)?.cover && <button type="button" className="tonal" disabled={saving} onClick={() => context?.playlistId && void changeArtwork('playlist', context.playlistId, true)}><ImageOff size={21}/>{msg("Ripristina copertina playlist")}</button>}<label>{msg("Nome della playlist")}<input autoFocus required maxLength={100} value={name} onChange={event => setName(event.target.value)}/></label><button className="primary" type="submit" disabled={!name.trim() || saving}>{saving ? msg("Salvataggio\u2026") : msg("Salva")}</button></form></Modal>}
   {route === 'delete' && <Modal label={msg("Eliminare la playlist?")} onClose={close}><p>{msg("I brani piaciuti e le altre playlist restano nella libreria.")}</p><button className="tonal" onClick={() => {
                 if (context?.playlistId)
                     void libraryAction({ type: 'delete', id: context.playlistId }, msg("Playlist eliminata")).then(value => {

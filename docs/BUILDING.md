@@ -56,7 +56,7 @@ pnpm android:setup
 $env:RITVIO_BUILD_PYTHON = (Get-Command python).Source
 pnpm android:build --with-tests
 .\scripts\gradle-android.ps1 -Task @(':app:testReleaseUnitTest')
-python scripts/check-android-apk.py release/RITVIO-Android-1.0.4.apk
+python scripts/check-android-apk.py release/RITVIO-Android-1.1.1.apk
 ```
 
 First local builds generate a private keystore and random password in `.local/android-signing`. Back both up privately. The key is never public source. Official updates require the **existing official key**; a fork's freshly generated key cannot update the official installed app. The release workflow refuses missing official signing secrets instead of silently creating another key. For an independently branded fork, change the application ID and signing identity.

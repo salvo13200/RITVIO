@@ -3,6 +3,7 @@ import { msg, formatLocale } from './messages';
 import { useEffect, useState } from 'react';
 import { ArrowRight, Heart, Search, X, RefreshCw, Play, Pause, LoaderCircle, ChevronLeft, Plus, Grid2X2, List, ArrowDownWideNarrow } from 'lucide-react';
 import { nativePlayback } from './native';
+import {BrowseSections, type BrowseCategory} from './browse';
 import { Artwork, Empty, Skeleton, TrackRow, ScrollText } from './ui';
 import type { NativeTrack, MobileResource, MobileLibrary, MobileCatalog, MobileCollection, MobilePlaylist, MobilePlayback } from '../../../packages/domain/mobile';
 type Common = {
@@ -53,7 +54,8 @@ export function ResourceCard({ item, onOpen }: {
     onOpen: () => void;
 }) { return <button className={`cover-card${item.kind === 'artist' ? ' artist-card' : ''}`} onClick={onOpen} aria-label={msg("Apri {p0}: {p1}", { p0: item.kind === 'artist' ? msg('artista') : msg('album'), p1: item.name })}><Artwork src={item.artwork} round={item.kind === 'artist'} large/><strong>{item.name}</strong><small>{item.kind === 'artist' ? msg("Artista") : item.artists?.map(a => a.name).join(', ') || 'Album'}</small></button>; }
 const collectionNames: Record<string, string> = { italy: "Hit Italia", releases: "Nuove uscite", global: "Hit globali", trending: "In tendenza" };
-export function HomePage({ library, current, play, more, openCollection, openLikes, openRecent, openSearch, openPlayer, playback, toggleCurrent }: Common & {
+export function HomePage({ openBrowse, library, current, play, more, openCollection, openLikes, openRecent, openSearch, openPlayer, playback, toggleCurrent }: Common & {
+    openBrowse: (category: BrowseCategory) => void;
     library: MobileLibrary;
     openCollection: (item: MobileCollection) => void;
     openLikes: () => void;
@@ -72,10 +74,12 @@ export function HomePage({ library, current, play, more, openCollection, openLik
   {recent.length > 0 && <><div className="section-heading"><h2>{msg("Riprendi da qui")}</h2><button aria-label={msg("Mostra ascolti recenti")} onClick={openRecent}><ArrowRight size={22}/></button></div><div className="home-recent-list">{recent.map(track => <TrackRow key={track.videoId} track={track} onPlay={() => play([track], 0)} onMore={() => more(track)}/>)}</div></>}
   <div className="section-heading"><h2>{msg("Questa settimana")}</h2><button aria-label={msg("Ricarica raccolte")} onClick={retry} disabled={loading}><RefreshCw size={20} className={loading ? 'spin' : ''}/></button></div>
   {loading ? <div className="cover-skeletons" aria-label={msg("Caricamento raccolte")}><i /><i /></div> : error ? <div className="inline-error" role="alert"><p>{noticeText(error)}</p><button className="tonal" onClick={retry}>{msg("Riprova")}</button></div> : collections.length ? <><div className="cover-shelf home-shelf home-weekly-shelf">{collections.map(item => <button className="cover-card" key={item.id} onClick={() => openCollection(item)} aria-label={msg("Apri raccolta: {p0}", { p0: (collectionNames[item.id] ? msg(collectionNames[item.id]) : item.sourceTitle) })}><Artwork src={item.artwork} large/><strong>{(collectionNames[item.id] ? msg(collectionNames[item.id]) : item.sourceTitle)}</strong></button>)}</div><p className="source-date">{data?.stale ? msg("Edizione salvata \u00B7 ") : ''}{data?.fetchedAt ? msg("Catalogo del {p0}", { p0: new Date(data.fetchedAt).toLocaleDateString(formatLocale()) }) : ''}</p></> : <div className="welcome-inline"><p>{msg("Nessuna raccolta disponibile dal catalogo al momento.")}</p><button className="text-action" onClick={retry}>{msg("Riprova") + " "}<RefreshCw size={18}/></button></div>}
+  <BrowseSections compact open={openBrowse}/>
   <div className="section-heading"><h2>{msg("I tuoi ascolti")}</h2></div><div className="home-personal-links"><button onClick={openLikes}><Heart size={25}/><span><strong>{msg("Brani piaciuti")}</strong><small>{library.likes.length}{" " + msg("brani \u00B7 sul dispositivo")}</small></span><ArrowRight size={20}/></button>{library.recent.length > 0 && <button onClick={openRecent}><Artwork src={library.recent[0].thumbnail}/><span><strong>{msg("Ascoltati di recente")}</strong><small>{library.recent.length}{" " + msg("brani avviati")}</small></span><ArrowRight size={20}/></button>}</div>
  </section>;
 }
-export function SearchPage({ query, setQuery, current, play, more, openResource, playing = false }: Common & {
+export function SearchPage({ openBrowse, query, setQuery, current, play, more, openResource, playing = false }: Common & {
+    openBrowse: (category: BrowseCategory) => void;
     query: string;
     setQuery: (value: string) => void;
     playing?: boolean;
@@ -141,7 +145,7 @@ export function SearchPage({ query, setQuery, current, play, more, openResource,
     function heading(label: string) { return <div className="section-heading search-section-heading"><h2>{msg(label)}</h2>{type === 'Tutti' && <button aria-label={msg("Mostra tutti: {p0}", { p0: msg(label) })} onClick={() => setType(label)}><ArrowRight size={22}/></button>}</div>; }
     return <section className="search-page" aria-label={msg("Cerca")}><h1>{msg("Cerca")}</h1><form role="search" onSubmit={event => { event.preventDefault(); (document.activeElement as HTMLElement)?.blur(); }}><label className="search-field"><Search size={22}/><input type="search" aria-label={msg("Cerca un brano o un artista")} placeholder={msg("Brani, artisti, album")} maxLength={200} autoComplete="off" value={query} onChange={event => setQuery(event.target.value)} enterKeyHint="search"/>{query && <button type="button" aria-label={msg("Cancella ricerca")} onClick={() => setQuery('')}><X size={20}/></button>}</label></form>
  <div className="filter-row" aria-label={msg("Tipo di risultato")}>{['Tutti', 'Brani', 'Artisti', 'Album'].map(item => <button key={item} className="filter" aria-pressed={type === item} onClick={() => setType(item)}>{msg(item)}</button>)}</div>
- {query.trim().length < 3 ? <Empty title={msg("Cosa vuoi ascoltare?")}>{msg("Scrivi almeno tre caratteri per cercare nel catalogo.")}</Empty> : loading ? <Skeleton /> : <div className="search-results" key={`${query.trim()}:${type}:${attempt}`}>
+ {query.trim().length < 3 ? <><h2>{msg("Cosa vuoi ascoltare?")}</h2><p className="source-date">{msg("Scrivi almeno tre caratteri per cercare nel catalogo.")}</p><BrowseSections open={openBrowse}/></> : loading ? <Skeleton /> : <div className="search-results" key={`${query.trim()}:${type}:${attempt}`}>
  {error && <div className="inline-error" role="alert"><p>{noticeText(error)}</p><button className="text-action" onClick={() => setAttempt(v => v + 1)}>{msg("Riprova") + " "}<RefreshCw size={18}/></button></div>}
  {artists.length > 0 && <>{heading('Artisti')}<div className="artist-results">{rankedArtists.slice(0, type === 'Tutti' ? 1 : 20).map(item => <button className="artist-result" key={item.id} onClick={() => openResource(item)} aria-label={msg("Apri artista: {p0}", { p0: item.name })}><Artwork src={item.artwork}/><span><strong><ScrollText>{item.name}</ScrollText></strong><small>{msg("Artista")}</small></span><ArrowRight size={20}/></button>)}</div></>}
  {ranked.length > 0 && <>{heading('Brani')}<div className="track-list">{ranked.slice(0, type === 'Tutti' ? 2 : 20).map((track, index) => <TrackRow key={track.videoId} track={track} active={track.videoId === current?.videoId} showActivity playing={playing} onPlay={() => play(ranked, index)} onMore={() => more(track)}/>)}</div></>}

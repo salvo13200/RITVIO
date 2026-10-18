@@ -9,12 +9,33 @@ import java.util.UUID
 
 /** Local repository boundary. UI never owns or rewrites the database document. */
 class LibraryStore internal constructor(context:Context,databaseName:String="library.sqlite"):SQLiteOpenHelper(context,databaseName,null,1){
+    private val artworkStore = ArtworkStore(context.applicationContext)
     override fun onCreate(db:SQLiteDatabase){db.execSQL("CREATE TABLE library_state (id INTEGER PRIMARY KEY CHECK(id=1), data TEXT NOT NULL)")}
     override fun onUpgrade(db:SQLiteDatabase,oldVersion:Int,newVersion:Int){}
     private fun empty()=JSONObject().put("likes",JSONArray()).put("playlists",JSONArray()).put("recent",JSONArray()).put("follows",JSONArray())
-    @Synchronized fun snapshot():JSONObject=readableDatabase.rawQuery("SELECT data FROM library_state WHERE id=1",null).use{if(it.moveToFirst())JSONObject(it.getString(0)) else empty()}
+    @Synchronized fun snapshot():JSONObject {
+        val state=readableDatabase.rawQuery("SELECT data FROM library_state WHERE id=1",null).use{if(it.moveToFirst())JSONObject(it.getString(0)) else empty()}
+        if(state.has("artwork")){
+            val retired=PlaylistArtworkRules.retireTrackOverrides(state)
+            save(state)
+            retired.forEach{artworkStore.discard(it)}
+        }
+        return state
+    }
     private fun save(state:JSONObject){val data=state.toString();require(data.toByteArray(Charsets.UTF_8).size<=4*1024*1024){"La libreria supera lo spazio disponibile. Nessuna modifica salvata."};writableDatabase.execSQL("INSERT OR REPLACE INTO library_state VALUES (1,?)",arrayOf(data))}
     private fun without(array:JSONArray,keep:(JSONObject,Int)->Boolean)=JSONArray().apply{for(i in 0 until array.length()){val item=array.getJSONObject(i);if(keep(item,i))put(item)}}
+    @Synchronized fun setArtwork(kind:String,id:String,uri:String?):JSONObject {
+        PlaylistArtworkRules.validate(kind,id)
+        require(uri==null || artworkStore.owned(uri)!=null)
+        val state=snapshot()
+        val all=state.getJSONArray("playlists")
+        val p=(0 until all.length()).map{all.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:error("Playlist missing")
+        val old=p.optString("cover").takeIf{it.isNotEmpty()}
+        p.put("cover",uri?:JSONObject.NULL).put("revision",p.optLong("revision",1)+1).put("updatedAt",System.currentTimeMillis())
+        save(state)
+        if(old!=uri)artworkStore.discard(old)
+        return state
+    }
     @Synchronized fun importPlaylist(input:JSONObject):JSONObject{
         val state=snapshot();val playlists=state.getJSONArray("playlists");val targetId=if(input.isNull("targetId"))null else input.getString("targetId")
         val target=if(targetId==null)null else {(0 until playlists.length()).map{playlists.getJSONObject(it)}.firstOrNull{it.getString("id")==targetId}?:throw IllegalArgumentException("Playlist rimossa. Scegli una nuova destinazione.")}
@@ -35,17 +56,18 @@ class LibraryStore internal constructor(context:Context,databaseName:String="lib
         fun playlist():JSONObject{val id=input.getString("id");return (0 until playlists.length()).map{playlists.getJSONObject(it)}.firstOrNull{it.getString("id")==id}?:throw IllegalArgumentException("Playlist missing")}
         fun name():String=input.getString("name").trim().also{require(it.length in 1..100)}
         fun touch(p:JSONObject){p.put("updatedAt",System.currentTimeMillis()).put("revision",p.optLong("revision",1)+1)}
+        var removedCover:String?=null
         when(input.getString("type")){
             "like"->{val track=TrackData.parse(input.getJSONObject("track"));val remaining=without(likes){item,_->item.getString("videoId")!=track.videoId};if(input.getBoolean("liked")){require(remaining.length()<3000);remaining.put(track.json())};state.put("likes",remaining)}
             "create"->{require(playlists.length()<100);playlists.put(JSONObject().put("id",UUID.randomUUID().toString()).put("name",name()).put("items",JSONArray()).put("updatedAt",System.currentTimeMillis()))}
             "createFromTracks"->{require(playlists.length()<100);val parsed=TrackData.parseList(input.getJSONArray("items"));val title=name();playlists.put(JSONObject().put("id",UUID.randomUUID().toString()).put("name",title).put("items",JSONArray().apply{parsed.forEach{put(it.json())}}).put("updatedAt",System.currentTimeMillis()))}
             "rename"->{val p=playlist();p.put("name",name());touch(p)}
-            "delete"->{val id=input.getString("id");state.put("playlists",without(playlists){item,_->item.getString("id")!=id})}
+            "delete"->{removedCover=playlist().optString("cover");val id=input.getString("id");state.put("playlists",without(playlists){item,_->item.getString("id")!=id})}
             "add"->{val p=playlist();val items=p.getJSONArray("items");require(items.length()<1000);items.put(TrackData.parse(input.getJSONObject("track")).json());touch(p)}
             "remove"->{val p=playlist();val items=p.getJSONArray("items");val index=input.getInt("index");require(index in 0 until items.length());p.put("items",without(items){_,i->i!=index});touch(p)}
             "follow"->{val resource=input.getJSONObject("resource");val id=resource.getString("id");require(TrackData.resourceId.matches(id));val kind=resource.getString("kind");require(kind in listOf("artist","album"));val title=resource.getString("name");require(title.length in 1..300);val artwork=resource.optString("artwork","");if(artwork.isNotEmpty()&&artwork!="null")TrackData.parse(JSONObject().put("videoId","abcdefghijk").put("title","Artwork").put("artist","Artwork").put("thumbnail",artwork));val remaining=without(follows){item,_->item.getString("id")!=id};if(input.getBoolean("followed")){require(remaining.length()<1000);remaining.put(JSONObject().put("id",id).put("kind",kind).put("name",title).put("artwork",artwork.takeIf{it!="null"}?:""))};state.put("follows",remaining)}
             else->throw IllegalArgumentException("Unknown library command")
-        };save(state);return state
+        };save(state);artworkStore.discard(removedCover);return state
     }
     companion object{@Volatile private var instance:LibraryStore?=null;fun get(context:Context)=instance?:synchronized(this){instance?:LibraryStore(context.applicationContext).also{instance=it}}}
 }

@@ -36,6 +36,7 @@ jobs:
       - run: pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts
       - run: .venv/Scripts/python.exe tests/home-catalog.test.py
       - run: .venv/Scripts/python.exe tests/radio-catalog.test.py
+      - run: python tests/mobile-discovery.test.py
       - run: pnpm build
       - run: pnpm --dir apps/mobile build
   browser:
@@ -55,3 +56,4 @@ jobs:
       - run: pnpm exec playwright test --list
       - run: pnpm exec playwright test --config tests/config/playwright.localization.config.ts
       - run: pnpm exec playwright test --config tests/config/playwright.home.config.ts
+      - run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts

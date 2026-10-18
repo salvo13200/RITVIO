@@ -82,7 +82,7 @@ def search(query):
         if identifier in seen or item.get('isAvailable') is False or item.get('resultType') != 'song': continue
         seen.add(identifier)
         images = item.get('thumbnails') or []
-        image = images[-1].get('url', '') if images else ''
+        image = max(images, key=lambda entry: (entry.get('width') or 0) * (entry.get('height') or 0)).get('url', '') if images else ''
         parsed = urlparse(image)
         if parsed.scheme != 'https' or not (parsed.hostname or '').endswith(('.googleusercontent.com', '.ytimg.com', '.ggpht.com')):
             image = f'https://i.ytimg.com/vi/{identifier}/hqdefault.jpg'
@@ -102,7 +102,7 @@ def _catalog_value(value, artwork=''):
     result = {key: _catalog_value(item, own_art) for key, item in value.items()}
     if value.get('videoId'):
         identifier = _video_id(value['videoId'])
-        result['thumbnail'] = own_art or f'https://i.ytimg.com/vi/{identifier}/hqdefault.jpg'
+        result['thumbnail'] = value.get('thumbnail') or own_art or f'https://i.ytimg.com/vi/{identifier}/hqdefault.jpg'
         result['duration'] = value.get('duration') or 0
     for key in ('artwork', 'thumbnail'):
         image = result.get(key)
@@ -115,7 +115,7 @@ def _catalog_value(value, artwork=''):
 
 def catalog(payload_json):
     payload = json.loads(payload_json)
-    if not isinstance(payload, dict) or payload.get('operation') not in ('catalog-search', 'detail', 'home-index', 'home-collection', 'radio'):
+    if not isinstance(payload, dict) or payload.get('operation') not in ('catalog-search', 'detail', 'home-index', 'home-collection', 'radio', 'browse-index', 'browse-playlists', 'browse-tracks'):
         raise ValueError('Invalid catalog operation')
     # Shared desktop metadata adapter, copied from its authoritative sources by the APK builder.
     import music_catalog
@@ -131,6 +131,9 @@ def catalog(payload_json):
             return watch(**options)
         client.get_watch_playlist = initial_watch_page
         return client
+    if payload['operation'].startswith('browse-'):
+        from discovery_catalog import catalog as browse_catalog
+        return json.dumps(_catalog_value(browse_catalog(payload, bounded_client, music_catalog.song, music_catalog.thumbnail)), ensure_ascii=False)
     music_catalog.YTMusic = bounded_client
     result = _catalog_value(music_catalog.catalog(payload))
     return json.dumps(result, ensure_ascii=False)

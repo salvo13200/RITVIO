@@ -58,7 +58,8 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
           ./scripts/gradle-android.ps1 -Task @(':app:testReleaseUnitTest')
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          python scripts/check-android-apk.py release/RITVIO-Android-1.0.4.apk
+          $mobileVersion = (Get-Content apps/mobile/package.json | ConvertFrom-Json).version
+          python scripts/check-android-apk.py "release/RITVIO-Android-$mobileVersion.apk"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
       - run: pnpm release:source
       - run: node scripts/archive-resolver-sources.mjs

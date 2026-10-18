@@ -37,7 +37,8 @@ test('player stays fixed at compact, large-text and landscape sizes with every c
   await expect(full).toHaveCSS('overflow-y','hidden');
   const bounds=await full.evaluate(el=>({height:el.clientHeight,scrollHeight:el.scrollHeight,width:el.clientWidth,scrollWidth:el.scrollWidth,buttons:[...el.querySelectorAll('button')].map(b=>{const r=b.getBoundingClientRect();return{name:b.getAttribute('aria-label')||b.textContent,x:r.x,y:r.y,w:r.width,h:r.height};})}));
   expect(bounds.scrollHeight,JSON.stringify(size)).toBeLessThanOrEqual(bounds.height+1);expect(bounds.scrollWidth).toBeLessThanOrEqual(bounds.width+1);
-  for(const b of bounds.buttons.filter(b=>b.w>0&&b.h>0)){expect(b.y+b.h,`${JSON.stringify(size)} ${b.name}`).toBeLessThanOrEqual(size.height+1);expect(b.x+b.w).toBeLessThanOrEqual(size.width+1);expect(b.w).toBeGreaterThanOrEqual(48);expect(b.h).toBeGreaterThanOrEqual(48);}
+  // Chromium transforms can report 47.999969px for an exact 48px hit target.
+  for(const b of bounds.buttons.filter(b=>b.w>0&&b.h>0)){expect(b.y+b.h,`${JSON.stringify(size)} ${b.name}`).toBeLessThanOrEqual(size.height+1);expect(b.x+b.w).toBeLessThanOrEqual(size.width+1);expect(Math.round(b.w*100)/100).toBeGreaterThanOrEqual(48);expect(Math.round(b.h*100)/100).toBeGreaterThanOrEqual(48);}
   await page.screenshot({path:`${output}/web-player-${size.width}x${size.height}-text${size.font}.png`,animations:'disabled'});
   await page.mouse.move(size.width/2,size.height/2);await page.mouse.wheel(0,450);expect(await full.evaluate(el=>el.scrollTop)).toBe(0);
  }
@@ -53,7 +54,7 @@ test('loading, playback errors and missing artwork keep a fixed usable player',a
   await page.setViewportSize(size);await page.evaluate(()=>{const w=window as any;w.__mobileState().loading=false;w.__mobileState().error='Il flusso audio non è riproducibile. Riprova.';w.__mobileState().items[0].thumbnail=null;w.__mobileUpdate();});
   await expect(page.locator('.player-cover img')).toHaveCount(0);await expect(full.getByRole('button',{name:'Riprova',exact:true})).toBeVisible();
   const metrics=await full.evaluate(el=>({scroll:el.scrollHeight,height:el.clientHeight}));expect(metrics.scroll,JSON.stringify({size,metrics})).toBeLessThanOrEqual(metrics.height+1);const retry=(await full.getByRole('button',{name:'Riprova',exact:true}).boundingBox())!;expect(retry.y+retry.height).toBeLessThanOrEqual(size.height+1);
-  await full.getByRole('button',{name:'Riprova',exact:true}).click();await page.evaluate(()=>{const w=window as any;w.__mobileState().error=null;w.__mobileState().loading=true;w.__mobileUpdate();});await expect(full.getByText('Preparazione del brano…')).toBeVisible();expect(await full.evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
+  await full.getByRole('button',{name:'Riprova',exact:true}).click();await page.evaluate(()=>{const w=window as any;w.__mobileState().error=null;w.__mobileState().loading=true;w.__mobileUpdate();});await expect(full.getByText('Preparazione del brano…')).toHaveCount(0);await expect(full.locator(".play-primary")).toHaveAttribute("aria-busy","true");expect(await full.evaluate(el=>el.scrollHeight<=el.clientHeight+1)).toBe(true);
  }
 });
 

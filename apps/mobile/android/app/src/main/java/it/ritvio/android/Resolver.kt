@@ -61,7 +61,7 @@ class Resolver private constructor(context: Context) {
         }catch(error:Exception){synchronized(radioLock){radioNextAllowed=System.currentTimeMillis()+60000};throw error}
     }
     fun catalog(payload:JSONObject):JSONObject{
-        val operation=payload.getString("operation");require(operation in listOf("catalog-search","detail","home-index","home-collection"))
+        val operation=payload.getString("operation");require(operation in listOf("catalog-search","detail","home-index","home-collection","browse-index","browse-playlists","browse-tracks"))
         val refresh=payload.optBoolean("refresh",false);val normalized=JSONObject(payload.toString());normalized.remove("refresh")
         val json=normalized.toString();require(json.length<=100000)
         val key=(if(operation=="home-index")"catalog:international-v1:" else "catalog:")+json

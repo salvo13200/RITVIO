@@ -10,9 +10,13 @@ import javax.net.ssl.HttpsURLConnection
 
 class StoryMedia(private val context:Context){
     fun directory():File=File(context.cacheDir,"story-exports").apply{mkdirs()}
-    fun artwork(id:String):String {
-        StoryRules.filename(id)
-        val connection=URL("https://i.ytimg.com/vi/$id/hqdefault.jpg").openConnection() as HttpsURLConnection
+    fun artwork(id:String,source:String?=null):String {
+        var failure:Exception?=null
+        for(url in ArtworkUrls.candidates(source,id))try{return download(url)}catch(error:Exception){failure=error}
+        throw failure?:IllegalArgumentException("Missing artwork")
+    }
+    private fun download(url:String):String {
+        val connection=URL(url).openConnection() as HttpsURLConnection
         connection.connectTimeout=4000;connection.readTimeout=4000;connection.instanceFollowRedirects=false
         try{
             require(connection.responseCode==200)

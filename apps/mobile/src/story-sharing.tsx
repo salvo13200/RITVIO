@@ -31,7 +31,7 @@ export function StoryComposer({ track }: {
         let cancelled = false;
         setArt('loading');
         setFallback(false);
-        void nativePlayback.storyArtwork({ videoId: track.videoId }).then(async ({ dataUrl }) => {
+        void nativePlayback.storyArtwork({ videoId: track.videoId, thumbnail: track.thumbnail }).then(async ({ dataUrl }) => {
             if (!/^data:image\/(jpeg|png|webp);base64,/.test(dataUrl) || dataUrl.length > 1500000)
                 throw Error();
             const image = await createImageBitmap(await (await fetch(dataUrl)).blob());

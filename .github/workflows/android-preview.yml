@@ -1,0 +1,74 @@
+name: Android preview
+on:
+  pull_request:
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/domain/**'
+      - 'packages/i18n/**'
+      - 'scripts/music-catalog.py'
+      - 'scripts/home_catalog.py'
+      - 'scripts/playlist-catalog.py'
+      - '.github/workflows/android-preview.yml'
+permissions:
+  contents: read
+concurrency:
+  group: android-preview-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android:
+    name: Android APK and JVM tests
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.13'
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:locales
+      - run: pnpm i18n:check
+      - run: pnpm setup:resolver
+      - run: pnpm licenses:collect
+      - run: pnpm --dir apps/mobile build
+      - name: Copy native runtime sources and notices
+        shell: pwsh
+        run: |
+          Copy-Item scripts/music-catalog.py apps/mobile/android/app/src/main/python/music_catalog.py
+          Copy-Item scripts/home_catalog.py apps/mobile/android/app/src/main/python/home_catalog.py
+          Copy-Item scripts/playlist-catalog.py apps/mobile/android/app/src/main/python/playlist_catalog.py
+          $notices = 'apps/mobile/android/app/src/main/assets/ritvio-licenses'
+          New-Item -ItemType Directory -Force -Path $notices | Out-Null
+          Copy-Item third-party (Join-Path $notices 'third-party') -Recurse -Force
+          Copy-Item LICENSE,THIRD_PARTY_NOTICES.md,PRIVACY.md $notices
+      - run: pnpm exec cap sync android
+        working-directory: apps/mobile
+      - name: Set up disposable Android tools
+        shell: pwsh
+        run: ./scripts/setup-android.ps1
+      - name: Build unsigned APK and execute JVM tests
+        shell: pwsh
+        run: |
+          $env:JAVA_HOME = (Get-ChildItem .packaging/android-tools/jdk -Directory | Select-Object -First 1).FullName
+          $env:RITVIO_BUILD_PYTHON = (Get-Command python).Source
+          ./scripts/gradle-android.ps1 -Task @(':app:assembleRelease', ':app:testReleaseUnitTest')
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force -Path test-results/native-preview | Out-Null
+          Copy-Item apps/mobile/android/app/build/outputs/apk/release/*unsigned.apk test-results/native-preview/
+          Copy-Item .packaging/android-tools/sdk/build-tools/36.0.0/lib/apksigner.jar test-results/native-preview/
+          python scripts/check-android-apk.py apps/mobile/android/app/build/outputs/apk/release/app-release-unsigned.apk test-results/native-preview/apk-check.json
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: RITVIO-Android-unsigned-${{ github.sha }}
+          path: |
+            test-results/native-preview/*
+            apps/mobile/android/app/build/reports/tests/testReleaseUnitTest/
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0

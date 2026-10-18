@@ -155,3 +155,17 @@ html[data-reduce-motion=true] *,html[data-reduce-motion=true] *::before,html[dat
 }
 
 .settings-row select{max-width:48%;min-height:48px;padding:10px 12px;background:var(--shell);color:var(--text);border:1px solid var(--line);border-radius:12px}.settings-row select:focus-visible{outline:2px solid var(--accent);outline-offset:3px}.settings-row>div{min-width:0}.settings-row p{font-size:.95rem;color:var(--muted);margin-top:6px}
+
+/* Cover editing is independent of playback and never changes the cover grid's size. */
+.player-cover{position:relative}
+.browse-sections>section+section{margin-top:28px}
+.browse-categories{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.browse-category{min-height:76px;padding:16px;justify-content:space-between;gap:12px;text-align:left;border-radius:12px;background:var(--surface);font-size:1.12rem;font-weight:650}
+.browse-category>span{min-width:0;overflow-wrap:anywhere}
+.browse-category>svg{flex-shrink:0}
+.category-tone-1{background:#292136}.category-tone-2{background:#202b32}.category-tone-3{background:#31252b}
+.browse-heading{margin:8px 0 24px}.browse-heading>.artwork{width:160px;height:160px;margin-bottom:20px}
+.browse-heading h1{overflow-wrap:anywhere}.browse-page .track-list{margin-top:24px}
+@media(min-width:600px){.browse-categories{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+.playlist-page .detail-actions{gap:6px}.playlist-page .detail-actions>.primary{padding-inline:14px;gap:8px}
