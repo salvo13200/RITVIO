@@ -7,6 +7,7 @@ export interface PlaybackPlugin{
   addListener(event:'language',listener:(state:LanguageHostState)=>void):Promise<PluginListenerHandle>;
   search(options:{query:string}):Promise<{items:NativeTrack[];cached:boolean}>;
   snapshot():Promise<MobilePlayback>;
+  copyPlaybackDiagnostics():Promise<void>;
   playTracks(options:{items:NativeTrack[];index:number}):Promise<MobilePlayback>;
   enqueue(options:{track:NativeTrack;next?:boolean}):Promise<MobilePlayback>;
   command(options:MobileCommand):Promise<MobilePlayback>;

@@ -1504,7 +1504,10 @@ const texts={
   "Alcuni brani non sono disponibili nel catalogo.": "Some tracks are unavailable in the catalogue.",
   "Nessun brano disponibile": "No tracks available",
   "Sonno": "Sleep",
-  "Romantico": "Romance"
+  "Romantico": "Romance",
+  "Copia diagnostica audio": "Copy playback diagnostics",
+  "Diagnostica audio copiata": "Playback diagnostics copied",
+  "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.": "To report slow loading, copy the player timings. Track titles and URLs are not included."
 };
 function nativeText(source,state){const preferred=state?.preference==='system'||!state?.preference?(state?.systemLanguages??[]).map(tag=>tag.toLowerCase().split(/[-_]/)[0]).find(tag=>tag==='it'||tag==='en'):state.preference;return preferred==='it'?source:(texts[source]??source);}
 module.exports={nativeText};

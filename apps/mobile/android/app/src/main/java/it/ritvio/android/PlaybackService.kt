@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -14,6 +15,8 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.HttpDataSource
 import androidx.media3.datasource.ResolvingDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ShuffleOrder
 import androidx.media3.session.DefaultMediaNotificationProvider
@@ -36,7 +39,11 @@ class PlaybackService:MediaSessionService(){
     private var queueRevision=0L
     private lateinit var discovery:DiscoveryController
     private var shuttingDown=false
-    private val discoveryTick=object:Runnable{override fun run(){discovery.tick();handler.postDelayed(this,1000)}}
+    @Volatile private var activeTrackId:String?=null
+    private var changedAt=SystemClock.elapsedRealtime()
+    private var preloading=false
+    private val latency=PlaybackLatency{SystemClock.elapsedRealtime()}
+    private val discoveryTick=object:Runnable{override fun run(){discovery.tick();updatePreloading();handler.postDelayed(this,1000)}}
     private val historyWorker=java.util.concurrent.Executors.newSingleThreadExecutor()
     private var equalizer:android.media.audiofx.Equalizer?=null
     private var sleepUntil:Long?=null
@@ -46,12 +53,17 @@ class PlaybackService:MediaSessionService(){
     override fun onCreate(){
         super.onCreate();instance=this
         val resolver=Resolver.get(this)
+        historyWorker.execute{runCatching{resolver.initialize()}}
         val source=ResolvingDataSource.Factory(DefaultHttpDataSource.Factory().setConnectTimeoutMs(12000).setReadTimeoutMs(20000)){spec ->
             require(spec.uri.scheme=="ritvio" && spec.uri.host=="track")
-            val id=spec.uri.lastPathSegment.orEmpty();val descriptor=resolver.resolve(id)
+            val id=spec.uri.lastPathSegment.orEmpty();val descriptor=resolver.resolve(id,speculative=id!=activeTrackId)
             spec.withUri(descriptor.uri).withRequestHeaders(descriptor.headers)
         }
-        player=ExoPlayer.Builder(this).setMediaSourceFactory(DefaultMediaSourceFactory(source))
+        val loadControl=DefaultLoadControl.Builder()
+            .setBufferDurationsMs(PlaybackTuning.MIN_BUFFER_MS,PlaybackTuning.MAX_BUFFER_MS,PlaybackTuning.START_MS,PlaybackTuning.REBUFFER_MS)
+            .setBackBuffer(PlaybackTuning.BACK_BUFFER_MS,true)
+            .setTargetBufferBytes(PlaybackTuning.TARGET_BUFFER_BYTES).build()
+        player=ExoPlayer.Builder(this).setMediaSourceFactory(DefaultMediaSourceFactory(source)).setLoadControl(loadControl)
             .setAudioAttributes(AudioAttributes.Builder().setUsage(C.USAGE_MEDIA).setContentType(C.AUDIO_CONTENT_TYPE_MUSIC).build(),true)
             .setHandleAudioBecomingNoisy(true).setWakeMode(C.WAKE_MODE_NETWORK).build()
         discovery=DiscoveryController(this,resolver)
@@ -59,25 +71,34 @@ class PlaybackService:MediaSessionService(){
             override fun onPlayWhenReadyChanged(playWhenReady:Boolean,reason:Int){
                 if(!playWhenReady)discovery.invalidate()
                 if(sleepAtEnd && !playWhenReady && reason==Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM)cancelSleep()
+                updatePreloading()
             }
-            override fun onPlaybackStateChanged(playbackState:Int){if(sleepAtEnd && playbackState==Player.STATE_ENDED)cancelSleep()}
+            override fun onPlaybackStateChanged(playbackState:Int){if(sleepAtEnd && playbackState==Player.STATE_ENDED)cancelSleep();if(playbackState==Player.STATE_READY)latency.ready(player.currentMediaItem?.mediaId.orEmpty());updatePreloading()}
+            override fun onIsPlayingChanged(isPlaying:Boolean){updatePreloading()}
             override fun onAudioSessionIdChanged(audioSessionId:Int){
                 equalizer?.release();equalizer=null
                 if(audioSessionId>0)runCatching{equalizer=android.media.audiofx.Equalizer(0,audioSessionId).apply{enabled=getSharedPreferences("audio",MODE_PRIVATE).getBoolean("eqEnabled",false);for(i in 0 until numberOfBands.toInt()){val level=getSharedPreferences("audio",MODE_PRIVATE).getInt("band$i",0).coerceIn(bandLevelRange[0].toInt(),bandLevelRange[1].toInt());setBandLevel(i.toShort(),level.toShort())}}}
             }
             override fun onEvents(player:Player,events:Player.Events){if(!restoring && !shuttingDown)persist()}
             override fun onMediaItemTransition(mediaItem:MediaItem?,reason:Int){
+                activeTrackId=mediaItem?.mediaId;changedAt=SystemClock.elapsedRealtime();updatePreloading()
                 if(!restoring&&reason==Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)discovery.invalidate()
                 discovery.trackChanged()
                 if(sleepAtEnd && reason in listOf(Player.MEDIA_ITEM_TRANSITION_REASON_SEEK,Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED))cancelSleep()
                 lastError=null;recoveryId=null;mediaItem?.mediaId?.let{tracks[it]}?.let{track->historyWorker.execute{runCatching{LibraryStore.get(this@PlaybackService).remember(track)}}}
             }
             override fun onPlayerError(error:PlaybackException){
+                latency.cancel("playback-error")
                 var cause:Throwable?=error;var expired=false
                 while(cause!=null){if(cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode in listOf(403,410))expired=true;cause=cause.cause}
                 val id=player.currentMediaItem?.mediaId
                 if(expired && id!=null && recoveryId!=id){recoveryId=id;resolver.invalidate(id);player.prepare()}
                 else {lastError="Il flusso audio non è disponibile. Riprova o scegli un altro brano.";player.pause()}
+            }
+        })
+        player.addAnalyticsListener(object:AnalyticsListener{
+            override fun onAudioPositionAdvancing(eventTime:AnalyticsListener.EventTime,playoutStartSystemTimeMs:Long){
+                if(eventTime.windowIndex==player.currentMediaItemIndex)latency.advancing(player.currentMediaItem?.mediaId.orEmpty(),eventTime.realtimeMs)
             }
         })
         val intent=PendingIntent.getActivity(this,0,Intent(this,MainActivity::class.java),PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
@@ -99,6 +120,17 @@ class PlaybackService:MediaSessionService(){
         else if(prefs.getBoolean("sleepAtEnd",false) && player.mediaItemCount>0){sleepAtEnd=true;player.setPauseAtEndOfMediaItems(true)}
         else prefs.edit().remove("sleepUntil").remove("sleepAtEnd").apply()
     }
+    private fun updatePreloading(){
+        if(!::player.isInitialized||shuttingDown)return
+        val now=SystemClock.elapsedRealtime()
+        val cooldown=(Resolver.get(this).audioCooldownUntil-System.currentTimeMillis()).coerceAtLeast(0)
+        val enabled=PlaybackTuning.preload(now,changedAt,player.isPlaying,player.hasNextMediaItem(),sleeping(),player.repeatMode==Player.REPEAT_MODE_ONE,if(cooldown>0)now+cooldown else 0)
+        if(enabled!=preloading){preloading=enabled;player.preloadConfiguration=if(enabled)ExoPlayer.PreloadConfiguration(PlaybackTuning.PRELOAD_US)else ExoPlayer.PreloadConfiguration.DEFAULT}
+    }
+    fun playbackDiagnostics():JSONObject=JSONObject().put("schema",1).put("version",packageManager.getPackageInfo(packageName,0).versionName)
+        .put("engine","Media3").put("preloading",preloading).put("bufferedAheadMs",(player.bufferedPosition-player.currentPosition).coerceAtLeast(0))
+        .put("policy",JSONObject().put("startMs",PlaybackTuning.START_MS).put("rebufferMs",PlaybackTuning.REBUFFER_MS).put("backBufferMs",PlaybackTuning.BACK_BUFFER_MS).put("maxForwardBufferMs",PlaybackTuning.MAX_BUFFER_MS).put("targetBufferBytes",PlaybackTuning.TARGET_BUFFER_BYTES).put("nextPreloadMs",PlaybackTuning.PRELOAD_US/1000))
+        .put("resolver",Resolver.get(this).diagnostics()).put("samples",JSONArray().apply{latency.samples().forEach{put(JSONObject().put("action",it.action).put("bufferedSeekHint",it.cached).put("requiresAudio",it.needsAudio).put("readyMs",it.readyMs?:JSONObject.NULL).put("audioPositionAdvancingMs",it.audioMs?:JSONObject.NULL).put("outcome",it.outcome))}})
     private fun cancelSleep(){handler.removeCallbacks(sleepAction);sleepUntil=null;sleepAtEnd=false;player.setPauseAtEndOfMediaItems(false);getSharedPreferences("audio",MODE_PRIVATE).edit().remove("sleepUntil").remove("sleepAtEnd").apply()}
     internal fun queueVersion()=queueRevision
     internal fun sleeping()=sleepUntil!=null||sleepAtEnd
@@ -134,7 +166,7 @@ class PlaybackService:MediaSessionService(){
             "sleep"->{val minutes=input.getInt("minutes");require(minutes in 0..180);discovery.invalidate();cancelSleep();sleepUntil=if(minutes==0)null else System.currentTimeMillis()+minutes*60000L;prefs.edit().putLong("sleepUntil",sleepUntil?:0).apply();sleepUntil?.let{handler.postDelayed(sleepAction,it-System.currentTimeMillis())}}
             "sleepEnd"->{require(player.mediaItemCount>0 && player.playbackState!=Player.STATE_ENDED);discovery.invalidate();cancelSleep();sleepAtEnd=true;player.setPauseAtEndOfMediaItems(true);prefs.edit().putBoolean("sleepAtEnd",true).apply()}
             else->throw IllegalArgumentException()
-        };return audioState()
+        };updatePreloading();return audioState()
     }
     override fun onGetSession(controllerInfo:MediaSession.ControllerInfo):MediaSession?=session
     fun setQueue(items:List<TrackData>,index:Int,fromDiscovery:Boolean=false){
@@ -142,6 +174,8 @@ class PlaybackService:MediaSessionService(){
         if(!fromDiscovery)discovery.reset()
         if(sleepAtEnd)cancelSleep()
         queueRevision++
+        latency.begin("play",items[index].videoId)
+        activeTrackId=items[index].videoId
         tracks.clear();items.forEach{tracks[it.videoId]=it};lastError=null;recoveryId=null
         player.setMediaItems(items.map{it.item()},index,0);player.prepare();player.play();persist()
     }
@@ -162,6 +196,20 @@ class PlaybackService:MediaSessionService(){
     }
     fun command(type:String,value:Any?){
         if(type in listOf("pause","next","previous","jump","seek","retry"))discovery.invalidate()
+        val currentId=player.currentMediaItem?.mediaId
+        val destination=when(type){
+            "next"->player.nextMediaItemIndex.takeIf{it>=0}?.let{player.getMediaItemAt(it).mediaId}
+            "previous"->if(player.currentPosition>3000)currentId else player.previousMediaItemIndex.takeIf{it>=0}?.let{player.getMediaItemAt(it).mediaId}?:currentId
+            "jump"->(value as Number).toInt().takeIf{it in 0 until player.mediaItemCount}?.let{player.getMediaItemAt(it).mediaId}
+            "seek","retry","play"->currentId
+            else->null
+        }
+        if(type=="pause"||type=="clear")latency.cancel(type)
+        if(destination!=null){
+            val inBuffer=type=="seek"&&(value as Number).toDouble()*1000 in player.currentPosition.toDouble()..player.bufferedPosition.toDouble()
+            latency.begin(type,destination,inBuffer,needsAudio=type in listOf("play","retry","jump")||player.playWhenReady)
+            if(type!="seek")activeTrackId=destination
+        }
         when(type){
             "play","retry"->{if(player.mediaItemCount==0)return;lastError=null;if(type=="retry"){player.currentMediaItem?.mediaId?.let{Resolver.get(this).invalidate(it)};recoveryId=null};if(player.playbackState==Player.STATE_ENDED)player.seekToDefaultPosition();if(player.playbackState==Player.STATE_IDLE || type=="retry")player.prepare();player.play()}
             "pause"->player.pause()
@@ -176,7 +224,7 @@ class PlaybackService:MediaSessionService(){
             "jump"->{val index=(value as Number).toInt();require(index in 0 until player.mediaItemCount);lastError=null;player.seekTo(index,0);if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}
             "clear"->{discovery.reset();if(sleepAtEnd)cancelSleep();queueRevision++;player.stop();player.clearMediaItems();tracks.clear();lastError=null}
             else->throw IllegalArgumentException("Unknown command")
-        };persist()
+        };updatePreloading();persist()
     }
     fun snapshot():JSONObject {
         val items=JSONArray();for(index in 0 until player.mediaItemCount){tracks[player.getMediaItemAt(index).mediaId]?.let{items.put(it.json())}}
@@ -189,7 +237,9 @@ class PlaybackService:MediaSessionService(){
             .put("repeat",when(player.repeatMode){Player.REPEAT_MODE_ALL->"all";Player.REPEAT_MODE_ONE->"one";else->"off"})
             .put("shuffle",player.shuffleModeEnabled).put("volume",player.volume).put("error",lastError?:JSONObject.NULL).put("status",status).put("order",JSONArray(queueOrder())).put("queueRevision",queueRevision).put("discovery",discovery.state().put("suspended",if(sleeping())"timer"else if(player.repeatMode!=Player.REPEAT_MODE_OFF)"repeat"else JSONObject.NULL)).put("automatic",JSONArray((0 until player.mediaItemCount).filter{automatic(it)}))
     }
-    private fun persist(){if(restoring || !::player.isInitialized)return;val state=snapshot();getSharedPreferences("playback",MODE_PRIVATE).edit().putString("state",state.toString()).apply()}
+    private val savePending=Runnable{persistNow()}
+    private fun persist(){if(restoring||!::player.isInitialized||shuttingDown)return;handler.removeCallbacks(savePending);handler.postDelayed(savePending,200)}
+    private fun persistNow(){if(restoring||!::player.isInitialized)return;getSharedPreferences("playback",MODE_PRIVATE).edit().putString("state",snapshot().toString()).apply()}
     private fun restore(){
         restoring=true
         try{val raw=getSharedPreferences("playback",MODE_PRIVATE).getString("state",null)?:return;val state=JSONObject(raw);val items=TrackData.parseList(state.getJSONArray("items"));val index=state.optInt("index",0).coerceIn(items.indices);items.forEach{tracks[it.videoId]=it}
@@ -200,6 +250,6 @@ class PlaybackService:MediaSessionService(){
             state.optJSONArray("order")?.let{array->val order=(0 until array.length()).map{array.getInt(it)};if(order.size==items.size && order.sorted()==items.indices.toList())player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(order.toIntArray(),System.nanoTime()))}
         }catch(_:Exception){getSharedPreferences("playback",MODE_PRIVATE).edit().remove("state").apply()}finally{restoring=false}
     }
-    override fun onDestroy(){handler.removeCallbacks(persistence);handler.removeCallbacks(sleepAction);handler.removeCallbacks(discoveryTick);persist();shuttingDown=true;discovery.close();session?.release();equalizer?.release();player.release();historyWorker.shutdown();instance=null;super.onDestroy()}
+    override fun onDestroy(){handler.removeCallbacks(persistence);handler.removeCallbacks(savePending);handler.removeCallbacks(sleepAction);handler.removeCallbacks(discoveryTick);persistNow();shuttingDown=true;discovery.close();session?.release();equalizer?.release();player.release();historyWorker.shutdown();instance=null;super.onDestroy()}
     companion object {@Volatile var instance:PlaybackService?=null;private set}
 }

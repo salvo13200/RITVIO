@@ -49,6 +49,11 @@ class RitvioPlaybackPlugin:Plugin(){
         controller.addListener({try{controller.get();val service=PlaybackService.instance?:error("No service");action(service)}catch(_:Exception){call.reject(NativeText.text(context,"Il player non è disponibile. Riapri l’app."),"PLAYER_UNAVAILABLE")}},ContextCompat.getMainExecutor(context))
     }
     @PluginMethod fun snapshot(call:PluginCall){service(call){call.resolve(JSObject(it.snapshot().toString()))}}
+    @PluginMethod fun copyPlaybackDiagnostics(call:PluginCall){service(call){service->try{
+        val clipboard=context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText("RITVIO playback diagnostics",service.playbackDiagnostics().toString(2)))
+        call.resolve()
+    }catch(_:Exception){call.reject(NativeText.text(context,"Impossibile copiare la diagnostica audio. Riprova."),"DIAGNOSTICS_FAILED")}}}
     @PluginMethod fun radio(call:PluginCall){service(call){service->try{service.startRadio(TrackData.parse(call.getObject("track")?:throw IllegalArgumentException()));call.resolve(JSObject(service.snapshot().toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Attendi la preparazione in corso e riprova."),"DISCOVERY_BUSY")}}}
     @PluginMethod fun discoveryCommand(call:PluginCall){service(call){service->try{service.discoveryCommand(call.data);call.resolve(JSObject(service.snapshot().toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Impossibile aggiornare l’autoplay. Riprova."),"DISCOVERY_FAILED")}}}
     @PluginMethod fun catalog(call:PluginCall){try{catalogWorker.execute{try{call.resolve(JSObject(Resolver.get(context).catalog(call.data).toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Il catalogo non risponde. Riprova tra poco."),"CATALOG_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il caricamento in corso."),"CATALOG_BUSY")}}
