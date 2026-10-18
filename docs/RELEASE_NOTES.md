@@ -1,5 +1,18 @@
 # Release notes
 
+## Windows 0.7.3 — 18 October 2026 (public preview)
+
+[Windows 0.7.3 installer, portable, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.3). This Windows-only update uses the exact maintainer-approved EXEs; Android remains [1.2.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.0). Earlier releases remain available for rollback. Prefer the installer for everyday use and update the existing official app without uninstalling to preserve local data. EXEs are not Authenticode-signed.
+
+- Prepare one next track after the current item has enough audio, yielding speculative work to current playback.
+- Reuse encoded ranges in a bounded 16 MiB RAM proxy buffer; no disk audio cache or offline download. Seeks outside available audio still need the network.
+- Avoid a redundant metadata lookup for known tracks, share duplicate resolution work and replace obsolete preparation on a fresh retry.
+- Keep bounded local timing samples and buffer counters without song titles, identifiers or stream URLs; nothing is uploaded automatically.
+
+Verification: the exact downloadable EXEs passed 211 core tests, 13 focused browser/player tests, production/source checks and isolated installer install/reinstall/update/uninstall on a disposable Windows runner with test data preserved. The downloaded portable passed the real-provider playback/next/pause/resume/seek harness with an isolated profile, and the maintainer approved release. In a small sequential comparison of three prepared changes per version, the median was 317.5 ms (0.7.2) versus 87.7 ms (0.7.3). These are HTML media-event timings, not independently measured speaker output or a universal speed guarantee. The uncached first track stayed around 2.8 seconds; paused seeks remained around 8–9 ms.
+
+Known startup limit: the first fresh portable launch exceeded a 90-second test budget. A follow-up with a fresh profile reached the UI in 26.8 seconds; the full harness subsequently passed. The portable extracts on every launch; use the installer to avoid that extraction. An installer startup benchmark is not claimed. Broad native-device/accessibility coverage remains incomplete, and external services can fail or rate-limit requests. A preloaded fragment may never be played.
+
 ## Android 1.2.0 — 18 October 2026 (public preview, version code 18)
 
 [Android 1.2.0 APK, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.0). This Android-only update preserves the signing certificate and local data when installed over the official app. Windows remains on 0.7.2; previous Android releases remain available for rollback.
