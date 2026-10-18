@@ -52,3 +52,12 @@ test('resilience: an offline retry waits for connectivity and resumes only the c
  await choose(page);await expect.poll(()=>calls).toBe(1);await page.waitForTimeout(1300);expect(calls).toBe(1);
  await page.evaluate(()=>{(window as any).__offline=false;window.dispatchEvent(new Event('online'));});await advancing(page);expect(calls).toBe(2);
 });
+
+test('resilience: returning to the app resumes a suspended audio graph only for active playback',async({page})=>{
+ await choose(page);await advancing(page);
+ const contextState=()=>page.evaluate(async()=>{const path='/src/audio-engine.ts';return(await import(path)).audioEngine()?.context.state;});
+ await page.evaluate(async()=>{const path='/src/audio-engine.ts';await(await import(path)).audioEngine()?.context.suspend();});await expect.poll(contextState).toBe('suspended');
+ await page.evaluate(()=>window.dispatchEvent(new Event('focus')));await expect.poll(contextState).toBe('running');
+ await page.getByRole('button',{name:'Pausa',exact:true}).click();await page.evaluate(async()=>{const path='/src/audio-engine.ts';await(await import(path)).audioEngine()?.context.suspend();window.dispatchEvent(new Event('focus'));});
+ await page.waitForTimeout(200);await expect.poll(contextState).toBe('suspended');await expect(page.getByRole('button',{name:'Riproduci',exact:true})).toBeVisible();
+});

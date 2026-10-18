@@ -47,6 +47,11 @@ export function AudioController(){
   useEffect(()=>attachPlaybackPreparation(audio),[]);
   useEffect(()=>attachAutoplay(),[]);
   useEffect(()=>{
+    const resumeAudio=()=>{const s=usePlayer.getState();if(document.visibilityState==='visible'&&s.playing&&loaded.current===keyOfPlayer())void prepareAudio(audio,s.audioPreferences).catch(()=>{});};
+    window.addEventListener('focus',resumeAudio);window.addEventListener('pageshow',resumeAudio);document.addEventListener('visibilitychange',resumeAudio);
+    return()=>{window.removeEventListener('focus',resumeAudio);window.removeEventListener('pageshow',resumeAudio);document.removeEventListener('visibilitychange',resumeAudio);};
+  },[]);
+  useEffect(()=>{
     const matches=()=>{const s=usePlayer.getState();return loaded.current===`${s.queue[s.index]?.queueId}:${s.activation}`;};
     const onTime=()=>{if(matches()&&!restoring.current&&!audio.seeking&&audio.readyState>0)usePlayer.setState({position:audio.currentTime});};
     const onDuration=()=>{if(matches()&&Number.isFinite(audio.duration))usePlayer.setState({duration:audio.duration});};
@@ -78,16 +83,17 @@ export function AudioController(){
       if(networkRetries>=2){fail(message);return;}
       const delay=[1000,3000][networkRetries++];
       timing?.fail();loaded.current='';usePlayer.setState({loading:true,error:null});
-      const deadline=Date.now()+30000;
+      const deadline=performance.now()+30000;
       const attempt=()=>{
         if(!alive()||!usePlayer.getState().playing)return;
-        if(!navigator.onLine){if(Date.now()>=deadline){fail(message);return;}retryTimer=setTimeout(attempt,1000);return;}
+        if(performance.now()>=deadline){fail(message);return;}
+        if(!navigator.onLine){retryTimer=setTimeout(attempt,1000);return;}
         clearRetry();void prepare(fresh);
       };
       retryAction=attempt;retryTimer=setTimeout(attempt,delay);
     };
     const prepare=async(fresh=false)=>{
-      clearTimeout(stallTimer);
+      clearTimeout(stallTimer);stallTimer=undefined;
       const ownGeneration=++generation;
       const isCurrent=()=>alive()&&ownGeneration===generation;
       if(fresh)retries=1;
@@ -121,11 +127,11 @@ export function AudioController(){
     // may refresh it; otherwise two concurrent loads can interrupt each other.
     const onError=()=>{if(loaded.current===key&&audio.error){if(audio.error.code===MediaError.MEDIA_ERR_NETWORK)retryNetwork(t('player.impossibile.caricare.il.brano'),true);else recover();}};
     const onOnline=()=>{if(retryAction){clearTimeout(retryTimer);retryAction();}};
-    const onProgress=()=>{clearTimeout(stallTimer);};
+    const onProgress=()=>{clearTimeout(stallTimer);stallTimer=undefined;};
     const onStalled=()=>{
-      if(loaded.current!==key||!usePlayer.getState().playing||retryAction)return;
-      clearTimeout(stallTimer);const position=audio.currentTime;
-      stallTimer=setTimeout(()=>{if(alive()&&loaded.current===key&&usePlayer.getState().playing&&audio.readyState<3&&Math.abs(audio.currentTime-position)<.1)retryNetwork(t('player.impossibile.caricare.il.brano'),true);},20000);
+      if(loaded.current!==key||!usePlayer.getState().playing||retryAction||stallTimer)return;
+      const position=audio.currentTime;
+      stallTimer=setTimeout(()=>{stallTimer=undefined;if(alive()&&loaded.current===key&&usePlayer.getState().playing&&audio.readyState<3&&Math.abs(audio.currentTime-position)<.1)retryNetwork(t('player.impossibile.caricare.il.brano'),true);},20000);
     };
     audio.addEventListener('error',onError);
     audio.addEventListener('waiting',onStalled);audio.addEventListener('stalled',onStalled);audio.addEventListener('playing',onProgress);window.addEventListener('online',onOnline);
