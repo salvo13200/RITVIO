@@ -5,6 +5,7 @@ const {validateStoryPng}=createRequire(import.meta.url)('../apps/desktop/story-e
 const review='test-results/visual/story-selection-0.6.32';
 const originalLines=['Sotto la pioggia di neon','La città rallenta','resta accesa una finestra','porto il cielo nelle tasche','e ritorno verso casa','le strade parlano ancora'];
 test.beforeEach(async({page,request})=>{
+  await page.addInitScript(()=>localStorage.setItem('ritvio.language.v1',JSON.stringify({schema:1,preference:'it'})));
   await request.post('http://127.0.0.1:5199/test-reset-library');
   await page.addInitScript(()=>{window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
   await page.route('https://i.ytimg.com/**',async route=>route.fulfill({body:await readFile('tests/fixtures/artwork/city.webp'),contentType:'image/webp'}));

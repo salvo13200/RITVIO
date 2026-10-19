@@ -1507,7 +1507,32 @@ const texts={
   "Romantico": "Romance",
   "Copia diagnostica audio": "Copy playback diagnostics",
   "Diagnostica audio copiata": "Playback diagnostics copied",
-  "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.": "To report slow loading, copy the player timings. Track titles and URLs are not included."
+  "Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.": "To report slow loading, copy the player timings. Track titles and URLs are not included.",
+  "Leggibilità del testo": "Lyrics readability",
+  "Condividi versi": "Share lyrics",
+  "Dimensione del testo": "Text size",
+  "Standard": "Standard",
+  "Grande": "Large",
+  "Molto grande": "Extra large",
+  "Evidenziazione": "Highlight",
+  "Forte": "Strong",
+  "Testo della canzone": "Song lyrics",
+  " · sincronizzati": " · synced",
+  " · testo completo": " · plain lyrics",
+  "{p0}: rimosso dalla coda": "{p0}: removed from queue",
+  "Rimuovi": "Remove",
+  "Opzioni della coda": "Queue options",
+  "Non ci sono altri brani in coda.": "No more tracks in the queue.",
+  "Già ascoltati": "Previously played",
+  "Anteprima card": "Preview card",
+  "2 di 2 · Anteprima": "2 of 2 · Preview",
+  "1 di 2 · Seleziona i versi": "1 of 2 · Select lyrics",
+  "Tocca la prima riga, poi l’ultima.": "Tap the first line, then the last.",
+  "Fino a {p0} righe consecutive": "Up to {p0} consecutive lines",
+  "{p0} righe selezionate": "{p0} lines selected",
+  "Immagine per le storie · 9:16": "Story image · 9:16",
+  "Rimuovi brano attuale": "Remove current track",
+  "Disattivando Autoplay vengono rimossi i suoi brani ancora da ascoltare.": "Turning off Autoplay removes its unplayed tracks."
 };
 function nativeText(source,state){const preferred=state?.preference==='system'||!state?.preference?(state?.systemLanguages??[]).map(tag=>tag.toLowerCase().split(/[-_]/)[0]).find(tag=>tag==='it'||tag==='en'):state.preference;return preferred==='it'?source:(texts[source]??source);}
 module.exports={nativeText};

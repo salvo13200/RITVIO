@@ -5,5 +5,6 @@ import {localization} from '../../../packages/i18n/mobile';
 import {LanguageRoot} from '../../../packages/i18n/react';
 import {startMobileLanguage} from './localization';
 import './style.css';
+import './listening-tools.css';
 const root=createRoot(document.getElementById('root')!);
 void startMobileLanguage().then(controller=>root.render(<React.StrictMode><LanguageRoot runtime={localization} controller={controller}>{()=> <App/>}</LanguageRoot></React.StrictMode>));
