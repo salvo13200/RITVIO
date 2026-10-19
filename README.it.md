@@ -6,7 +6,7 @@
 
 [English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases) · [Galleria](docs/SCREENSHOTS.md)
 
-> Anteprima pubblica: **Windows 0.7.4** e **Android 1.2.1**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
+> Anteprima pubblica: **Windows 0.7.4** e **Android 1.3.0**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
 
 [![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
 
@@ -29,7 +29,7 @@ Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 | Piattaforma | Download |
 | --- | --- |
 | Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.4/RITVIO-0.7.4-setup.exe) · [Portatile](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.4/RITVIO-0.7.4-portatile.exe) |
-| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.2.1/RITVIO-Android-1.2.1.apk) |
+| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.0/RITVIO-Android-1.3.0.apk) |
 
 Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano consigliamo l'installer: il portatile si estrae a ogni avvio e può partire lentamente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
 
