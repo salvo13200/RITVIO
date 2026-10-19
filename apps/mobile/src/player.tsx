@@ -1,7 +1,7 @@
 import { noticeText } from './messages';
 import { msg, formatLocale } from './messages';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { ChevronDown, ChevronRight, ListMusic, Heart, Shuffle, Repeat, Repeat1, SkipBack, SkipForward, Pause, Play, LoaderCircle, Volume2, VolumeX, FileText, SlidersHorizontal, Share2, Timer } from 'lucide-react';
+import { ChevronDown, ChevronRight, ListMusic, Heart, Shuffle, Repeat, Repeat1, SkipBack, SkipForward, Pause, Play, LoaderCircle, Volume2, VolumeX, FileText, SlidersHorizontal, Share2, Timer, LocateFixed } from 'lucide-react';
 import type { MobilePlayback, NativeTrack, MobileCommand, MobileResource, MobileAudio } from '../../../packages/domain/mobile';
 import { parseLyrics, activeLyricsLine, type ParsedLyrics } from '../../../packages/domain/lyrics';
 import { nativePlayback } from './native';
@@ -64,12 +64,22 @@ const lyricCache = new Map<string, {
     instrumental: boolean;
 }>();
 const lyricRequests = new Map<string, ReturnType<typeof nativePlayback.lyrics>>();
-export function LyricsPanel({ track, position, seek }: {
+type LyricsPreferences={size:'standard'|'large'|'extra';emphasis:'standard'|'strong'};
+function lyricsPreferences():LyricsPreferences {
+    try { const value=JSON.parse(localStorage.getItem('ritvio.mobile.lyrics')??'{}');return {size:['standard','large','extra'].includes(value.size)?value.size:'standard',emphasis:value.emphasis==='standard'?'standard':'strong'}; }
+    catch { return {size:'standard',emphasis:'strong'}; }
+}
+export function LyricsPanel({ track, position, seek, onClose, share }: {
     track: NativeTrack;
     position: number;
     seek: (value: number) => void;
+    onClose: () => void;
+    share: () => void;
 }) {
     const panel = useRef<HTMLDivElement>(null);
+    const reading=useRef<HTMLDivElement>(null);
+    const [preferences,setPreferences]=useState(lyricsPreferences),[settings,setSettings]=useState(false);
+    useEffect(()=>{try{localStorage.setItem('ritvio.mobile.lyrics',JSON.stringify(preferences));}catch{}},[preferences]);
     const [document, setDocument] = useState<ParsedLyrics | null>(null), [loading, setLoading] = useState(true), [message, setMessage] = useState(''), [attempt, setAttempt] = useState(0), [follow, setFollow] = useState(true);
     const refs = useRef<Map<number, HTMLButtonElement>>(new Map());
     useEffect(() => {
@@ -124,27 +134,33 @@ export function LyricsPanel({ track, position, seek }: {
     }, [track.videoId, track.title, track.artist, track.duration, attempt]);
     const index = document ? activeLyricsLine(document.lines, position, document.offsetMs) : -1;
     useEffect(() => {
-        const container = panel.current?.closest('.sheet-content');
+        const container = reading.current;
         if (!container)
             return;
         const stop = () => setFollow(false);
         container.addEventListener('wheel', stop, { passive: true });
         container.addEventListener('touchmove', stop, { passive: true });
         return () => { container.removeEventListener('wheel', stop); container.removeEventListener('touchmove', stop); };
-    }, []);
+    }, [loading, document]);
     useEffect(() => {
-        if (follow && index >= 0)
-            refs.current.get(index)?.scrollIntoView({ block: 'center', behavior: globalThis.document.documentElement.dataset.reduceMotion === 'true' || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-    }, [index, follow]);
-    return <div ref={panel} className="lyrics-panel"><div className="lyrics-toolbar"><span>{track.title}{" " + msg("\u00B7") + " "}{track.artist}</span>{!!document?.lines.length && <button className="tonal" aria-pressed={follow} onClick={() => setFollow(!follow)}>{follow ? msg("Segui il testo") : msg("Riprendi scorrimento")}</button>}</div>
-  {loading ? <Skeleton /> : document ? <div className="lyrics-reading" onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)}>{document.lines.length ? document.lines.map((line, i) => <button ref={el => {
+        const container=reading.current,row=refs.current.get(index);
+        if(follow&&container&&row&&index>=0){
+            const bounds=container.getBoundingClientRect(),target=row.getBoundingClientRect();
+            container.scrollTo({top:Math.max(0,container.scrollTop+target.top-bounds.top-(container.clientHeight-target.height)/2),behavior:globalThis.document.documentElement.dataset.reduceMotion==='true'||matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});
+        }
+    }, [index, follow, preferences.size, settings, loading]);
+    return <Modal workspace label={msg('Testi')} onClose={onClose} actions={<><button aria-label={msg('Leggibilità del testo')} aria-expanded={settings} onClick={()=>setSettings(value=>!value)}><span className="lyrics-type-icon" aria-hidden="true">Aa</span></button><button aria-label={msg('Condividi versi')} onClick={share}><Share2 size={23}/></button></>}><div ref={panel} className={`lyrics-panel lyrics-size-${preferences.size} lyrics-emphasis-${preferences.emphasis}`}>
+  <div className="lyrics-identity"><Artwork eager src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></div>
+  {settings&&<section className="lyrics-settings" aria-label={msg('Leggibilità del testo')}><fieldset><legend>{msg('Dimensione del testo')}</legend><div>{(['standard','large','extra'] as const).map((size,i)=><label key={size}><input type="radio" name="lyrics-size" checked={preferences.size===size} onChange={()=>setPreferences(value=>({...value,size}))}/>{[msg('Standard'),msg('Grande'),msg('Molto grande')][i]}</label>)}</div></fieldset><fieldset><legend>{msg('Evidenziazione')}</legend><div>{(['standard','strong'] as const).map((emphasis,i)=><label key={emphasis}><input type="radio" name="lyrics-emphasis" checked={preferences.emphasis===emphasis} onChange={()=>setPreferences(value=>({...value,emphasis}))}/>{[msg('Standard'),msg('Forte')][i]}</label>)}</div></fieldset></section>}
+  <div ref={reading} className="lyrics-reading" tabIndex={0} aria-label={msg('Testo della canzone')} onWheel={() => setFollow(false)} onTouchMove={() => setFollow(false)} onPointerDown={event=>{if(event.clientX>=event.currentTarget.getBoundingClientRect().right-12)setFollow(false);}} onKeyDown={event=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))setFollow(false);}}>
+  {loading ? <Skeleton /> : document ? <>{document.lines.length ? document.lines.map((line, i) => <button ref={el => {
                     if (el)
                         refs.current.set(i, el);
                     else
                         refs.current.delete(i);
-                }} key={`${line.at}:${i}`} className={index === i ? 'lyric-line is-active' : 'lyric-line'} aria-label={msg("Vai a {p0}:{p1}: {p2}", { p0: Math.floor(line.at / 60), p1: String(Math.floor(line.at % 60)).padStart(2, '0'), p2: line.text || msg("Pausa strumentale") })} onClick={() => seek(line.at)}>{line.text || '· · ·'}</button>) : <p className="plain-lyrics">{document.plainText}</p>}</div> : <Empty title={message || msg("Testo non disponibile")} action={<button className="tonal" onClick={() => { lyricCache.delete(JSON.stringify([track.videoId, track.title, track.artist, track.duration, track.artists])); setAttempt(v => v + 1); }}>{msg("Riprova")}</button>}/>}
-  <p className="source-date">{msg("Testi: LRCLIB")}{document?.lines.length ? ' · sincronizzati' : document ? ' · testo completo' : ''}</p>
- </div>;
+                }} key={`${line.at}:${i}`} className={`lyric-line${index === i ? ' is-active' : i<index?' is-past':''}`} aria-current={index===i?'true':undefined} aria-label={msg("Vai a {p0}:{p1}: {p2}", { p0: Math.floor(line.at / 60), p1: String(Math.floor(line.at % 60)).padStart(2, '0'), p2: line.text || msg("Pausa strumentale") })} onClick={() => {seek(line.at);setFollow(true);}}><span>{line.text || '· · ·'}</span></button>) : <p className="plain-lyrics">{document.plainText}</p>}</> : <Empty title={message || msg("Testo non disponibile")} action={<button className="tonal" onClick={() => { lyricCache.delete(JSON.stringify([track.videoId, track.title, track.artist, track.duration, track.artists])); setAttempt(v => v + 1); }}>{msg("Riprova")}</button>}/>}
+  </div><footer className="lyrics-follow">{!!document?.lines.length&&!follow&&<button className="tonal" onClick={()=>setFollow(true)}><LocateFixed size={21}/>{msg('Riprendi scorrimento')}</button>}<p className="source-date">{msg("Testi: LRCLIB")}{document?.lines.length ? msg(' · sincronizzati') : document ? msg(' · testo completo') : ''}</p></footer>
+ </div></Modal>;
 }
 function BandControl({ band, min, max, onCommit, disabled }: {
     band: MobileAudio['bands'][number];

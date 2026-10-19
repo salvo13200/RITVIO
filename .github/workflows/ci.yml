@@ -57,3 +57,4 @@ jobs:
       - run: pnpm exec playwright test --config tests/config/playwright.localization.config.ts
       - run: pnpm exec playwright test --config tests/config/playwright.home.config.ts
       - run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts
+      - run: pnpm exec playwright test --config tests/config/playwright.listening-tools.config.ts --grep-invert 'capture:'

@@ -49,7 +49,7 @@ export function DiscoveryControls({ state, change }: {
   {enabled && state?.suspended && <p className="discovery-status">{state.suspended === 'timer' ? msg("Autoplay sospeso mentre il timer \u00E8 attivo.") : msg("Autoplay sospeso durante la ripetizione.")}</p>}
   {state?.loading && <p className="discovery-status" role="status"><LoaderCircle className="spin" size={18}/>{state.mode === 'radio' ? msg("Preparazione della radio\u2026") : msg("Cerco i prossimi brani\u2026")}</p>}
   {state?.message && <div className="discovery-feedback"><p role="status">{noticeText(state?.message)}</p>{state.status === 'error' && enabled && <button className="tonal" aria-label={msg("Riprova suggerimenti")} disabled={busy || seconds > 0} onClick={() => void submit({ type: 'retry' })}>{seconds > 0 ? msg("Riprova tra {p0} s", { p0: seconds }) : msg("Riprova")}</button>}</div>}
-  {enabled && <p className="source-date">{msg("Suggerimenti da YouTube Music. Disattivando Autoplay vengono rimossi i suoi brani ancora da ascoltare.")}</p>}
+  {enabled && <p className="source-date">{msg("Disattivando Autoplay vengono rimossi i suoi brani ancora da ascoltare.")}</p>}
  </section>;
 }
 export function RadioPanel({ track, state, start, openPlayer }: {

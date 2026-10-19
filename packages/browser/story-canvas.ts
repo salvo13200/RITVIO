@@ -55,7 +55,23 @@ export async function renderStory(canvas:HTMLCanvasElement,track:Pick<Track,'tit
   const shade=ctx.createLinearGradient(0,0,1080,1920);shade.addColorStop(0,'rgba(14,11,24,.2)');shade.addColorStop(1,'rgba(14,11,24,.65)');ctx.fillStyle=shade;ctx.fillRect(0,0,1080,1920);
   ctx.font=`700 64px ${font}`;const titleHeight=Math.min(3,wrap(ctx,track.title,656).length)*64*1.16;
   ctx.font=`400 42px ${font}`;const artistHeight=Math.min(2,wrap(ctx,track.artist,656).length)*42*1.16;
-  const x=mode==='track'?160:90,w=mode==='track'?760:900,h=mode==='track'?798+titleHeight+artistHeight+160:1660,y=mode==='track'?(1920-h)/2:130;
+  const x=mode==='track'?160:90,w=mode==='track'?760:900;
+  let lyricSize=72,lyricLines:string[]=[],lyricHeight=0,creditHeight=112;
+  if(mode==='lyrics'){
+    ctx.font=`700 24px ${font}`;
+    if(wrap(ctx,excerpt,w-120).length*24*1.22>1100)throw Error('STORY_TEXT_DOES_NOT_FIT');
+    for(;lyricSize>=24;lyricSize-=2){
+      ctx.font=`700 ${lyricSize}px ${font}`;lyricLines=wrap(ctx,excerpt,w-120);
+      if(lyricLines.length*lyricSize*1.22<=1100)break;
+    }
+    lyricHeight=lyricLines.length*lyricSize*1.22;
+    ctx.font=`700 40px ${font}`;const titleLines=Math.min(2,wrap(ctx,track.title,w-260).length);
+    ctx.font=`400 30px ${font}`;const artistLines=Math.min(1,wrap(ctx,track.artist,w-260).length);
+    creditHeight=Math.max(112,10+titleLines*40*1.16+artistLines*30*1.16);
+  }
+  // The canvas stays 9:16. Only the inner card grows with the actual wrapped
+  // lyric and credit rows; a short excerpt never reserves a full quote page.
+  const h=mode==='track'?798+titleHeight+artistHeight+160:90+lyricHeight+72+creditHeight+147,y=(1920-h)/2;
   ctx.save();ctx.shadowColor='rgba(0,0,0,.4)';ctx.shadowOffsetY=24;ctx.shadowBlur=64;rounded(ctx,x,y,w,h,36);ctx.fillStyle='#15121d';ctx.fill();ctx.restore();
   let metadataTruncated=false;
   ctx.save();rounded(ctx,x,y,w,h,36);ctx.clip();
@@ -71,19 +87,15 @@ export async function renderStory(canvas:HTMLCanvasElement,track:Pick<Track,'tit
     surface.addColorStop(0,`rgb(${Math.round(r*.46+16)},${Math.round(g*.46+14)},${Math.round(b*.46+20)})`);
     surface.addColorStop(1,`rgb(${Math.round(r*.2+12)},${Math.round(g*.2+10)},${Math.round(b*.2+16)})`);
     ctx.fillStyle=surface;ctx.fillRect(x,y,w,h);
-    ctx.font=`700 24px ${font}`;
-    if(wrap(ctx,excerpt,w-120).length*24*1.22>1100)throw Error('STORY_TEXT_DOES_NOT_FIT');
-    let size=72,lines:string[]=[];
-    for(;size>=24;size-=2){ctx.font=`700 ${size}px ${font}`;lines=wrap(ctx,excerpt,w-120);const widest=Math.max(0,...excerpt.split('\n').map(line=>ctx.measureText(line).width));if(lines.length*size*1.22<=1100&&(widest<=w-120||size<=44))break;}
-    ctx.fillStyle='#fff';const start=y+100+(1100-lines.length*size*1.22)/2;
-    lines.forEach((line,i)=>ctx.fillText(line,x+60,start+i*size*1.22));
-    const metaY=y+h-290;
+    ctx.font=`700 ${lyricSize}px ${font}`;ctx.fillStyle='#fff';
+    lyricLines.forEach((line,i)=>ctx.fillText(line,x+60,y+90+i*lyricSize*1.22));
+    const metaY=y+90+lyricHeight+72;
     ctx.save();rounded(ctx,x+60,metaY,112,112,12);ctx.clip();if(image)cover(ctx,image,x+60,metaY,112,112);else placeholder(ctx,x+60,metaY,112,112);ctx.restore();
     ctx.fillStyle='#fff';const title=label(ctx,track.title,x+200,metaY+3,w-260,40,2,700);
     ctx.fillStyle='#e4d9f0';const artist=label(ctx,track.artist,x+200,metaY+10+title.height,w-260,30,1,400);metadataTruncated=title.truncated||artist.truncated;
   }
   // Footer always occupies its own area, separate from song/lyric content.
   ctx.textBaseline='alphabetic';footer(ctx,x+60,y+h-70,w-120);ctx.restore();
-  return {metadataTruncated};
+  return {metadataTruncated,layout:{x,y,width:w,height:h,lyricRows:lyricLines.length,lyricFontSize:lyricSize}};
 }
 export function storyBlob(canvas:HTMLCanvasElement):Promise<Blob>{return new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('PNG_EXPORT_FAILED')),'image/png'));}

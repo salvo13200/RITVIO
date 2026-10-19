@@ -1,14 +1,15 @@
 import {msg} from './messages';
-import { useEffect, useId, useRef, useState, type ReactNode, type CSSProperties } from 'react';
-import { Music2, MoreHorizontal, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useId, useRef, useState, type ReactNode, type CSSProperties } from 'react';
+import { Music2, MoreHorizontal, X, ChevronLeft } from 'lucide-react';
 import type { NativeTrack } from '../../../packages/domain/mobile';
 import { mobileTime } from '../../../packages/domain/mobile';
 import {Capacitor} from '@capacitor/core';
 import {artworkSources} from './artwork';
-export function Artwork({ src, large = false, round = false, children }: {
+export function Artwork({ src, large = false, round = false, eager = false, children }: {
     src?: string | null;
     large?: boolean;
     round?: boolean;
+    eager?: boolean;
     children?: ReactNode;
 }) {
     const source = src;
@@ -16,7 +17,7 @@ export function Artwork({ src, large = false, round = false, children }: {
     const identity = candidates.join('\n');
     const [failure, setFailure] = useState({identity, index: 0});
     const index = failure.identity === identity ? failure.index : 0;
-    return <span className={`artwork${large ? ' artwork-large' : ''}${round ? ' artwork-round' : ''}`}>{candidates[index] ? <img src={candidates[index]} alt="" loading={large ? 'eager' : 'lazy'} decoding="async" onError={() => setFailure({identity, index: index + 1})}/> : children ?? <Music2 aria-hidden="true"/>}</span>;
+    return <span className={`artwork${large ? ' artwork-large' : ''}${round ? ' artwork-round' : ''}`}>{candidates[index] ? <img src={candidates[index]} alt="" loading={large || eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailure({identity, index: index + 1})}/> : children ?? <Music2 aria-hidden="true"/>}</span>;
 }
 export function ScrollText({ children }: {
     children: string;
@@ -52,18 +53,23 @@ function lockPage() {
     return () => { if (--modalLocks === 0)
         document.documentElement.style.overflow = previousOverflow; };
 }
-export function Modal({ label, children, onClose, full = false, inactive = false }: {
+export function Modal({ label, children, onClose, full = false, inactive = false, workspace = false, onBack, actions }: {
     label: string;
     children: ReactNode;
     onClose: () => void;
     full?: boolean;
     inactive?: boolean;
+    workspace?: boolean;
+    onBack?: () => void;
+    actions?: ReactNode;
 }) {
     const ref = useRef<HTMLDialogElement>(null);
+    const previousLabel=useRef(label);
+    useLayoutEffect(()=>{if(previousLabel.current!==label)ref.current?.querySelector<HTMLElement>('.sheet-heading h2')?.focus({preventScroll:true});previousLabel.current=label;},[label]);
     useEffect(() => { const el = ref.current; if (el && !el.open)
         el.showModal(); const unlock = lockPage(); return () => { if (el?.open)
         el.close(); unlock(); }; }, []);
-    return <dialog ref={ref} inert={inactive} aria-modal="true" className={full ? 'full-player' : 'sheet'} aria-label={label} onCancel={event => { event.preventDefault(); onClose(); }}>{full ? children : <><div className="sheet-heading"><h2>{label}</h2><button aria-label={msg("Chiudi {p0}", { p0: label })} onClick={onClose}><X size={24}/></button></div><div className="sheet-content">{children}</div></>}</dialog>;
+    return <dialog ref={ref} inert={inactive} aria-modal="true" className={full ? 'full-player' : `sheet${workspace ? ' utility-workspace' : ''}`} aria-label={label} onCancel={event => { event.preventDefault(); (onBack ?? onClose)(); }}>{full ? children : <><div className="sheet-heading">{workspace && <button aria-label={msg("Indietro")} onClick={onBack ?? onClose}><ChevronLeft size={26}/></button>}<h2 tabIndex={-1}>{label}</h2>{actions}<button aria-label={msg("Chiudi {p0}", { p0: label })} onClick={onClose}><X size={24}/></button></div><div className="sheet-content">{children}</div></>}</dialog>;
 }
 export function Seek({ position, duration, playing, onCommit }: {
     position: number;

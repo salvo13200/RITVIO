@@ -27,7 +27,7 @@ export function App() {
     const [tab, setTab] = useState<Tab>('home'), [route, setRoute] = useState(location.hash.slice(1)), [query, setQuery] = useState(''), [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<DetailTarget | null>(null), [selectedTrack, setSelectedTrack] = useState<NativeTrack | null>(null), [context, setContext] = useState<TrackContext | undefined>();
     const [browse, setBrowse] = useState<BrowseCategory | null>(null);
-    const [storyTrack, setStoryTrack] = useState<NativeTrack | null>(null);
+    const [storyTrack, setStoryTrack] = useState<NativeTrack | null>(null),[storyLyrics,setStoryLyrics]=useState(false);
     const [audio, setAudio] = useState<MobileAudio | null>(null), [name, setName] = useState(''), [saving, setSaving] = useState(false), [addAfterCreate, setAddAfterCreate] = useState(false);
     const [reduced, setReduced] = useState(() => localStorage.getItem('ritvio.mobile.reducedMotion') === 'true');
     const artworkOrigin = useRef<DOMRect | null>(null);
@@ -36,7 +36,7 @@ export function App() {
     const track = state.items[state.index], expanded = route.startsWith('player'), sheet = expanded ? route.split('/')[1] : route;
     const playlist = route.startsWith('playlist/') ? library.playlists.find(item => item.id === route.split('/')[1]) : null;
     const detailVisible = route === 'browse' || route === 'detail' || route === 'likes' || route === 'recent' || route.startsWith('playlist/');
-    const hasModal = expanded && !!track || ['actions', 'pick-playlist', 'create', 'rename', 'delete', 'settings', 'queue', 'clear', 'save-queue', 'radio', 'import', 'export', 'share'].includes(sheet ?? '');
+    const hasModal = expanded && !!track || ['actions', 'pick-playlist', 'create', 'rename', 'delete', 'settings', 'queue', 'clear', 'save-queue', 'radio', 'import', 'export', 'share', 'share-preview'].includes(sheet ?? '');
     const liked = !!track && library.likes.some(item => item.videoId === track.videoId);
     const notify = (text: string) => setNotice(text);
     const reportError = (error: unknown) => notify(error instanceof Error ? error.message : msg("Operazione non disponibile. Riprova."));
@@ -151,7 +151,7 @@ export function App() {
             return false;
         }
     }
-    function share(value: NativeTrack) { setStoryTrack(structuredClone(value)); navigate(expanded ? 'player/share' : 'share'); }
+    function share(value: NativeTrack,lyrics=false) { setStoryTrack(structuredClone(value));setStoryLyrics(lyrics);navigate(expanded ? 'player/share' : 'share'); }
     async function audioCommand(input: Record<string, unknown>) {
         try {
             setAudio(await nativePlayback.audioCommand(input));
@@ -263,12 +263,12 @@ export function App() {
    <nav aria-label={msg("Navigazione principale")}>{([{ id: 'home', name: 'Home', Icon: Home }, { id: 'search', name: msg("Cerca"), Icon: Search }, { id: 'library', name: msg("Libreria"), Icon: Library }] as const).map(({ id, name, Icon }) => <button key={id} aria-current={tab === id ? 'page' : undefined} onClick={() => changeTab(id)}><Icon size={25}/><span>{name}</span></button>)}</nav>
   </div>
   {expanded && track && <Player artworkOrigin={artworkOrigin.current} inactive={!!sheet} state={state} liked={liked} onLike={() => void libraryAction({ type: 'like', track, liked: !liked }, liked ? msg("Brano rimosso dai piaciuti") : msg("Brano salvato"))} command={input => void command(input)} close={close} openQueue={() => navigate('player/queue')} openUtility={name => navigate(`player/${name}`)} openResource={openResource} searchArtist={() => openSearch(track.artist)} share={() => void share(track)}/>}
-  {(sheet === 'queue' || route === 'queue') && <Modal label={msg("Coda")} onClose={close}><QueuePanel state={state} command={command} discoveryChange={discoveryAction} radio={() => {
+  {(sheet === 'queue' || route === 'queue') && <QueuePanel onClose={close} state={state} command={command} discoveryChange={discoveryAction} radio={() => {
                 if (track) {
                     setSelectedTrack(track);
                     navigate(expanded ? 'player/radio' : 'radio');
                 }
-            }} save={() => { setName(msg("La mia coda")); navigate(expanded ? 'player/save-queue' : 'save-queue'); }} clear={() => navigate(expanded ? 'player/clear' : 'clear')}/></Modal>}
+            }} save={() => { setName(msg("La mia coda")); navigate(expanded ? 'player/save-queue' : 'save-queue'); }} clear={() => navigate(expanded ? 'player/clear' : 'clear')}/>}
   {sheet === 'save-queue' && <Modal label={msg("Salva la coda")} onClose={close}><p className="intro">{msg("Crea una playlist con tutti i brani nell'ordine mostrato in coda, inclusi i duplicati. La riproduzione continua.")}</p><form className="playlist-form" onSubmit={event => {
                 event.preventDefault();
                 if (saving)
@@ -277,14 +277,14 @@ export function App() {
                 void nativePlayback.saveQueue({ name: name.trim() }).then(value => { setLibrary(value); close(); notify(msg("Coda salvata nella libreria")); }).catch(reportError).finally(() => setSaving(false));
             }}>{route === 'rename' && library.playlists.find(item => item.id === context?.playlistId)?.cover && <button type="button" className="tonal" disabled={saving} onClick={() => context?.playlistId && void changeArtwork('playlist', context.playlistId, true)}><ImageOff size={21}/>{msg("Ripristina copertina playlist")}</button>}<label>{msg("Nome della playlist")}<input autoFocus required maxLength={100} value={name} onChange={event => setName(event.target.value)}/></label><button className="primary" type="submit" disabled={!name.trim() || saving || !state.items.length}>{saving ? msg("Salvataggio\u2026") : msg("Salva playlist")}</button></form></Modal>}
   {sheet === 'clear' && <Modal label={msg("Svuotare la coda?")} onClose={close}><p>{msg("La riproduzione si fermer\u00E0. La tua libreria resta salvata.")}</p><button className="tonal" onClick={() => { void command({ type: 'clear' }); close(); }}>{msg("Svuota coda")}</button><button onClick={close}>{msg("Annulla")}</button></Modal>}
-  {expanded && sheet === 'lyrics' && track && <Modal label={msg("Testi")} onClose={close}><LyricsPanel track={{ ...track, duration: track.duration > 0 ? track.duration : state.duration }} position={state.position} seek={value => void command({ type: 'seek', value })}/></Modal>}
+  {expanded && sheet === 'lyrics' && track && <LyricsPanel track={{ ...track, duration: track.duration > 0 ? track.duration : state.duration }} position={state.position} seek={value => void command({ type: 'seek', value })} onClose={close} share={() => share({...track,duration:track.duration>0?track.duration:state.duration},true)}/>}
   {expanded && sheet === 'audio' && <Modal label="Audio" onClose={close}><AudioPanel audio={audio} volume={state.volume} changeVolume={value => void command({ type: 'volume', value })} command={input => void audioCommand(input)}/></Modal>}
   {expanded && sheet === 'timer' && <Modal label={msg("Timer di spegnimento")} onClose={close}><TimerPanel audio={audio} command={input => void audioCommand(input)}/></Modal>}
   {route === 'actions' && selectedTrack && <Modal label={msg("Opzioni del brano")} onClose={close}><div className="sheet-track"><Artwork src={selectedTrack.thumbnail}/><span><strong>{selectedTrack.title}</strong><small>{selectedTrack.artist}</small></span></div><div className="action-list"><button onClick={() => void libraryAction({ type: 'like', track: selectedTrack, liked: !selectedLiked }, selectedLiked ? msg("Rimosso dai piaciuti") : msg("Brano salvato"))}><Heart size={22} fill={selectedLiked ? 'currentColor' : 'none'}/>{selectedLiked ? msg("Rimuovi dai piaciuti") : msg("Salva nei piaciuti")}</button><button onClick={() => { void enqueue(selectedTrack); close(); }}><ListMusic size={22}/>{msg("Aggiungi alla coda")}</button><button onClick={() => { void enqueue(selectedTrack, true); close(); }}><SkipForward size={22}/>{msg("Riproduci dopo")}</button><button onClick={() => navigate('radio')}><Radio size={22}/>{msg("Radio del brano")}</button><button onClick={() => navigate('pick-playlist')}><Plus size={22}/>{msg("Aggiungi a una playlist")}</button>{selectedTrack.album?.id && <button onClick={() => openResource({ id: selectedTrack.album!.id, name: selectedTrack.album!.name, kind: 'album', artwork: selectedTrack.thumbnail })}>{msg("Apri album") + " "}<span>{selectedTrack.album.name}</span></button>}{selectedTrack.artists?.map(person => <button key={person.id} onClick={() => openResource({ ...person, kind: 'artist', artwork: null })}>{msg("Apri artista") + " "}<span>{person.name}</span></button>)}<button onClick={() => void share(selectedTrack)}><Share2 size={22}/>{msg("Condividi")}</button>{context?.playlistId && <button onClick={() => void libraryAction({ type: 'remove', id: context.playlistId, index: context.index }, msg("Brano rimosso dalla playlist")).then(value => {
                     if (value)
                         close();
                 })}><Trash2 size={22}/>{msg("Rimuovi dalla playlist")}</button>}</div></Modal>}
-  {sheet === 'share' && storyTrack && <Modal label={msg("Condividi brano")} onClose={close}><StoryComposer key={storyTrack.videoId} track={storyTrack}/></Modal>}
+  {(sheet === 'share' || sheet === 'share-preview') && storyTrack && <StoryComposer key={storyTrack.videoId} track={storyTrack} initialMode={storyLyrics?'lyrics':'track'} preview={sheet === 'share-preview'} onPreview={() => navigate(expanded ? 'player/share-preview' : 'share-preview')} onBack={close} onClose={() => sheet === 'share-preview' ? history.go(-2) : close()}/>}
   {sheet === 'radio' && selectedTrack && <Modal label={msg("Radio del brano")} onClose={close}><RadioPanel track={selectedTrack} state={state.discovery} start={() => startRadio(selectedTrack)} openPlayer={() => navigate('player')}/></Modal>}
   {route === 'pick-playlist' && selectedTrack && <Modal label={msg("Aggiungi a una playlist")} onClose={close}><button className="tonal" onClick={() => { setName(''); setAddAfterCreate(true); navigate('create'); }}><Plus size={21}/>{msg("Nuova playlist")}</button><div className="action-list">{library.playlists.map(item => <button key={item.id} onClick={() => void libraryAction({ type: 'add', id: item.id, track: selectedTrack }, msg("Aggiunto alla playlist")).then(value => {
                     if (value)

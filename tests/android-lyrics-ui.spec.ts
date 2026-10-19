@@ -15,6 +15,7 @@ test('plain-only lyrics are visible without fake synchronized controls',async({p
  await fixture(page);await page.evaluate(()=>{(window as any).__mobileNative.lyrics=async()=>({plainLyrics:'Verso di prova uno\nVerso di prova due',syncedLyrics:null,instrumental:false});});
  await page.getByRole('button',{name:/Apri il player:/}).click();await page.getByRole('button',{name:'Testi',exact:true}).click();
  const dialog=page.getByRole('dialog',{name:'Testi',exact:true});await expect(dialog.locator('.plain-lyrics')).toContainText('Verso di prova uno');await expect(dialog.getByRole('button',{name:/Vai a /})).toHaveCount(0);
+ const font=await dialog.locator('.plain-lyrics').evaluate(el=>parseFloat(getComputedStyle(el).fontSize));await dialog.getByRole('button',{name:'Leggibilità del testo'}).click();await dialog.getByRole('radio',{name:'Molto grande',exact:true}).check();expect(await dialog.locator('.plain-lyrics').evaluate(el=>parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThan(font);await expect(dialog.getByRole('button',{name:'Riprendi scorrimento'})).toHaveCount(0);
 });
 
 test('provider cooldown is distinguished from a missing lyric',async({page})=>{

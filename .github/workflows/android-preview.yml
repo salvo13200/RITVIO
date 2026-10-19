@@ -48,6 +48,7 @@ jobs:
       - run: pnpm --dir apps/mobile build
       - run: pnpm exec playwright install msedge
       - run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts
+      - run: pnpm exec playwright test --config tests/config/playwright.listening-tools.config.ts --grep-invert 'capture:'
       - name: Copy native runtime sources and notices
         shell: pwsh
         run: |
