@@ -5,6 +5,9 @@ import android.content.Intent
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -34,7 +37,14 @@ class PlaybackService:MediaSessionService(){
     private val tracks=mutableMapOf<String,TrackData>()
     private val handler=Handler(Looper.getMainLooper())
     private var lastError:String?=null
-    private var recoveryId:String?=null
+    private val recovery=PlaybackRecovery{SystemClock.elapsedRealtime()}
+    private val retryPlayback=Runnable{retryPending()}
+    private val snapshotSession=SystemClock.elapsedRealtimeNanos()/1000
+    private var snapshotSequence=0L
+    private var connectivity:ConnectivityManager?=null
+    private val networkCallback=object:ConnectivityManager.NetworkCallback(){
+        override fun onCapabilitiesChanged(network:Network,capabilities:NetworkCapabilities){if(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED))handler.post{if(!shuttingDown)retryPending()}}
+    }
     private var restoring=false
     private var queueRevision=0L
     private lateinit var discovery:DiscoveryController
@@ -69,7 +79,8 @@ class PlaybackService:MediaSessionService(){
         discovery=DiscoveryController(this,resolver)
         player.addListener(object:Player.Listener{
             override fun onPlayWhenReadyChanged(playWhenReady:Boolean,reason:Int){
-                if(!playWhenReady)discovery.invalidate()
+                if(!playWhenReady){discovery.invalidate();cancelRecovery()}
+                else if(player.playbackState==Player.STATE_IDLE&&player.mediaItemCount>0){lastError=null;resetRecovery();player.currentMediaItem?.mediaId?.let{resolver.invalidate(it)};player.prepare()}
                 if(sleepAtEnd && !playWhenReady && reason==Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM)cancelSleep()
                 updatePreloading()
             }
@@ -85,15 +96,13 @@ class PlaybackService:MediaSessionService(){
                 if(!restoring&&reason==Player.MEDIA_ITEM_TRANSITION_REASON_SEEK)discovery.invalidate()
                 discovery.trackChanged()
                 if(sleepAtEnd && reason in listOf(Player.MEDIA_ITEM_TRANSITION_REASON_SEEK,Player.MEDIA_ITEM_TRANSITION_REASON_PLAYLIST_CHANGED))cancelSleep()
-                lastError=null;recoveryId=null;mediaItem?.mediaId?.let{tracks[it]}?.let{track->historyWorker.execute{runCatching{LibraryStore.get(this@PlaybackService).remember(track)}}}
+                lastError=null;resetRecovery();mediaItem?.mediaId?.let{tracks[it]}?.let{track->historyWorker.execute{runCatching{LibraryStore.get(this@PlaybackService).remember(track)}}}
             }
             override fun onPlayerError(error:PlaybackException){
                 latency.cancel("playback-error")
-                var cause:Throwable?=error;var expired=false
-                while(cause!=null){if(cause is HttpDataSource.InvalidResponseCodeException && cause.responseCode in listOf(403,410))expired=true;cause=cause.cause}
                 val id=player.currentMediaItem?.mediaId
-                if(expired && id!=null && recoveryId!=id){recoveryId=id;resolver.invalidate(id);player.prepare()}
-                else {lastError="Il flusso audio non è disponibile. Riprova o scegli un altro brano.";player.pause()}
+                val ticket=if(id!=null&&player.playWhenReady&&recoverable(error))recovery.request(id)else null
+                if(ticket!=null){handler.removeCallbacks(retryPlayback);handler.postDelayed(retryPlayback,ticket.delayMs)}else failPlayback()
             }
         })
         player.addAnalyticsListener(object:AnalyticsListener{
@@ -114,27 +123,52 @@ class PlaybackService:MediaSessionService(){
         }).build()
         setMediaNotificationProvider(DefaultMediaNotificationProvider.Builder(this).build().apply{setSmallIcon(R.drawable.ic_notification)})
         restore();handler.postDelayed(persistence,5000);handler.postDelayed(discoveryTick,1000)
+        connectivity=getSystemService(ConnectivityManager::class.java)
+        runCatching{connectivity?.registerDefaultNetworkCallback(networkCallback)}
         val prefs=getSharedPreferences("audio",MODE_PRIVATE)
         val deadline=prefs.getLong("sleepUntil",0)
         if(deadline>System.currentTimeMillis()){sleepUntil=deadline;handler.postDelayed(sleepAction,deadline-System.currentTimeMillis())}
         else if(prefs.getBoolean("sleepAtEnd",false) && player.mediaItemCount>0){sleepAtEnd=true;player.setPauseAtEndOfMediaItems(true)}
         else prefs.edit().remove("sleepUntil").remove("sleepAtEnd").apply()
     }
+    private fun cancelRecovery(){handler.removeCallbacks(retryPlayback);recovery.cancel()}
+    private fun resetRecovery(){handler.removeCallbacks(retryPlayback);recovery.reset()}
+    private fun failPlayback(){cancelRecovery();lastError="Il flusso audio non è disponibile. Riprova o scegli un altro brano.";player.pause();persist()}
+    private fun recoverable(error:PlaybackException):Boolean {
+        var cause:Throwable?=error
+        while(cause!=null){
+            if(cause is AudioCooldownException)return false
+            if(cause is HttpDataSource.InvalidResponseCodeException)return cause.responseCode in listOf(403,408,410,500,502,503,504)
+            cause=cause.cause
+        }
+        return error.errorCode in listOf(PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,PlaybackException.ERROR_CODE_IO_UNSPECIFIED)
+    }
+    private fun retryPending(){
+        val ticket=recovery.pending?:return
+        handler.removeCallbacks(retryPlayback)
+        if(shuttingDown||!recovery.current(ticket,player.currentMediaItem?.mediaId)||!player.playWhenReady){cancelRecovery();return}
+        if(recovery.expired(ticket)){failPlayback();return}
+        val online=runCatching{connectivity?.activeNetwork?.let{connectivity?.getNetworkCapabilities(it)}?.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)==true}.getOrDefault(false)
+        if(!online||player.playbackSuppressionReason!=Player.PLAYBACK_SUPPRESSION_REASON_NONE){handler.postDelayed(retryPlayback,1000);return}
+        if(!recovery.consume(ticket))return
+        Resolver.get(this).invalidate(ticket.id);lastError=null;player.prepare();persist()
+    }
     private fun updatePreloading(){
         if(!::player.isInitialized||shuttingDown)return
         val now=SystemClock.elapsedRealtime()
         val cooldown=(Resolver.get(this).audioCooldownUntil-System.currentTimeMillis()).coerceAtLeast(0)
-        val enabled=PlaybackTuning.preload(now,changedAt,player.isPlaying,player.hasNextMediaItem(),sleeping(),player.repeatMode==Player.REPEAT_MODE_ONE,if(cooldown>0)now+cooldown else 0)
+        val enabled=recovery.pending==null&&PlaybackTuning.preload(now,changedAt,player.isPlaying,player.hasNextMediaItem(),sleeping(),player.repeatMode==Player.REPEAT_MODE_ONE,if(cooldown>0)now+cooldown else 0)
         if(enabled!=preloading){preloading=enabled;player.preloadConfiguration=if(enabled)ExoPlayer.PreloadConfiguration(PlaybackTuning.PRELOAD_US)else ExoPlayer.PreloadConfiguration.DEFAULT}
     }
     fun playbackDiagnostics():JSONObject=JSONObject().put("schema",1).put("version",packageManager.getPackageInfo(packageName,0).versionName)
         .put("engine","Media3").put("preloading",preloading).put("bufferedAheadMs",(player.bufferedPosition-player.currentPosition).coerceAtLeast(0))
         .put("policy",JSONObject().put("startMs",PlaybackTuning.START_MS).put("rebufferMs",PlaybackTuning.REBUFFER_MS).put("backBufferMs",PlaybackTuning.BACK_BUFFER_MS).put("maxForwardBufferMs",PlaybackTuning.MAX_BUFFER_MS).put("targetBufferBytes",PlaybackTuning.TARGET_BUFFER_BYTES).put("nextPreloadMs",PlaybackTuning.PRELOAD_US/1000))
+        .put("recovery",JSONObject().put("attempts",recovery.attempts()).put("pending",recovery.pending!=null))
         .put("resolver",Resolver.get(this).diagnostics()).put("samples",JSONArray().apply{latency.samples().forEach{put(JSONObject().put("action",it.action).put("bufferedSeekHint",it.cached).put("requiresAudio",it.needsAudio).put("readyMs",it.readyMs?:JSONObject.NULL).put("audioPositionAdvancingMs",it.audioMs?:JSONObject.NULL).put("outcome",it.outcome))}})
     private fun cancelSleep(){handler.removeCallbacks(sleepAction);sleepUntil=null;sleepAtEnd=false;player.setPauseAtEndOfMediaItems(false);getSharedPreferences("audio",MODE_PRIVATE).edit().remove("sleepUntil").remove("sleepAtEnd").apply()}
     internal fun queueVersion()=queueRevision
     internal fun sleeping()=sleepUntil!=null||sleepAtEnd
-    internal fun canExtendDiscovery()=!restoring&&!shuttingDown&&lastError==null&&!sleeping()&&player.repeatMode==Player.REPEAT_MODE_OFF&&player.playWhenReady&&player.mediaItemCount>0
+    internal fun canExtendDiscovery()=!restoring&&!shuttingDown&&lastError==null&&recovery.pending==null&&!sleeping()&&player.repeatMode==Player.REPEAT_MODE_OFF&&player.playWhenReady&&player.mediaItemCount>0
     fun startRadio(track:TrackData){discovery.radio(track)}
     fun discoveryCommand(input:JSONObject){when(input.getString("type")){"enabled"->discovery.toggle(input.getBoolean("enabled"));"cancel"->discovery.cancelRadio();"retry"->discovery.retry();else->throw IllegalArgumentException()};persist()}
     private fun automatic(index:Int)=(player.getMediaItemAt(index).localConfiguration?.tag as? QueueOrigin)?.automatic==true
@@ -176,7 +210,7 @@ class PlaybackService:MediaSessionService(){
         queueRevision++
         latency.begin("play",items[index].videoId)
         activeTrackId=items[index].videoId
-        tracks.clear();items.forEach{tracks[it.videoId]=it};lastError=null;recoveryId=null
+        tracks.clear();items.forEach{tracks[it.videoId]=it};lastError=null;resetRecovery()
         player.setMediaItems(items.map{it.item()},index,0);player.prepare();player.play();persist()
     }
     fun queueOrder():List<Int>{
@@ -195,6 +229,7 @@ class PlaybackService:MediaSessionService(){
         shuffled?.let{player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(it.toIntArray(),System.nanoTime()))};persist()
     }
     fun command(type:String,value:Any?){
+        if(type in listOf("pause","clear"))cancelRecovery()
         if(type in listOf("pause","next","previous","jump","seek","retry"))discovery.invalidate()
         val currentId=player.currentMediaItem?.mediaId
         val destination=when(type){
@@ -211,17 +246,17 @@ class PlaybackService:MediaSessionService(){
             if(type!="seek")activeTrackId=destination
         }
         when(type){
-            "play","retry"->{if(player.mediaItemCount==0)return;lastError=null;if(type=="retry"){player.currentMediaItem?.mediaId?.let{Resolver.get(this).invalidate(it)};recoveryId=null};if(player.playbackState==Player.STATE_ENDED)player.seekToDefaultPosition();if(player.playbackState==Player.STATE_IDLE || type=="retry")player.prepare();player.play()}
+            "play","retry"->{if(player.mediaItemCount==0)return;resetRecovery();lastError=null;if(type=="retry")player.currentMediaItem?.mediaId?.let{Resolver.get(this).invalidate(it)};if(player.playbackState==Player.STATE_ENDED)player.seekToDefaultPosition();if(player.playbackState==Player.STATE_IDLE || type=="retry")player.prepare();player.play()}
             "pause"->player.pause()
-            "next"->{if(player.hasNextMediaItem()){val resume=player.playWhenReady || lastError!=null;lastError=null;recoveryId=null;player.seekToNextMediaItem();if(resume){if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}}}
-            "previous"->{val resume=player.playWhenReady || lastError!=null;lastError=null;recoveryId=null;if(player.currentPosition>3000)player.seekTo(0)else if(player.hasPreviousMediaItem())player.seekToPreviousMediaItem()else player.seekTo(0);if(resume && player.mediaItemCount>0){if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}}
+            "next"->{if(player.hasNextMediaItem()){resetRecovery();val resume=player.playWhenReady || lastError!=null;lastError=null;player.seekToNextMediaItem();if(resume){if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}}}
+            "previous"->{if(player.mediaItemCount>0){resetRecovery();val resume=player.playWhenReady || lastError!=null;lastError=null;if(player.currentPosition>3000)player.seekTo(0)else if(player.hasPreviousMediaItem())player.seekToPreviousMediaItem()else player.seekTo(0);if(resume){if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}}}
             "seek"->{val n=(value as Number).toDouble();require(n.isFinite() && n>=0);val duration=player.duration.takeIf{it>0}?:((tracks[player.currentMediaItem?.mediaId]?.duration?:0.0)*1000).toLong();require(duration>0 && n*1000<=duration+1000);player.seekTo((n*1000).toLong().coerceAtMost(duration))}
             "volume"->{val n=(value as Number).toFloat();require(n.isFinite() && n in 0f..1f);player.volume=n}
             "shuffle"->{discovery.invalidate();queueRevision++;player.shuffleModeEnabled=value as Boolean}
             "repeat"->{val mode=when(value as String){"off"->Player.REPEAT_MODE_OFF;"all"->Player.REPEAT_MODE_ALL;"one"->Player.REPEAT_MODE_ONE;else->throw IllegalArgumentException()};discovery.invalidate();player.repeatMode=mode}
             "remove"->{val index=if(value is JSONObject){require(value.getLong("revision")==queueRevision){"QUEUE_CHANGED"};value.getInt("index")}else (value as Number).toInt();require(index in 0 until player.mediaItemCount);discovery.removed(tracks[player.getMediaItemAt(index).mediaId]);queueRevision++;player.removeMediaItem(index);pruneTracks()}
             "move"->{val data=value as JSONObject;require(data.getLong("revision")==queueRevision){"QUEUE_CHANGED"};val from=data.getInt("from");val to=data.getInt("to");val order=QueueRules.moved(queueOrder(),from,to);discovery.invalidate();queueRevision++;player.moveMediaItem(from,to);if(player.shuffleModeEnabled)player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(order.toIntArray(),System.nanoTime()))}
-            "jump"->{val index=(value as Number).toInt();require(index in 0 until player.mediaItemCount);lastError=null;player.seekTo(index,0);if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}
+            "jump"->{val index=(value as Number).toInt();require(index in 0 until player.mediaItemCount);resetRecovery();lastError=null;player.seekTo(index,0);if(player.playbackState==Player.STATE_IDLE)player.prepare();player.play()}
             "clear"->{discovery.reset();if(sleepAtEnd)cancelSleep();queueRevision++;player.stop();player.clearMediaItems();tracks.clear();lastError=null}
             else->throw IllegalArgumentException("Unknown command")
         };updatePreloading();persist()
@@ -233,7 +268,8 @@ class PlaybackService:MediaSessionService(){
         val status=when(player.playbackState){Player.STATE_READY->"ready";Player.STATE_BUFFERING->"buffering";Player.STATE_ENDED->"ended";else->"idle"}
         return JSONObject().put("items",items).put("index",player.currentMediaItemIndex.coerceAtLeast(0)).put("position",player.currentPosition.coerceAtLeast(0)/1000.0)
             .put("duration",duration).put("buffered",player.bufferedPosition.coerceAtLeast(0)/1000.0)
-            .put("playing",player.playWhenReady && player.playbackState!=Player.STATE_ENDED && lastError==null).put("loading",player.playbackState==Player.STATE_BUFFERING)
+            .put("playing",player.mediaItemCount>0 && player.playWhenReady && player.playbackState!=Player.STATE_ENDED && lastError==null).put("loading",player.playWhenReady&&player.playbackState==Player.STATE_BUFFERING||recovery.pending!=null)
+            .put("stamp",JSONObject().put("session",snapshotSession).put("sequence",++snapshotSequence))
             .put("repeat",when(player.repeatMode){Player.REPEAT_MODE_ALL->"all";Player.REPEAT_MODE_ONE->"one";else->"off"})
             .put("shuffle",player.shuffleModeEnabled).put("volume",player.volume).put("error",lastError?:JSONObject.NULL).put("status",status).put("order",JSONArray(queueOrder())).put("queueRevision",queueRevision).put("discovery",discovery.state().put("suspended",if(sleeping())"timer"else if(player.repeatMode!=Player.REPEAT_MODE_OFF)"repeat"else JSONObject.NULL)).put("automatic",JSONArray((0 until player.mediaItemCount).filter{automatic(it)}))
     }
@@ -250,6 +286,6 @@ class PlaybackService:MediaSessionService(){
             state.optJSONArray("order")?.let{array->val order=(0 until array.length()).map{array.getInt(it)};if(order.size==items.size && order.sorted()==items.indices.toList())player.setShuffleOrder(ShuffleOrder.DefaultShuffleOrder(order.toIntArray(),System.nanoTime()))}
         }catch(_:Exception){getSharedPreferences("playback",MODE_PRIVATE).edit().remove("state").apply()}finally{restoring=false}
     }
-    override fun onDestroy(){handler.removeCallbacks(persistence);handler.removeCallbacks(savePending);handler.removeCallbacks(sleepAction);handler.removeCallbacks(discoveryTick);persistNow();shuttingDown=true;discovery.close();session?.release();equalizer?.release();player.release();historyWorker.shutdown();instance=null;super.onDestroy()}
+    override fun onDestroy(){cancelRecovery();runCatching{connectivity?.unregisterNetworkCallback(networkCallback)};handler.removeCallbacks(persistence);handler.removeCallbacks(savePending);handler.removeCallbacks(sleepAction);handler.removeCallbacks(discoveryTick);persistNow();shuttingDown=true;discovery.close();session?.release();equalizer?.release();player.release();historyWorker.shutdown();instance=null;super.onDestroy()}
     companion object {@Volatile var instance:PlaybackService?=null;private set}
 }

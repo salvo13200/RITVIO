@@ -22,7 +22,7 @@ export class HomeCatalog{
       const data=await load();if(this.closed)return;
       const warning=partial(data)?'Alcune raccolte non sono aggiornabili. Conserviamo le ultime disponibili.':null;
       this.store.db.prepare('INSERT INTO home_cache(key,data,fetched,edition,retry,failures,error) VALUES(?,?,?,?,?,0,?) ON CONFLICT(key) DO UPDATE SET data=excluded.data,fetched=excluded.fetched,edition=excluded.edition,retry=excluded.retry,failures=0,error=excluded.error').run(key,JSON.stringify(data),this.now(),edition,this.now()+15*60000,warning);
-    }catch(error){if(this.closed)return;const failures=(this.read(key)?.failures??0)+1,retry=this.now()+Math.min(15*60000,30000*2**Math.min(5,failures-1));
+    }catch(error){if(this.closed||error instanceof AppError&&error.code==='IMPORT_CANCELLED')return;const failures=(this.read(key)?.failures??0)+1,retry=this.now()+Math.min(15*60000,30000*2**Math.min(5,failures-1));
       this.store.db.prepare('INSERT INTO home_cache(key,retry,failures,error) VALUES(?,?,?,?) ON CONFLICT(key) DO UPDATE SET retry=excluded.retry,failures=excluded.failures,error=excluded.error').run(key,retry,failures,error instanceof AppError?error.message:'Impossibile aggiornare le raccolte. Controlla la connessione e riprova.');
     }finally{this.flights.delete(key);}})();this.flights.set(key,work);return work;
   }

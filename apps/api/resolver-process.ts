@@ -7,7 +7,15 @@ export function runResolverJson(config:Config,args:string[],input?:unknown,signa
     const child=spawn(config.python,args,{cwd:config.electronNode?undefined:config.root,shell:false,windowsHide:true,env:{...process.env,PYTHONIOENCODING:'utf-8',...(config.electronNode?{ELECTRON_RUN_AS_NODE:'1'}:{})}});
     let stdout='';let stderr='';let settled=false;
     const clean=()=>{clearTimeout(timer);signal?.removeEventListener('abort',abort);};
-    const fail=(error:AppError)=>{if(settled)return;settled=true;clean();child.kill();reject(error);};
+    const stop=()=>{
+      if(process.platform==='win32'&&child.pid&&child.exitCode===null){const fallback=()=>{child.kill();};const killer=spawn('taskkill.exe',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore',shell:false});killer.on('error',fallback);killer.on('exit',code=>{if(code!==0)fallback();});}
+      else child.kill();
+    };
+    const fail=(error:AppError)=>{
+      if(settled)return;settled=true;clean();
+      const finish=()=>{clearTimeout(stopping);child.removeListener('close',finish);reject(error);};
+      const stopping=setTimeout(finish,2000);child.once('close',finish);stop();
+    };
     const timer=setTimeout(()=>fail(new AppError(504,'RESOLVER_TIMEOUT','Il servizio musicale impiega troppo tempo a rispondere. Riprova.')),config.timeoutMs);
     const abort=()=>fail(new AppError(409,'IMPORT_CANCELLED','Importazione annullata.'));
     signal?.addEventListener('abort',abort,{once:true});if(signal?.aborted)abort();

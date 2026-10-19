@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicLong
 
 data class AudioDescriptor(val uri: Uri, val headers: Map<String,String>, val expires: Long)
 class RadioCooldownException(val until:Long):IOException("Attendi prima di richiedere altri suggerimenti")
+class AudioCooldownException(val until:Long):IOException("Preparazione temporaneamente sospesa. Riprova tra poco.")
 
 class Resolver private constructor(context: Context) {
     private val app=context.applicationContext
@@ -45,7 +46,7 @@ class Resolver private constructor(context: Context) {
         for(index in 0 until items.length())TrackData.parse(items.getJSONObject(index))
         cache.write(key,result.toString());return result.put("cached",false)
     }
-    fun invalidate(id:String) { audio.invalidate(id) }
+    fun invalidate(id:String) { audio.invalidate(id);synchronized(failures){failures.remove(id)} }
     fun playlistPreview(id:String,cancellation:ImportCancellation):JSONObject{
         require(TransferRules.playlistId.matches(id));val key="playlist:"+id
         cache.read(key)?.let{return it.put("cached",true)}
@@ -101,7 +102,8 @@ class Resolver private constructor(context: Context) {
         audio.cached(id)?.let{return it}
         if(!audio.current(key))throw IOException("Preparazione annullata")
         val now=System.currentTimeMillis()
-        if(now<audioCooldownUntil || synchronized(failures){(failures[id]?:0)>now})throw IOException("Preparazione temporaneamente sospesa. Riprova tra poco.")
+        if(now<audioCooldownUntil)throw AudioCooldownException(audioCooldownUntil)
+        if(synchronized(failures){(failures[id]?:0)>now})throw IOException("Preparazione temporaneamente sospesa. Riprova tra poco.")
         val started=System.nanoTime()
         try{
             networkResolutions.incrementAndGet()
@@ -113,7 +115,7 @@ class Resolver private constructor(context: Context) {
             val map=buildMap { for(key in headers.keys()){val value=headers.getString(key);require(key.lowercase() in allowed && !value.contains('\n') && !value.contains('\r'));put(key,value)} }
             val result=AudioDescriptor(uri,map,expires);audio.store(key,result,expires);return result
         }catch(error:Exception){
-            if(error.toString().contains("429")||error.toString().contains("Too Many Requests",true))audioCooldownUntil=System.currentTimeMillis()+60000
+            if(error.toString().contains("429")||error.toString().contains("Too Many Requests",true)){audioCooldownUntil=System.currentTimeMillis()+60000;throw AudioCooldownException(audioCooldownUntil)}
             // A loader cancelled by a skip must not negatively cache the old track.
             if(Thread.currentThread().isInterrupted)throw IOException("Preparazione annullata",error)
             if(!speculative)synchronized(failures){failures.entries.removeAll{it.value<now};failures[id]=System.currentTimeMillis()+10000}
