@@ -12,6 +12,8 @@
   <a href="https://github.com/salvo13200/RITVIO/issues">Report an issue</a>
 </p>
 
+[![Join the RITVIO Discord community](https://img.shields.io/badge/Join_our_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hCMwUtWZuM)
+
 [![CI](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml/badge.svg)](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml) · [GPL-3.0-only](LICENSE) · [English](README.md) / [Italiano](README.it.md)
 
 > **Public preview:** Windows **0.7.4** · Android **1.3.0**. Both are available now. Read the [release notes and known limits](docs/RELEASE_NOTES.md) before installing; device coverage remains limited.
@@ -76,6 +78,12 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 - These releases are public previews. Android 1.3.0 improves lyric sharing, queue interaction and reading; Windows 0.7.4 focuses on playback recovery and state consistency. Physical-device checks of Android 1.3.0 for locked-screen listening, network handoff, Bluetooth and calls remain pending; browser and JVM tests cannot establish those behaviours.
 
 </details>
+
+## Community
+
+[Join the RITVIO Discord](https://discord.gg/hCMwUtWZuM) for app updates, help, feedback and music discoveries. Choose Android, Windows or both when you join.
+
+For reproducible bugs and feature requests, please use [GitHub Issues](https://github.com/salvo13200/RITVIO/issues) so reports remain easy to track. For security vulnerabilities, follow [SECURITY.md](SECURITY.md).
 
 ## Documentation
 

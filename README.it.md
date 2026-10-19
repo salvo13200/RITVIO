@@ -6,6 +6,8 @@
 
 [English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases) · [Galleria](docs/SCREENSHOTS.md)
 
+[![Entra nella community Discord di RITVIO](https://img.shields.io/badge/Entra_su_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hCMwUtWZuM)
+
 > Anteprima pubblica: **Windows 0.7.4** e **Android 1.3.0**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
 
 [![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
@@ -32,6 +34,12 @@ Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 | Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.0/RITVIO-Android-1.3.0.apk) |
 
 Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano consigliamo l'installer: il portatile si estrae a ogni avvio e può partire lentamente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
+
+## Community
+
+[Entra nel Discord di RITVIO](https://discord.gg/hCMwUtWZuM) per aggiornamenti, assistenza, suggerimenti e scoperte musicali. Durante l'accoglienza puoi scegliere Android, Windows o entrambe le piattaforme.
+
+Per bug riproducibili e richieste di nuove funzioni usa [le issue GitHub](https://github.com/salvo13200/RITVIO/issues), così le segnalazioni restano facili da seguire. Per vulnerabilità consulta [SECURITY.md](SECURITY.md).
 
 ## Documentazione e contributi
 
