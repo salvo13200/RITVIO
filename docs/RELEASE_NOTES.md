@@ -1,5 +1,18 @@
 # Release notes
 
+## Windows 0.7.4 / Android 1.2.1 — 19 October 2026 (public previews)
+
+[Windows 0.7.4 installer, portable, source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.4) · [Android 1.2.1 APK, source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.1). Android version code is 19 and preserves the official signing certificate. Update the official installation without uninstalling to retain local data; keep a backup. Previous releases remain available. Prefer the Windows installer: the portable self-extracts on launch and can start slowly. Windows EXEs are not Authenticode-signed.
+
+- Both platforms bound automatic transient-network recovery to two retries, invalidate obsolete callbacks and preserve rate-limit backoff. Pausing or choosing a new track cannot revive an old pending playback request.
+- Windows applies the last seek to the selected resource during loading, preserves pause during scrubbing, rejects stale media events and restores the requested Web Audio graph on return. Shutdown cancels owned catalogue processes before waiting for discovery work.
+- Android respects validated connectivity and audio suppression during recovery. Ordered native snapshots stop late bridge responses from replacing newer covers, tracks, positions or pause state. Sleep, clear and service destruction cancel pending recovery; explicit system-media Play can prepare an idle current item.
+- Existing bounded RAM buffering/preloading is retained. No offline audio feature, disk audio cache or additional Android permissions are introduced.
+
+Verification: 217 core tests, 25 desktop browser/player tests, 20 Android browser tests and 65 native JVM tests passed. Exact binaries match [Windows build 39177881872](https://github.com/salvo13200/RITVIO/actions/runs/39177881872) and [Android build 39177881929](https://github.com/salvo13200/RITVIO/actions/runs/39177881929). Isolated Windows installation/update/uninstall preserved test data; the downloaded portable passed real-provider playback, next, pause/resume, repeated paused seeks and successful closure. The signed APK's official update certificate, package/version and all 20 native libraries' 16 KB ELF/ZIP alignment were checked. Manifests identify the matching merged source and exact binary build commit; release uploads preserve the tested bytes.
+
+Native limits remain open: this exact APK still needs physical Motorola Android 16 checks for locked-screen listening, Wi-Fi/mobile handoff, Bluetooth/headphones and calls. A 60-minute native soak, real OS suspend/resume and broad accessibility/device coverage have not been established. Browser/JVM tests do not prove those behaviours. Network/provider delays and rate limits remain possible; no universal speed or speaker-output timing guarantee is claimed. See the [native acceptance checklist](TESTING.md#native-acceptance-run-record-results-for-each-exact-candidate).
+
 ## Windows 0.7.3 — 18 October 2026 (public preview)
 
 [Windows 0.7.3 installer, portable, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.3). This Windows-only update uses the exact maintainer-approved EXEs; Android remains [1.2.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.0). Earlier releases remain available for rollback. Prefer the installer for everyday use and update the existing official app without uninstalling to preserve local data. EXEs are not Authenticode-signed.
