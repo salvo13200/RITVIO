@@ -28,6 +28,8 @@ Android 1.2.0 preloads the next track, retains a bounded RAM back buffer and sha
 
 Windows 0.7.3 prepares one next track after current playback has enough buffered audio, shares duplicate resolution work and reuses encoded ranges in a bounded 16 MiB RAM proxy buffer. There is no disk audio cache. Unprepared tracks and seeks outside available audio remain network-dependent. The installer is recommended for daily use because the portable extracts on launch.
 
+Android 1.3.0 pins the current item above upcoming tracks. Drag the larger grip to reorder, including held-edge scrolling, or tap it to use labelled move/remove controls. Swiping the title or cover scrolls the list. Previously played entries are available separately.
+
 Features and audio effects depend on the platform/device. Native background playback, audio focus and OEM battery restrictions must be checked on the phone; browser captures cannot validate them.
 
 ## Read and share
@@ -35,6 +37,8 @@ Features and audio effects depend on the platform/device. Native background play
 Read automatic lyrics when the external source has a match. Lyrics availability and synchronisation vary by recording; an incorrect match or missing text should be reported with the song/version. LRCLIB is the automatic source, and a general licence for its content has not been verified.
 
 Create a 9:16 share image with a track card or a consecutive lyrics excerpt. The preview lets you choose the content before sharing/exporting; Android has a native Gallery-save flow. Images do not include the audio. Only share text and artwork where applicable content rights permit it.
+
+Android 1.3.0 separates full-height verse selection from preview. Back preserves the excerpt and reading position. The inner quote card grows with the wrapped text while the outer image stays 9:16. The reader stores text-size/emphasis preferences and offers resume-follow after manual scrolling.
 
 ## Languages and appearance
 

@@ -1,5 +1,18 @@
 # Release notes
 
+## Android 1.3.0 — 19 October 2026 (public preview)
+
+[Android 1.3.0 APK, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0). Version code 20 keeps the official signing certificate. Install over the official app to retain local data; keep a backup. Windows public downloads remain [0.7.4](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.4); Windows 0.7.5 remains a separate candidate.
+
+- Lyrics sharing separates full-height selection from preview. Back restores the contiguous excerpt, scroll position and endpoint focus; the limit remains 10 original lines, with full-song export excluded.
+- The inner quote card fits actual wrapped lyrics and credits inside the unchanged 1080×1920 image. Cover artwork stays square beside the credits.
+- The queue pins the current track, improves grip targets, adds labelled move/remove controls and scrolls continuously at held edges. Real-row bounds prevent an endless blank tail. Reordering preserves playback, duplicate occurrences and shuffle order.
+- The reader adds persistent size/emphasis controls, stable current-line geometry, independent scrolling and explicit follow recovery. Its Share action opens verse selection directly.
+
+Verification: 217 core tests, 16 focused listening-tool/lyrics cases, 20 artwork/player/latency cases, existing mobile regressions and 7 desktop-sharing cases passed. [Android build 39237146190](https://github.com/salvo13200/RITVIO/actions/runs/39237146190) passed its 36 browser cases and 65 JVM tests. Official signature, package/version and all 20 native libraries' 16 KB ELF/ZIP alignment were checked; hosted candidate bytes matched the signed APK. The maintainer authorised publication of the exact candidate. The release manifest records the build and tree-equivalent merged source.
+
+Touch tests use synthetic Chromium events, including both directions, held edges, final-edge bounds, cancellation, ordinary scrolling, stale revisions and shuffle. They do not certify real finger gestures, TalkBack, system font scaling, every OEM's safe areas or prolonged background/audio-focus behaviour. Broad physical-device coverage remains open; no comprehensive device test is claimed. External services may be unavailable or rate-limited. Previous releases remain available.
+
 ## Windows 0.7.4 / Android 1.2.1 — 19 October 2026 (public previews)
 
 [Windows 0.7.4 installer, portable, source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.4) · [Android 1.2.1 APK, source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.2.1). Android version code is 19 and preserves the official signing certificate. Update the official installation without uninstalling to retain local data; keep a backup. Previous releases remain available. Prefer the Windows installer: the portable self-extracts on launch and can start slowly. Windows EXEs are not Authenticode-signed.
