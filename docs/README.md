@@ -1,6 +1,6 @@
 # RITVIO documentation
 
-[Back to RITVIO](../README.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1)
+[Back to RITVIO](../README.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases)
 
 ## Start listening
 
