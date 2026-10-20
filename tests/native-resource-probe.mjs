@@ -76,21 +76,25 @@ export function cpuCorePercent(previous,current){
   return delta/elapsed*100;
 }
 
-export function createNativeResourceProbe({cdp,rootPid,readTree=readWindowsProcessTree}){
+export function createNativeResourceProbe({cdp,browserCdp,rootPid,readTree=readWindowsProcessTree}){
   assert(Number.isSafeInteger(rootPid)&&rootPid>0);
   const samples=[],started=performance.now();let rootStartedAt;
   return {
     async sample(phase,{collectGarbage=false}={}){
       const began=performance.now();
       if(collectGarbage)await cdp.send('HeapProfiler.collectGarbage');
-      const [raw,dom,performanceMetrics]=await Promise.all([readTree(rootPid),cdp.send('Memory.getDOMCounters'),cdp.send('Performance.getMetrics')]);
+      const [raw,dom,performanceMetrics,processInfo]=await Promise.all([readTree(rootPid),cdp.send('Memory.getDOMCounters'),cdp.send('Performance.getMetrics'),
+        browserCdp?browserCdp.send('SystemInfo.getProcessInfo').then(result=>result.processInfo).catch(()=>null):null]);
       validateProcessSnapshot(raw,rootPid,rootStartedAt);rootStartedAt=raw.rootStartedAt;
       const metrics=Object.fromEntries(performanceMetrics.metrics.map(m=>[m.name,m.value]));
       for(const key of ['JSHeapUsedSize','JSHeapTotalSize'])assert(Number.isFinite(metrics[key])&&metrics[key]>=0,`Missing renderer metric: ${key}`);
       for(const key of ['documents','nodes','jsEventListeners'])assert(Number.isFinite(dom[key])&&dom[key]>=0,`Missing DOM counter: ${key}`);
-      const total=key=>raw.processes.reduce((sum,p)=>sum+p[key],0);
+      const kinds=new Map((processInfo??[]).map(p=>[Number(p.id),p.type]));
+      const allowedKinds=new Set(['browser','renderer','GPU','utility','network-service','gpu-process']);
+      const processes=raw.processes.map(p=>({...p,kind:p.pid===rootPid?'main':allowedKinds.has(kinds.get(p.pid))?kinds.get(p.pid):'unclassified-child'}));
+      const total=key=>processes.reduce((sum,p)=>sum+p[key],0);
       const sample={phase,elapsedMs:performance.now()-started,probeDurationMs:performance.now()-began,forcedGarbageCollection:collectGarbage,
-        processCount:raw.processes.length,enumeratedCount:raw.enumeratedCount,privateBytes:total('privateBytes'),workingSetBytes:total('workingSetBytes'),handles:total('handles'),threads:total('threads'),processes:raw.processes,
+        rootPid,rootStartedAt,processRolesAvailable:Array.isArray(processInfo),processCount:processes.length,enumeratedCount:raw.enumeratedCount,privateBytes:total('privateBytes'),workingSetBytes:total('workingSetBytes'),handles:total('handles'),threads:total('threads'),processes,
         renderer:{heapUsedBytes:metrics.JSHeapUsedSize,heapTotalBytes:metrics.JSHeapTotalSize,...dom}};
       if(samples.length)sample.cpuCorePercent=cpuCorePercent(samples.at(-1),sample);
       samples.push(sample);return sample;
@@ -98,7 +102,7 @@ export function createNativeResourceProbe({cdp,rootPid,readTree=readWindowsProce
     report(){
       const span=read=>{const values=samples.map(read);return values.length?{first:values[0],last:values.at(-1),min:Math.min(...values),max:Math.max(...values),change:values.at(-1)-values[0]}:null;};
       return {scope:'Sampled descendants of the isolated native test root, including Electron and observed resolver children; excludes the test harness and unrelated apps. Sum of private bytes is committed private memory; summed working sets can double-count shared pages. CPU percent is core-equivalent over matching observed process lifetimes, may exceed 100, and omits children born/exited between samples. Renderer heap/DOM are separate from native media/GPU memory. Endpoint GC is explicit and is not performed during periodic samples. These observations alone cannot prove absence of memory leaks.',
-        samples,summary:{sampleCount:samples.length,privateBytes:span(s=>s.privateBytes),workingSetBytes:span(s=>s.workingSetBytes),processCount:span(s=>s.processCount),handles:span(s=>s.handles),rendererHeapUsedBytes:span(s=>s.renderer.heapUsedBytes),nodes:span(s=>s.renderer.nodes),eventListeners:span(s=>s.renderer.jsEventListeners)}};
+        samples:structuredClone(samples),summary:{sampleCount:samples.length,privateBytes:span(s=>s.privateBytes),workingSetBytes:span(s=>s.workingSetBytes),processCount:span(s=>s.processCount),handles:span(s=>s.handles),rendererHeapUsedBytes:span(s=>s.renderer.heapUsedBytes),nodes:span(s=>s.renderer.nodes),eventListeners:span(s=>s.renderer.jsEventListeners)}};
     },
   };
 }

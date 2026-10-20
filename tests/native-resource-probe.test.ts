@@ -32,6 +32,21 @@ test('periodic sampling does not force GC, combines only the supplied process tr
   assert.equal(sent.filter(method=>method==='HeapProfiler.collectGarbage').length,1);
   assert.equal(probe.report().summary.sampleCount,2);
   assert.deepEqual(probe.report().summary.privateBytes,{first:200,last:200,min:200,max:200,change:0});
+  const saved=probe.report();await probe.sample('later');
+  assert.equal(saved.samples.length,2);assert.equal(saved.summary.sampleCount,2);
+  assert.equal(probe.report().samples.length,3);
+});
+
+test('browser process roles classify owned PIDs and never add unrelated browser processes',async()=>{
+  const cdp={async send(method:string){return method==='Performance.getMetrics'?{metrics:[{name:'JSHeapUsedSize',value:200},{name:'JSHeapTotalSize',value:500}]}:{documents:1,nodes:30,jsEventListeners:7};}};
+  const probe=createNativeResourceProbe({cdp,rootPid:11,readTree:async()=>snapshot(),browserCdp:{async send(){return {processInfo:[{id:11,type:'browser'},{id:12,type:'GPU'},{id:999,type:'renderer'}]};}}});
+  const sample=await probe.sample('baseline');
+  assert.equal(sample.rootPid,11);assert.equal(sample.processRolesAvailable,true);
+  assert.deepEqual(sample.processes.map(p=>[p.pid,p.kind]),[[11,'main'],[12,'GPU']]);
+  assert.equal(sample.privateBytes,200);
+  const fallback=createNativeResourceProbe({cdp,rootPid:11,readTree:async()=>snapshot(),browserCdp:{async send(){throw Error('Unsupported');}}});
+  const missing=await fallback.sample('baseline');
+  assert.equal(missing.processRolesAvailable,false);assert.equal(missing.processes[1].kind,'unclassified-child');
 });
 
 test('incomplete renderer metrics fail instead of reporting misleading zero memory',async()=>{

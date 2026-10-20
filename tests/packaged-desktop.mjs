@@ -102,7 +102,7 @@ async function launch(){
   },{timeout:90000,intervals:[500,1000,2000]}).toBe(true);
   browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
   await expect.poll(()=>browser.contexts()[0]?.pages().length??0,{timeout:30000}).toBeGreaterThan(0);
-  const page=browser.contexts()[0].pages()[0];await page.waitForLoadState('domcontentloaded');return page;
+  const page=browser.contexts()[0].pages()[0];page.on('crash',()=>console.error('Packaged renderer crashed'));await page.waitForLoadState('domcontentloaded');return page;
 }
 async function close(){
   if(browser){const session=await browser.newBrowserCDPSession();await bounded(session.send('Browser.close').catch(()=>{}));await bounded(browser.close().catch(()=>{}));browser=undefined;}
@@ -171,8 +171,12 @@ try {
     let retainedMetrics;
     if(process.argv.includes('--retained-heap')){await cdp.send('HeapProfiler.collectGarbage');retainedMetrics=Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.filter(m=>['JSHeapUsedSize','JSHeapTotalSize','Nodes'].includes(m.name)).map(m=>[m.name,m.value]));}
     const resources=await page.evaluate(()=>performance.getEntriesByType('resource').filter(entry=>entry.name.includes('/assets/')&&entry.name.endsWith('.js')).map(entry=>({url:entry.name,bytes:entry.decodedBodySize,duration:entry.duration})));
-    const resourceProbe=process.argv.includes('--resource-samples')?createNativeResourceProbe({cdp,rootPid:child.pid}):undefined;
-    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch:async()=>{page=await launch();return page;},profile,seconds:soakSeconds,resourceProbe,retainedHeap:process.argv.includes('--retained-heap')}):undefined;
+    const newResourceProbe=async()=>{
+      const rendererCdp=await page.context().newCDPSession(page);await rendererCdp.send('Performance.enable');
+      return createNativeResourceProbe({cdp:rendererCdp,browserCdp:await browser.newBrowserCDPSession(),rootPid:child.pid});
+    };
+    const resourceProbe=process.argv.includes('--resource-samples')?await newResourceProbe():undefined;
+    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch:async()=>{page=await launch();return page;},profile,seconds:soakSeconds,resourceProbe,restartResourceProbe:resourceProbe?newResourceProbe:undefined,retainedHeap:process.argv.includes('--retained-heap')}):undefined;
     const frameTimes=await page.evaluate(()=>new Promise(resolve=>{const samples=[];let last;const fallback=setTimeout(()=>resolve({count:samples.length,unavailable:'Hidden window did not deliver 90 frames within 8 seconds; cannot infer visible FPS'}),8000);const tick=now=>{if(last!==undefined)samples.push(now-last);last=now;if(samples.length<90)requestAnimationFrame(tick);else{clearTimeout(fallback);samples.sort((a,b)=>a-b);resolve({count:samples.length,medianMs:samples[45],p95Ms:samples[85],maxMs:samples.at(-1),scope:'Hidden-window rAF intervals while idle; not motion FPS or an interactive animation benchmark'});}};requestAnimationFrame(tick);}));
     const record={version,frameTimes,scope:'packaged-performance',conditions:'One isolated hidden Windows portable launch, clean PATH; startup includes launcher extraction, no startup-speed or FPS guarantee; 3 warm UI transitions per page, 500 stored queue items, 61 initially rendered with load-more; CDP renderer metrics before soak, not whole-process RAM; retainedMetrics only when explicit GC requested',startupToVisibleMs,samples,metrics,retainedMetrics,resources,profile,soak};
     await mkdir(path.join(root,'test-results/native'),{recursive:true});await writeFile(path.join(root,`test-results/native/NATIVE-${version}${retainedMetrics?'-retained':''}.json`),JSON.stringify(record,null,2));console.log(JSON.stringify(record));
@@ -585,7 +589,8 @@ try {
   console.log(JSON.stringify({portableExe:exe,cleanPath:env.PATH,embeddedResolvers:true,legacyUpgrade:true,singleInstance:true,streamReuseOnResume:true,liveSearch:true,liveAudio:true,musicTitle,seek:true,restartRestoresPausedPosition:true,persistentCache:true,localLibraryPersists:true,profilePersists:true,listeningHistory:true,playlistExportToDisk:true,playlistImport:true,copyTrackLink:true,rendererIsolated:true,screenshot:path.join(profile,'portable-library.png')}));
   }
 }catch(error){
-  if(page&&!page.isClosed()){await page.screenshot({path:path.join(profile,'failure.png'),timeout:3000}).catch(()=>{});console.error((await page.locator('body').innerText()).slice(-1500));}
+  console.error('Original packaged-probe failure:',error);
+  if(page&&!page.isClosed()){await page.screenshot({path:path.join(profile,'failure.png'),timeout:3000}).catch(()=>{});const body=await page.locator('body').innerText({timeout:1500}).catch(()=>null);if(body)console.error(body.slice(-1500));}
   throw error;
 }finally {
   try{await close();}catch{if(child?.pid)spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});}
