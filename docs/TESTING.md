@@ -112,6 +112,25 @@ The separate `--latency` probe waits for its initial live seek to finish with su
 
 The controlled fault interrupts both descriptor resolution and prepared media delivery, so a cached descriptor cannot bypass it. A navigation checkpoint in the isolated profile (`soak-navigation.json`) records only that phase, with retry/restart still pending; it must not be reported as a complete pass if later assertions fail. `soak-complete.json` is written only after those assertions succeed. Relaunch also updates the caller's page before further renderer checks, rather than querying the closed window.
 
+#### Native resource sampling
+
+To observe memory/process counters throughout that same controlled session, extract the complete official Windows ZIP under `.packaging/zip-check/` and run:
+
+```powershell
+node tests/packaged-desktop.mjs --performance --soak --soak-seconds 600 --resource-samples --retained-heap --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+pnpm exec tsx --test tests/native-resource-probe.test.ts
+```
+
+`--resource-samples` requires `--performance --soak`. It samples after a warm-up navigation cycle, approximately every 30 seconds after a cycle completes, and once before the fault/restart checks. It records renderer heap, document/node/listener counts, and Windows private bytes, working sets, handles, threads and CPU counters for descendants of the isolated test root, including observed resolver children. It excludes the test harness and unrelated apps. Process creation identities guard against PID reuse. A missing root/counter fails the probe instead of reporting zero usage. No process command lines, song identifiers, stream URLs or environment variables enter these samples; no diagnostics are uploaded automatically.
+
+Private bytes represent committed private memory. Summed working sets can double-count shared pages. CPU percentages are core-equivalent over matching observed process lifetimes, may exceed 100%, and omit short-lived processes between observations. `--retained-heap` explicitly requests garbage collection at the baseline/final resource endpoints, in addition to the existing initial renderer check. Periodic samples do not force collection. Endpoint GC can change the measurements; neither a lower endpoint nor a high periodic peak proves absence/presence of a leak. Retained DOM/heap and native memory must be assessed separately, with workload and sampling cost recorded.
+
+`soak-resources.json` is a partial checkpoint and keeps `sessionComplete: false`, even after navigation ends. Only the final `soak-complete.json` and top-level native report establish that failure recovery and paused restart also passed. A short run does not close the hour-long, real-provider, OS suspend/resume, physical-phone or accessibility acceptance gates.
+
+On 20 October 2026, the published Windows 0.7.5 ZIP (`d01a9378653bd592711c7bd244caf559f3e8c37d3b746e2ffc912320c9e095a7`) passed this probe: 42 navigation cycles over 607.8 seconds, with media position advancing 607 seconds, controlled media-failure recovery and a paused restart preserving all 500 entries, index 1 and position 5 seconds. Test machine: Windows 11 Home 10.0.26200, Ryzen 5 5500U, 12 logical processors, 5.8 GiB usable RAM. Other desktop workload was not isolated; the core suite also ran during part of the session. The executable/ASAR payload hashes stayed unchanged; all observed original-session processes exited. All 222 core tests, TypeScript, documentation and public-source checks passed.
+
+Sixteen resource samples recorded private bytes at 521.6 → 574.6 MiB (peak 656.8), and summed working sets at 643.8 → 444.0 MiB. Endpoint-collected renderer heap was 6.9 → 7.9 MiB; DOM nodes 819 → 814 and listeners 352 → 348. Process count fell from seven to five. The residual private-memory increase remains unclassified and needs a longer/repeated investigation; renderer counters returning to baseline do not establish native-memory stability. Hidden-window frame collection was insufficient for an FPS conclusion. No application runtime change or new binary is implied by these test-tool additions.
+
 ### Windows startup comparison
 
 On a Windows machine without an existing RITVIO installation, shortcuts or open app:

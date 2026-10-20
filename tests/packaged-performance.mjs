@@ -8,7 +8,7 @@ function originalTone(seconds=240){
   return buffer;
 }
 /** Controlled original PCM and provider failure; no YouTube audio is fetched by this soak. */
-export async function runNativeSoak({page:initialPage,close,launch,profile,seconds=60}){
+export async function runNativeSoak({page:initialPage,close,launch,profile,seconds=60,resourceProbe,retainedHeap=false}){
   if(!Number.isInteger(seconds)||seconds<60||seconds>7200)throw Error('Controlled soak duration must be 60–7200 seconds');
   let page=initialPage,failPlayback=false,descriptorSequence=0,failedMediaResponses=0;
   const wav=originalTone(Math.max(240,seconds+120));
@@ -25,23 +25,34 @@ export async function runNativeSoak({page:initialPage,close,launch,profile,secon
   const transport=()=>page.locator('.transport');
   const seek=()=>page.getByRole('slider',{name:'Posizione del brano',exact:true});
   await transport().getByRole('button',{name:'Riproduci',exact:true}).click();await expect(transport().getByRole('button',{name:'Pausa',exact:true})).toBeVisible();await expect.poll(async()=>Number(await seek().inputValue()),{timeout:10000}).toBeGreaterThan(8);
-  const started=performance.now(),firstPosition=Number(await seek().inputValue());let cycles=0,lastProgressAt=started,previousPosition=firstPosition,maxProgressSampleIntervalMs=0,nextProgressAt=started+30000;
-  while(performance.now()-started<seconds*1000){
+  async function navigate(){
     await page.getByRole('button',{name:'Impostazioni',exact:true}).click();await expect(page.locator('.preferences-page')).toBeVisible();await page.getByRole('tab',{name:'Audio',exact:true}).click();await expect(page.locator('.audio-controls')).toBeVisible();await page.getByRole('button',{name:'Torna alla musica',exact:true}).click();
     await page.locator('#lyrics-reader-trigger').click();await expect(page.locator('.lyrics-reader')).toBeVisible();await page.locator('#lyrics-reader-trigger').click();
-    await page.locator('#queue-panel-trigger').click();await expect(page.locator('.queue-row')).toHaveCount(61);await expect(transport().getByRole('button',{name:'Pausa',exact:true})).toBeVisible();await page.locator('#now-panel-trigger').click();cycles++;await page.waitForTimeout(500);
+    await page.locator('#queue-panel-trigger').click();await expect(page.locator('.queue-row')).toHaveCount(61);await expect(transport().getByRole('button',{name:'Pausa',exact:true})).toBeVisible();await page.locator('#now-panel-trigger').click();await page.waitForTimeout(500);
+  }
+  async function sampleResources(phase){
+    if(!resourceProbe)return;
+    const sample=await resourceProbe.sample(phase,{collectGarbage:retainedHeap&&phase!=='periodic'});
+    await writeFile(path.join(profile,'soak-resources.json'),JSON.stringify({phase,sessionComplete:false,...resourceProbe.report()},null,2));
+    console.log(JSON.stringify({scope:'controlled-native-resources',phase,processes:sample.processCount,privateMiB:Math.round(sample.privateBytes/1048576),rendererHeapMiB:Math.round(sample.renderer.heapUsedBytes/1048576),nodes:sample.renderer.nodes,eventListeners:sample.renderer.jsEventListeners}));
+  }
+  if(resourceProbe){await navigate();await sampleResources('baseline');}
+  const started=performance.now(),firstPosition=Number(await seek().inputValue());let cycles=0,lastProgressAt=started,previousPosition=firstPosition,maxProgressSampleIntervalMs=0,nextProgressAt=started+30000;
+  while(performance.now()-started<seconds*1000){
+    await navigate();cycles++;
     const now=performance.now(),position=Number(await seek().inputValue());
     if(position>previousPosition){maxProgressSampleIntervalMs=Math.max(maxProgressSampleIntervalMs,now-lastProgressAt);lastProgressAt=now;previousPosition=position;}
     else expect(now-lastProgressAt,'Playback must keep advancing during the controlled session').toBeLessThan(10000);
-    if(now>=nextProgressAt){console.log(JSON.stringify({scope:'controlled-native-soak',elapsedSeconds:Math.round((now-started)/1000),targetSeconds:seconds,cycles}));nextProgressAt=now+30000;}
+    if(now>=nextProgressAt){await sampleResources('periodic');console.log(JSON.stringify({scope:'controlled-native-soak',elapsedSeconds:Math.round((now-started)/1000),targetSeconds:seconds,cycles}));nextProgressAt=now+30000;}
   }
   const navigationSeconds=(performance.now()-started)/1000,lastPosition=Number(await seek().inputValue()),audioAdvancedSeconds=lastPosition-firstPosition;
   expect(audioAdvancedSeconds,'Media time must track actual elapsed time, not merely advance once').toBeGreaterThan(navigationSeconds*.9-2);
-  await writeFile(path.join(profile,'soak-navigation.json'),JSON.stringify({phase:'navigation-complete',requestedNavigationSeconds:seconds,continuousNavigationSeconds:navigationSeconds,audioAdvancedSeconds,maxProgressSampleIntervalMs,cycles,originalSyntheticPCM:true,remainingChecks:['controlled-failure-and-retry','paused-restart-and-queue']},null,2));
+  await sampleResources('navigation-end');
+  await writeFile(path.join(profile,'soak-navigation.json'),JSON.stringify({phase:'navigation-complete',requestedNavigationSeconds:seconds,continuousNavigationSeconds:navigationSeconds,audioAdvancedSeconds,maxProgressSampleIntervalMs,cycles,originalSyntheticPCM:true,resources:resourceProbe?.report(),remainingChecks:['controlled-failure-and-retry','paused-restart-and-queue']},null,2));
   failPlayback=true;await transport().getByRole('button',{name:'Brano successivo',exact:true}).click();await expect(page.locator('.player-error')).toContainText('Errore controllato',{timeout:15000});expect(failedMediaResponses,'The prepared media must actually encounter the controlled fault').toBeGreaterThan(0);failPlayback=false;await page.locator('.player-error').getByRole('button',{name:'Riprova',exact:true}).click();await expect(transport().getByRole('button',{name:'Pausa',exact:true})).toBeVisible();await expect.poll(async()=>Number(await seek().inputValue()),{timeout:10000}).toBeGreaterThan(0);
   await transport().getByRole('button',{name:'Pausa',exact:true}).click();await seek().press('Home');await seek().press('ArrowRight');await expect(seek()).toHaveValue('5');
   await close();page=await launch();await expect(page.locator('.transport').getByRole('button',{name:'Riproduci',exact:true})).toBeVisible();await expect(page.getByRole('slider',{name:'Posizione del brano',exact:true})).toHaveValue('5');await page.locator('#queue-panel-trigger').click();await expect(page.locator('.queue-row')).toHaveCount(61);
   const saved=JSON.parse(await readFile(path.join(profile,'player-state.json'),'utf8'));expect(saved.state.queue).toHaveLength(500);expect(saved.state.index).toBe(1);expect(saved.state.position).toBe(5);
-  const result={durationSeconds:(performance.now()-started)/1000,requestedNavigationSeconds:seconds,continuousNavigationSeconds:navigationSeconds,audioAdvancedSeconds,maxProgressSampleIntervalMs,cycles,firstPosition,lastPosition,originalSyntheticPCM:true,scope:'Controlled generated PCM in a hidden isolated Windows portable; not a real-provider, OS suspend, audible-output or physical-phone trial',failedMediaResponses,controlledProviderErrorRecovered:true,queueCountAfterRestart:500,visibleCurrentAndUpcomingAfterRestart:61,currentIndexAfterRestart:1,positionAfterRestart:5,noAutoplay:true};
+  const result={durationSeconds:(performance.now()-started)/1000,requestedNavigationSeconds:seconds,continuousNavigationSeconds:navigationSeconds,audioAdvancedSeconds,maxProgressSampleIntervalMs,cycles,firstPosition,lastPosition,originalSyntheticPCM:true,scope:'Controlled generated PCM in a hidden isolated Windows portable; not a real-provider, OS suspend, audible-output or physical-phone trial',failedMediaResponses,controlledProviderErrorRecovered:true,queueCountAfterRestart:500,visibleCurrentAndUpcomingAfterRestart:61,currentIndexAfterRestart:1,positionAfterRestart:5,noAutoplay:true,resources:resourceProbe?.report()};
   await writeFile(path.join(profile,'soak-complete.json'),JSON.stringify(result,null,2));return result;
 }
