@@ -2,6 +2,7 @@ node_modules/
 dist/
 release/
 .packaging/
+.kotlin/
 coverage/
 .env
 .env.*
