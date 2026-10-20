@@ -1,5 +1,18 @@
 # Release notes
 
+## Windows 0.7.5 — 20 October 2026 (preview prepared for publication)
+
+[Windows 0.7.5 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5). This Windows-only release adds an extract-once portable ZIP alongside the installer and self-extracting EXE. Android remains [1.3.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0); previous releases remain available.
+
+- For everyday use, choose the installer or extract the **whole portable ZIP** into a folder and launch `RITVIO.exe`. Keep the adjacent files together. The standalone portable EXE still extracts on every launch and can start slowly.
+- All three Windows formats retain the existing local profile in Windows AppData; the ZIP does not make library data travel on a USB drive. Update an official installation without uninstalling to retain local data.
+- Shared lyric-image rendering fits the inner quote card to wrapped verses and credits inside the unchanged 1080×1920 image, with square cover artwork beside the credits. Android's separate full-height sharing workflow is not introduced on desktop.
+- Add isolated startup/endurance probes and retain browser failure diagnostics in CI. The playback engine is unchanged from 0.7.4; this release does not promise faster network resolution.
+
+The Windows build passed 217 core tests, 25 desktop browser/player tests and isolated installer install/reinstall/update/uninstall checks. [Build 39403307392](https://github.com/salvo13200/RITVIO/actions/runs/39403307392) produced the binaries from `f53af2f3860de40b75bd51ff644ac330205fa16f`; the merged source commit `66d94bf7af3371dcc3a0c3fae6458821e7aa1f22` has exactly the same Git tree. All three downloaded package checksums and the ZIP's CRC/runtime inventory passed. Its extracted executable passed three fresh-profile launches, real-provider playback/next/pause/resume/seek and track/four-line/ten-line PNG exports with the real cover proxy. Closing lyric selection without exporting preserved live playback and the following track. Startup personal-data fingerprints stayed unchanged. The release manifest records exact hashes, test scope and timing conditions.
+
+Windows EXEs are not Authenticode-signed. Broad accessibility/device coverage, an hour-long native listening trial and real OS suspend/resume remain open. Network/provider delays, lyrics availability and rate limits remain possible. Startup probes use hidden native windows and fresh profiles with OS/security caches retained; they are not cold-boot, visible-paint or speaker-output benchmarks.
+
 ## Android 1.3.0 — 19 October 2026 (public preview)
 
 [Android 1.3.0 APK, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0). Version code 20 keeps the official signing certificate. Install over the official app to retain local data; keep a backup. Windows public downloads remain [0.7.4](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.4); Windows 0.7.5 remains a separate candidate.

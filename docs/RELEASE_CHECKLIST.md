@@ -14,6 +14,7 @@ Use the exact source commit/tag and binary checksums. Record platform, toolchain
 ## Windows
 
 - [ ] Portable launch and installer install/update/uninstall on an isolated test profile; no library loss and no existing personal installation touched.
+- [ ] Extract-once ZIP has valid checksums/CRC, the complete runtime and notices; test its extracted executable separately from the self-extracting EXE. Keep adjacent files together and state that user data still uses the Windows profile.
 - [ ] Playback, next/seek/queue, local library, lyrics, sharing, restart and language persistence verified.
 - [ ] Embedded source/notices, production dependency isolation and SHA-256 verified. Unsigned-executable limitation stated.
 
