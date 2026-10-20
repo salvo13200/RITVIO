@@ -2,6 +2,19 @@
 
 Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
 
+## Android 1.3.1 — local candidate, not published
+
+Version code 21. This Android-only maintenance candidate incorporates the approved readability changes into a complete Gradle build. Windows remains a separate release at 0.7.5. The existing Android 1.3.0 download stays available until an explicit publication decision.
+
+- Keep lyric selection usable with enlarged text and short/landscape windows: metadata and verses can scroll together while the preview action stays separate. Returning from preview restores the excerpt, reading position and endpoint focus.
+- Give the current-track activity marker a valid accessible role/name.
+- Make the story preview scroll region keyboard-focusable, with a translated name and visible focus indication.
+- Preserve the non-scrolling player layout and existing playback engine.
+
+Before packaging, five focused browser scenarios passed across 100/150/200% root text and portrait/short/landscape viewports, including 25 automated accessibility scans. The affected existing mobile touch/lyrics/sharing suite passed 16 cases; three desktop keyboard/modal/reduced-motion cases passed. These are browser results, not native accessibility certification. The maintainer approved the preceding web-only 1.3.0 candidate; no specific TalkBack/system-inset result is inferred from that approval. Use the packaged candidate's manifest for its final compilation, JVM, signature, version and alignment results.
+
+The Windows Android setup uses basic HTTP parsing so that Windows PowerShell 5.1 can download SDK metadata without an interactive browser/security prompt. No new runtime dependency or playback change is introduced.
+
 ## Windows 0.7.5 — 20 October 2026 (public preview)
 
 [Windows 0.7.5 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5). This Windows-only release adds an extract-once portable ZIP alongside the installer and self-extracting EXE. Android remains [1.3.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0); previous releases remain available.
