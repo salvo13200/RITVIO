@@ -40,7 +40,7 @@ export function TrackRow({ track, active = false, onPlay, onMore, number, showAc
     return <div className={`track-row${active ? ' is-current' : ''}`} aria-current={active ? 'true' : undefined}>
   {number !== undefined && <span className="track-number">{number}</span>}
   <button className="track-main" aria-label={msg("Riproduci {p0}", { p0: track.title })} onClick={onPlay}><Artwork src={track.thumbnail}/><span><strong>{track.title}</strong><small>{track.artist}</small></span></button>
-  {active && showActivity && <span className={`track-activity${playing ? ' is-playing' : ''}`} aria-label={playing ? msg("In riproduzione") : msg("Brano attuale")}><i /><i /><i /></span>}
+  {active && showActivity && <span role="img" className={`track-activity${playing ? ' is-playing' : ''}`} aria-label={playing ? msg("In riproduzione") : msg("Brano attuale")}><i /><i /><i /></span>}
   {onMore && <button className="row-more" aria-label={msg("Opzioni: {p0}", { p0: track.title })} onClick={onMore}><MoreHorizontal size={23}/></button>}
  </div>;
 }

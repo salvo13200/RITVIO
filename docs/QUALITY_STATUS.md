@@ -18,7 +18,7 @@ The GitHub release records were checked on the review date: both previews includ
 
 Use each release's manifest and `SHA256SUMS` for the other assets. This review checked current release metadata; earlier release runs performed the package download/hash/install checks. Those checks were not repeated for this documentation change.
 
-Local maintenance commits add test tools and documentation. The latest full local suite, through test-tool commit `bfefbbd`, passed **229 core tests** before this consolidation. Those results are source-maintenance evidence, not a new APK/EXE or a fresh GitHub CI run. Windows and Android keep separate versions. Publication and merging remain maintainer decisions.
+Local maintenance initially added test tools and documentation. The subsequent unpublished readability pass also changes the Android web interface, as recorded below. The latest full core suite, through test-tool commit `bfefbbd`, passed **229 core tests** before this consolidation. Those results are source-maintenance evidence, not a new APK/EXE or a fresh GitHub CI run. Windows and Android keep separate versions. Publication and merging remain maintainer decisions.
 
 ## Completed checks and their scope
 
@@ -39,6 +39,14 @@ These entries close the stated scenario for the recorded baseline, without certi
 | Sharing, queue and lyric-reader interactions | Passed within recorded automated scope | Browser/desktop sharing and synthetic touch reorder/edge-scroll/cancellation cases are recorded in [Testing](TESTING.md). Native accessibility and every finger/device interaction remain separate. |
 | Latest full local maintenance checks | Passed before consolidation | 229 core tests, TypeScript, public-source policy and documentation checks through `bfefbbd`. These do not replace the release build's original counts. |
 | This documentation consolidation | Passed, targeted checks | Three export-policy tests, issue-form YAML validation, architecture/source checks, and 15 documents / 262 local links. Documentation, architecture and source-policy checks also passed on a 778-file allowlisted clean copy without private phase notes or installed dependencies. No native playback tests or package rebuilds were needed. |
+
+## Unpublished readability fixes
+
+The focused 20 October pass reproduced three interface defects: lyric selection could collapse to a partially visible or unreachable row with enlarged text/short windows; the current-track activity marker used an accessible name on a generic span; and the scrollable story preview was not keyboard-focusable. The local Android web changes provide a scrollable selection surface with separate preview actions when space is constrained, preserve its reading position on Back, give the activity marker an image role, and label/focus the preview region. The non-scrolling player layout is retained.
+
+Five browser scenarios cover Search → Player → Queue → lyric selection → Preview at 360×740 with 100%, 150% and 200% root text, 360×640 at 200%, and 740×360 at 150%. All **25 automated accessibility scans** passed; player controls remained within the viewport at least 48 CSS pixels wide/high, contiguous selection and preview Back worked, and queue arrow actions completed. The affected existing touch/lyrics/sharing suite passed **16 cases**. Three focused desktop keyboard, modal and reduced-motion checks passed after fixing a missing initial render wait and using the visible queue opener in compact layouts. No desktop production code changed. TypeScript and the Android web production build passed.
+
+This is **browser fixture evidence**, using root text resizing as a stress test, not a direct emulation of Android WebView `setTextZoom`, native screen-reader certification, a newly signed APK or a GitHub CI run. TalkBack, actual system font scaling and keyboard/system insets still require the installed candidate. See [the targeted command](TESTING.md#focused-readability-and-accessibility).
 
 ## Remaining verification, not confirmed bugs
 

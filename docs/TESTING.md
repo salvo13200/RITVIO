@@ -34,6 +34,17 @@ Use `Get-ChildItem tests/config` to select other existing suites. Run one suite 
 
 ## Platform and live checks
 
+### Focused readability and accessibility
+
+```powershell
+pnpm exec playwright test --config tests/config/playwright.mobile-accessibility.config.ts
+pnpm test:accessibility --grep "skip link|modal traps|reduced motion"
+```
+
+The mobile suite follows Search, Player, Queue, lyric selection and Preview at 360×740 with 100/150/200% root text, 360×640 at 200%, and 740×360 at 150%. It checks automated accessibility, player containment and control dimensions, keyboard queue actions, contiguous verse selection, preview focus and reading-position restoration without transport commands. Synthetic text/catalogue fixtures are used. Root font resizing is a layout stress test; it does not reproduce WebView `setTextZoom` exactly or certify TalkBack, system insets or native text scaling. The existing listening-tools configuration includes these cases in browser CI. Screenshots and measured layouts are written under ignored `test-results/mobile-readability/`.
+
+On the installed Android candidate, separately check actual enlarged system text, TalkBack traversal and focus on modal Back, portrait/landscape, and Search with the software keyboard open. Only claim these as device passes after observing them. Do not repeat native playback endurance for these web-only accessibility changes unless an actual regression calls for it.
+
 Browser tests use controlled catalogue/audio fixtures. Passing them does not establish native audio focus, background playback, Gallery export or real-provider availability. Use a phone for those checks. Android unit/instrumentation builds require the separate SDK/JDK toolchain; instrumentation tests must actually run on a device before reporting a native pass.
 
 `tests/packaged-desktop.mjs`, `desktop-live.mjs`, `installer-lifecycle.mjs`, `english-desktop.mjs` and `scripts/measure-playback.ts` are opt-in Windows/package/live probes. They require their stated built artefacts, installed runtimes or explicit environment configuration. They are not prerequisites for fixture-based CI. Installer tests refuse to replace an existing installation or terminate an open personal player. Performance tools generate new records in `test-results/`; historic private benchmark reports are not inputs shipped with the source.
