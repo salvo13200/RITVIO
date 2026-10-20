@@ -7,7 +7,7 @@ import {isPublicSource,publicFiles,scanPublicSource} from '../scripts/public-sou
 
 test('public export excludes private, generated and design-work files while retaining build sources',()=>{
   for(const file of ['.local/android-signing/ritvio.jks','apps/mobile/android/local.properties','.agents/skills/test.md','docs/design/english-release/DELIVERY.json','data/history.json','.env','apps/mobile/android/app/build/output.apk','apps/mobile/android/app/src/main/assets/public/index.html','apps/client/.impeccable/design.json','apps/client/assets/plates/queue-cover-0.png','apps/client/src/design-review.tsx','apps/mobile/ANDROID-0-BRIEF.md','database/001_initial.sql','apps/mobile/android/app/src/test/java/com/getcapacitor/myapp/ExampleUnitTest.java','test-results/visual/private.png'])assert.equal(isPublicSource(file),false,file);
-  for(const file of ['.github/FUNDING.yml','LICENSE','pnpm-lock.yaml','scripts/build-android.mjs','apps/mobile/android/gradle/wrapper/gradle-wrapper.jar','apps/client/src/App.tsx','third-party/inventory.json','docs/BUILDING.md','tests/fixtures/artwork/city.webp','docs/README.md','docs/SCREENSHOTS.md','docs/media/banner.webp','docs/media/share-card-lyrics.webp'])assert.equal(isPublicSource(file),true,file);
+  for(const file of ['.github/FUNDING.yml','LICENSE','pnpm-lock.yaml','scripts/build-android.mjs','apps/mobile/android/gradle/wrapper/gradle-wrapper.jar','apps/client/src/App.tsx','third-party/inventory.json','docs/BUILDING.md','docs/QUALITY_STATUS.md','tests/fixtures/artwork/city.webp','docs/README.md','docs/SCREENSHOTS.md','docs/media/banner.webp','docs/media/share-card-lyrics.webp'])assert.equal(isPublicSource(file),true,file);
   assert.equal(isPublicSource('docs/media/private-screenshot.png'),false);
 });
 

@@ -1,5 +1,7 @@
 # Release notes
 
+Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
+
 ## Windows 0.7.5 — 20 October 2026 (public preview)
 
 [Windows 0.7.5 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5). This Windows-only release adds an extract-once portable ZIP alongside the installer and self-extracting EXE. Android remains [1.3.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0); previous releases remain available.

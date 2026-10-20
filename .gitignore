@@ -42,6 +42,7 @@ docs/*
 !docs/PUBLISHING.md
 !docs/RELEASE_NOTES.md
 !docs/RELEASE_CHECKLIST.md
+!docs/QUALITY_STATUS.md
 !docs/API.md
 !docs/openapi.json
 !docs/ARCHITECTURE.md

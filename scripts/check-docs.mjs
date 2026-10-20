@@ -1,4 +1,4 @@
-import {readFile,stat} from 'node:fs/promises';
+import {readFile,readdir,stat} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import path from 'node:path';
 import {isPublicSource} from './public-source.mjs';
@@ -6,7 +6,8 @@ import {imageMetadataIssue} from './check-assets.mjs';
 import showcase from './showcase-files.json' with {type:'json'};
 
 const root=path.resolve(import.meta.dirname,'..');
-const files=['README.md','README.en.md','README.it.md','docs/README.md','docs/FEATURES.md','docs/SCREENSHOTS.md','docs/media/README.md'];
+const documentation=(await readdir(path.join(root,'docs'))).filter(name=>name.endsWith('.md')&&isPublicSource(`docs/${name}`)).sort();
+const files=['README.md','README.en.md','README.it.md',...documentation.map(name=>`docs/${name}`),'docs/media/README.md'];
 const problems=[];let links=0;
 for(const name of files){
  const text=await readFile(path.join(root,name),'utf8'),body=text.replace(/```[\s\S]*?```/g,'');
