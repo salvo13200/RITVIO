@@ -408,6 +408,8 @@ test('long exclusion names, exact-name fallback and narrow result rows remain op
 });
 test.beforeEach(async({page,request})=>{
   await request.post('http://127.0.0.1:5199/test-reset-library');
+  page.on('pageerror',error=>console.error('[desktop fixture runtime error]',error.stack??error.message));
+  page.on('requestfailed',request=>{if(['document','script','stylesheet'].includes(request.resourceType()))console.error('[desktop fixture load failure]',request.resourceType(),new URL(request.url()).pathname,request.failure()?.errorText);});
   await page.addInitScript(()=>{localStorage.setItem('ritvio.language.v1',JSON.stringify({schema:1,preference:'it'}));window.__RITVIO_TEST_CONFIG__={baseUrl:'http://127.0.0.1:5199',token:'test-token-only'};});
   await page.route('https://*.ytimg.com/**',route=>route.fulfill({status:200,contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180"><rect width="320" height="180" fill="#c4b5fd"/></svg>'}));
 });
@@ -748,17 +750,24 @@ test('rapid track changes discard an obsolete playback response',async({page})=>
 
 test('expired stream is renewed at resume and a failed renewal stops retries',async({page})=>{
   let calls=0;let broken=false;const urls:string[]=[];
+  const playingAt=(position:number)=>expect.poll(()=>page.evaluate(async minimum=>{
+    const module='/src/player.tsx',audio=(await import(module)).audio;
+    return !audio.paused&&!audio.seeking&&audio.readyState>=3&&audio.currentTime>=minimum;
+  },position)).toBe(true);
   await page.route('**/v1/media/*/playback**',async route=>{
     if(route.request().url().includes('prepare=true'))return route.continue();
-    calls++;urls.push(route.request().url());const response=await route.fetch();const descriptor=await response.json();
+    const order=++calls;urls.push(route.request().url());const response=await route.fetch();const descriptor=await response.json();
+    // Exercise an asynchronous renewal: observing a request or the stored seek
+    // target alone must not let the test pause/cancel the pending resource.
+    if(order===2)await new Promise(resolve=>setTimeout(resolve,150));
     descriptor.expiresAt=new Date(Date.now()-1000).toISOString();if(broken)descriptor.url='http://127.0.0.1:5199/missing-tone.wav';
     await route.fulfill({response,json:descriptor});
   });
   await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');
   await page.getByRole('button',{name:'Riproduci Secondo brano',exact:true}).click();
   const position=page.getByRole('slider',{name:'Posizione del brano'});await expect.poll(async()=>Number(await position.inputValue())).toBeGreaterThan(0);
-  await position.fill('5');await page.getByRole('button',{name:'Pausa',exact:true}).click();await page.getByRole('button',{name:'Riproduci',exact:true}).click();
-  await expect.poll(()=>calls).toBe(2);expect(urls[1]).toContain('fresh=true');await expect.poll(async()=>Number(await position.inputValue())).toBeGreaterThanOrEqual(5);
+  await position.fill('5');await playingAt(5);await page.getByRole('button',{name:'Pausa',exact:true}).click();await page.getByRole('button',{name:'Riproduci',exact:true}).click();
+  await expect.poll(()=>calls).toBe(2);expect(urls[1]).toContain('fresh=true');await playingAt(5.1);
   await page.getByRole('button',{name:'Pausa',exact:true}).click();broken=true;
   await page.getByRole('button',{name:'Riproduci',exact:true}).click();await expect(page.locator('.player-error')).toContainText('Il flusso audio non è riproducibile');
   expect(calls).toBe(3);await expect(page.getByRole('button',{name:'Riproduci',exact:true})).toBeVisible();
