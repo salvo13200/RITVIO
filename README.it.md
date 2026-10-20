@@ -8,7 +8,7 @@
 
 [![Entra nella community Discord di RITVIO](https://img.shields.io/badge/Entra_su_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hCMwUtWZuM)
 
-> Anteprima pubblica: **Windows 0.7.4** e **Android 1.3.0**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
+> Anteprima pubblica: **Windows 0.7.5** e **Android 1.3.0**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
 
 [![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
 
@@ -30,10 +30,10 @@ Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 
 | Piattaforma | Download |
 | --- | --- |
-| Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.4/RITVIO-0.7.4-setup.exe) · [Portatile](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.4/RITVIO-0.7.4-portatile.exe) |
+| Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe) · [ZIP da estrarre una volta](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip) · [EXE autoestraente](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe) |
 | Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.0/RITVIO-Android-1.3.0.apk) |
 
-Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano consigliamo l'installer: il portatile si estrae a ogni avvio e può partire lentamente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
+Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano scegli installer o ZIP: estrai lo ZIP interamente e avvia `RITVIO.exe`, mantenendo insieme tutti i file. L'EXE autoestraente continua a estrarsi a ogni avvio e può partire lentamente. Tutti i formati Windows usano il profilo locale esistente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
 
 ## Community
 
