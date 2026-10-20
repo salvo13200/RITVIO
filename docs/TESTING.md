@@ -177,6 +177,32 @@ On 20 October 2026, all three 600-second playback controls passed on the same pu
 
 Serving media over HTTP alone did not eliminate the increase. Disconnecting the observer reduced the increase in this single playback-only comparison; the responsible debugger subsystem was not isolated. This supports a measurement contribution, **not** an explanation of all prior hour-long UI-navigation growth or a product fix. Do not hide residual growth by using only the first/last snapshots: after initial settling, descriptive renderer-private slopes from minute 2 onward were approximately 3.01 / 2.89 / 1.44 MiB/minute respectively. Those are single-run regressions, not replicated statistical estimates. PCM/native-media allocations and caches still need classification with realistic codecs, repeated track changes and an equivalent navigation control. Reconnection itself can affect the disconnected arm's final heap/listener observation. No production leak is confirmed or declared resolved, and no application binary changed.
 
+#### Repeated track changes with PCM and Opus
+
+```powershell
+node tests/packaged-desktop.mjs --switch-control pcm --switch-cycles 30 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --switch-control opus --switch-cycles 30 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+```
+
+These controls use 500 distinct synthetic queue entries and a 24-second original stereo signal: PCM at 48 kHz/16-bit, or WebM/Opus recorded inside Electron with a requested 128 kbit/s target. The Opus signal comes only from two oscillators connected to a recording destination, never a microphone or external recording. Actual decoded duration, channel count and sample rate are checked. The recording process is closed, then a fresh app process performs the measurement; no encoder tool, additional dependency, API key or paid service is required. See the [MediaStream Recording specification](https://www.w3.org/TR/mediastream-recording/) and [Web Audio recording destinations](https://www.w3.org/TR/webaudio-1.0/#MediaStreamAudioDestinationNode).
+
+After setup, Playwright disconnects. A small raw CDP client controls the real transport buttons and sends keyboard seek events; it refuses every `Network.*` command. `Fetch` intercepts only the small playback descriptors. All actual media bytes travel through a loopback HTTP fixture with finite 256 KiB ranges and a distinct URL per queue item. The test document alone adds that fixture origin to CSP; production CSP and binaries remain unchanged. The client remains attached, so this is not a debugger-free test. It samples renderer/OS counters without network-response collection.
+
+Two warm-up changes precede the baseline. Each measured cycle changes to the next item, checks that the selected title and actual audio resource match, and requires at least four seconds of actual media-time advancement during a six-second dwell. Every third cycle also seeks to five seconds using the real slider's keyboard behavior and waits for media readiness and seeking completion. Baseline/end and the 20-second paused tail explicitly collect renderer GC; periodic samples do not. A stable single renderer identity is required. `switch-control.json` remains incomplete until all cycles, decoder-error checks, paused positioning and transport bounds pass. The isolated profile's saved queue/index/position can then be checked after the harness exits.
+
+This crosses the frontend descriptor cache's 30-item limit in the default run, counting warm-up and current entries. It does not exercise the real resolver, production stream proxy/RAM prefix cache, WAN latency, unsupported codecs, audible output or broad music content. All entries reuse one original signal per format with distinct URLs. Local timings are not internet startup/seek guarantees; one short comparison cannot prove absence of leaks. Recording/fixture issues that fail before completion are excluded from successful evidence.
+
+On 20 October 2026, both 30-cycle controls passed against the unchanged published 0.7.5 runtime. Each measured switching phase lasted approximately 191 seconds, in addition to setup, warm-up and a 20-second paused tail. Both profiles preserved all 500 entries, index 32 and position 5 seconds after process exit. All observed measured processes exited and runtime/harness hashes matched. The 229 core tests and TypeScript passed before the measured sessions.
+
+| Format | Measured changes / playing seeks | Renderer private MiB, GC baseline → end → paused | JS heap MiB, GC baseline → end |
+| --- | ---: | ---: | ---: |
+| PCM 48 kHz stereo | 30 / 10 | 84.0 → 74.2 → 70.8 | 6.60 → 6.75 |
+| WebM/Opus 48 kHz stereo | 30 / 10 | 80.3 → 68.8 → 65.9 | 6.61 → 6.76 |
+
+There were 33 distinct media URLs per arm, zero invalid range requests, no media interception, and no decoder errors during the verified changes. PCM served 149,206,356 prepared body bytes through 582 responses; Opus served 12,697,212 through 66 responses. The waveform/Opus files were 4,608,044 / 384,764 bytes respectively; Opus decoded to 23.88 seconds. DOM nodes were 818 → 829 and listeners 355 → 355 at switching GC endpoints in both arms. This short workload did not reproduce a progressive source-count-related renderer increase; retained JS heap rose about 0.15 MiB. It neither proves absence of leaks nor isolates all prior hour-long navigation growth.
+
+Local median/p95 change readiness was approximately 231/238 ms for PCM and 232/237 ms for Opus. The two-key seek verification measured approximately 124/125 ms and 124/142 ms respectively. Those include control/polling overhead, use local synthetic media, and are not guarantees for WAN or provider latency. Playback seek assertions use the new `seeked` event near the requested target, rather than demanding that the still-playing current time remain fixed. Early preflight document/selector/assertion failures are excluded from completed evidence.
+
 ### Windows startup comparison
 
 On a Windows machine without an existing RITVIO installation, shortcuts or open app:

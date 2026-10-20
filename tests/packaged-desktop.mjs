@@ -8,6 +8,7 @@ import path from 'node:path';
 import net from 'node:net';
 import {runNativeSoak} from './packaged-performance.mjs';
 import {runNativeMediaControl} from './packaged-media-control.mjs';
+import {runNativeSwitchControl} from './packaged-switch-control.mjs';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
 import {runNativeLatency} from './packaged-latency.mjs';
 import {runNativeRequestStress} from './packaged-request-stress.mjs';
@@ -18,6 +19,14 @@ import {runNativeStorySharing} from './packaged-story-sharing.mjs';
 import {runNativeStoryAudio} from './packaged-story-audio.mjs';
 import {runNativeHome} from './packaged-home.mjs';
 const root=process.cwd();
+const switchControlIndex=process.argv.indexOf('--switch-control');
+const switchControlOnly=switchControlIndex>=0;
+const switchCodec=switchControlOnly?process.argv[switchControlIndex+1]:undefined;
+const switchCyclesIndex=process.argv.indexOf('--switch-cycles');
+const switchCycles=switchCyclesIndex<0?30:Number(process.argv[switchCyclesIndex+1]);
+if(switchControlOnly&&(!['pcm','opus'].includes(switchCodec)||!Number.isInteger(switchCycles)||switchCycles<2||switchCycles>60))throw Error('--switch-control requires pcm or opus; --switch-cycles must be 2–60');
+if(switchCyclesIndex>=0&&!switchControlOnly)throw Error('--switch-cycles requires --switch-control');
+if(switchControlOnly&&['--media-control','--performance','--soak','--latency','--quality','--radio','--home','--story-sharing','--story-audio','--autoplay','--request-stress','--library-restyle'].some(flag=>process.argv.includes(flag)))throw Error('--switch-control must run separately');
 const mediaControlIndex=process.argv.indexOf('--media-control');
 const mediaControlOnly=mediaControlIndex>=0;
 const mediaControlMode=mediaControlOnly?process.argv[mediaControlIndex+1]:undefined;
@@ -26,7 +35,7 @@ const mediaControlSeconds=mediaControlSecondsIndex<0?600:Number(process.argv[med
 if(mediaControlOnly&&(!['intercepted','http-connected','http-detached'].includes(mediaControlMode)||!Number.isInteger(mediaControlSeconds)||mediaControlSeconds<60||mediaControlSeconds>3600))throw Error('--media-control requires intercepted, http-connected or http-detached; --control-seconds must be 60–3600');
 if(mediaControlSecondsIndex>=0&&!mediaControlOnly)throw Error('--control-seconds requires --media-control');
 if(mediaControlOnly&&['--performance','--soak','--soak-seconds','--resource-samples','--retained-heap','--latency','--request-stress','--radio','--autoplay','--library-restyle','--story-sharing','--story-audio','--quality','--home','--search-layout','--library-sharing','--catalog','--player-controls','--listening-preferences','--lyrics-controls','--readability','--accessibility','--motion-controls'].some(flag=>process.argv.includes(flag)))throw Error('--media-control must run separately from other probe modes');
-const performanceOnly=process.argv.includes('--performance')||mediaControlOnly;
+const performanceOnly=process.argv.includes('--performance')||mediaControlOnly||switchControlOnly;
 const soakSecondsIndex=process.argv.indexOf('--soak-seconds');
 const soakSeconds=soakSecondsIndex<0?60:Number(process.argv[soakSecondsIndex+1]);
 if(soakSecondsIndex>=0&&(!performanceOnly||!process.argv.includes('--soak')||!Number.isInteger(soakSeconds)||soakSeconds<60||soakSeconds>7200))throw Error('--soak-seconds requires --performance --soak and an integer from 60 to 7200');
@@ -66,15 +75,22 @@ const legacyDb=new DatabaseSync(path.join(profile,'cache/mvp.sqlite'));
 legacyDb.exec('CREATE TABLE tracks(id TEXT PRIMARY KEY,data TEXT NOT NULL,expires INTEGER NOT NULL);CREATE TABLE search_cache(key TEXT PRIMARY KEY,data TEXT NOT NULL,fetched INTEGER NOT NULL,expires INTEGER NOT NULL);');
 const hash=createHash('sha256').update('youtube:jNQXAC9IVRw').digest('hex');
 const legacyTrack={id:`${hash.slice(0,8)}-${hash.slice(8,12)}-5${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`,videoId:'jNQXAC9IVRw',title:'Me at the zoo',artist:'jawed',duration:19,thumbnail:'https://i.ytimg.com/vi/jNQXAC9IVRw/mqdefault.jpg',canonicalUrl:'https://www.youtube.com/watch?v=jNQXAC9IVRw'};
+if(switchControlOnly)legacyTrack.duration=24;
 if(readabilityOnly||motionOnly){legacyTrack.title='Titolo personale di prova molto lungo — versione dal vivo con ospiti e finale esteso';legacyTrack.artist='Artista dimostrativo e collettivo delle città sospese';}
 if(motionOnly){legacyTrack.album={id:'MPREb_native_motion',name:'Album dimostrativo'};legacyTrack.artists=[{id:'UC_native_motion',name:legacyTrack.artist}];}
 legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(legacyTrack.id,JSON.stringify(legacyTrack),Date.now()+86400000);
+const switchTracks=switchControlOnly?Array.from({length:500},(_,i)=>{
+  if(i===0)return {...legacyTrack,queueId:'native-switch-0'};
+  const digest=createHash('sha256').update('native-switch-'+i).digest('hex'),id=`${digest.slice(0,8)}-${digest.slice(8,12)}-5${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
+  const track={...legacyTrack,id,videoId:'nsw'+String(i).padStart(8,'0'),title:'Original controlled item '+i,artist:'Original test oscillators',queueId:'native-switch-'+i};
+  legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(id,JSON.stringify(track),Date.now()+86400000);return track;
+}):undefined;
 let latencyNext;
 if(latencyOnly||storyAudioOnly||qualityOnly){const idHash=createHash('sha256').update('youtube:aqz-KE-bpKQ').digest('hex');latencyNext={...legacyTrack,id:`${idHash.slice(0,8)}-${idHash.slice(8,12)}-5${idHash.slice(13,16)}-a${idHash.slice(17,20)}-${idHash.slice(20,32)}`,videoId:'aqz-KE-bpKQ',title:'Big Buck Bunny',artist:'Blender',duration:596,thumbnail:'https://i.ytimg.com/vi/aqz-KE-bpKQ/mqdefault.jpg',canonicalUrl:'https://www.youtube.com/watch?v=aqz-KE-bpKQ',queueId:'latency-next'};legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(latencyNext.id,JSON.stringify(latencyNext),Date.now()+86400000);}
 legacyDb.close();
 // A long first video prevents natural end-of-track during the sharing workflow.
 if((storyAudioOnly||latencyOnly)&&latencyNext){const short={...legacyTrack};Object.assign(legacyTrack,latencyNext);latencyNext={...short,queueId:'latency-next'};}
-await writeFile(path.join(profile,'player-state.json'),JSON.stringify({version:1,state:{queue:performanceOnly?Array.from({length:500},(_,i)=>({...legacyTrack,queueId:'native-perf-'+i})):[{...legacyTrack,queueId:'legacy-queue-item'},...latencyNext?[latencyNext]:[]],index:0,recent:[legacyTrack],position:latencyOnly&&!process.argv.includes('--restore-eight')?0:8,volume:0.7,muted:false,shuffle:false,repeat:'off',theme:'dark'}}));
+await writeFile(path.join(profile,'player-state.json'),JSON.stringify({version:1,state:{queue:switchTracks??(performanceOnly?Array.from({length:500},(_,i)=>({...legacyTrack,queueId:'native-perf-'+i})):[{...legacyTrack,queueId:'legacy-queue-item'},...latencyNext?[latencyNext]:[]]),index:0,recent:[legacyTrack],position:latencyOnly&&!process.argv.includes('--restore-eight')?0:8,volume:0.7,muted:false,shuffle:false,repeat:'off',theme:'dark'}}));
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!(/^(PYTHON|YOUTUBE_|RITVIO_|ELECTRON_|NODE_)/i.test(key))));
 env.PATH=path.join(process.env.SystemRoot,'System32');
 env.TEMP=temporary;env.TMP=temporary;
@@ -169,6 +185,11 @@ try {
   else if(radioOnly){await runNativeRadio({page,version,profile,capture});}
   else if(requestStressOnly){await runNativeRequestStress({page,version,profile,mediaId:legacyTrack.id,expectLocalLimit:process.argv.includes('--expect-local-limit')});}
   else if(latencyOnly){await runNativeLatency({page,version,profile,nextTitle:latencyNext.title,initialPosition:process.argv.includes('--restore-eight')?8:0});}
+  else if(switchControlOnly){
+    const result=await runNativeSwitchControl({page,profile,codec:switchCodec,cycles:switchCycles,close,launch:async()=>{page=await launch();return page;},getNative:()=>({rootPid:child.pid,endpoint:debuggingEndpoint}),
+      disconnect:async()=>{await browser.close();browser=undefined;expect(child.exitCode).toBe(null);},reconnect:async()=>{browser=await chromium.connectOverCDP(debuggingEndpoint);page=browser.contexts()[0].pages()[0];return {page,browser};}});
+    console.log(JSON.stringify({scope:'native-switch-complete',codec:switchCodec,profile,...result}));
+  }
   else if(mediaControlOnly){
     const result=await runNativeMediaControl({page,browser,rootPid:child.pid,profile,mode:mediaControlMode,seconds:mediaControlSeconds,
       disconnect:async()=>{await browser.close();browser=undefined;expect(child.exitCode,'Disconnecting CDP must leave the native app alive').toBe(null);},
