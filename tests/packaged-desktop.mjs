@@ -7,6 +7,7 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 import net from 'node:net';
 import {runNativeSoak} from './packaged-performance.mjs';
+import {runNativeMediaControl} from './packaged-media-control.mjs';
 import {createNativeResourceProbe} from './native-resource-probe.mjs';
 import {runNativeLatency} from './packaged-latency.mjs';
 import {runNativeRequestStress} from './packaged-request-stress.mjs';
@@ -17,7 +18,15 @@ import {runNativeStorySharing} from './packaged-story-sharing.mjs';
 import {runNativeStoryAudio} from './packaged-story-audio.mjs';
 import {runNativeHome} from './packaged-home.mjs';
 const root=process.cwd();
-const performanceOnly=process.argv.includes('--performance');
+const mediaControlIndex=process.argv.indexOf('--media-control');
+const mediaControlOnly=mediaControlIndex>=0;
+const mediaControlMode=mediaControlOnly?process.argv[mediaControlIndex+1]:undefined;
+const mediaControlSecondsIndex=process.argv.indexOf('--control-seconds');
+const mediaControlSeconds=mediaControlSecondsIndex<0?600:Number(process.argv[mediaControlSecondsIndex+1]);
+if(mediaControlOnly&&(!['intercepted','http-connected','http-detached'].includes(mediaControlMode)||!Number.isInteger(mediaControlSeconds)||mediaControlSeconds<60||mediaControlSeconds>3600))throw Error('--media-control requires intercepted, http-connected or http-detached; --control-seconds must be 60–3600');
+if(mediaControlSecondsIndex>=0&&!mediaControlOnly)throw Error('--control-seconds requires --media-control');
+if(mediaControlOnly&&['--performance','--soak','--soak-seconds','--resource-samples','--retained-heap','--latency','--request-stress','--radio','--autoplay','--library-restyle','--story-sharing','--story-audio','--quality','--home','--search-layout','--library-sharing','--catalog','--player-controls','--listening-preferences','--lyrics-controls','--readability','--accessibility','--motion-controls'].some(flag=>process.argv.includes(flag)))throw Error('--media-control must run separately from other probe modes');
+const performanceOnly=process.argv.includes('--performance')||mediaControlOnly;
 const soakSecondsIndex=process.argv.indexOf('--soak-seconds');
 const soakSeconds=soakSecondsIndex<0?60:Number(process.argv[soakSecondsIndex+1]);
 if(soakSecondsIndex>=0&&(!performanceOnly||!process.argv.includes('--soak')||!Number.isInteger(soakSeconds)||soakSeconds<60||soakSeconds>7200))throw Error('--soak-seconds requires --performance --soak and an integer from 60 to 7200');
@@ -71,7 +80,7 @@ env.PATH=path.join(process.env.SystemRoot,'System32');
 env.TEMP=temporary;env.TMP=temporary;
 env.RITVIO_TEST_HIDDEN='true';env.RITVIO_TEST_USER_DATA=profile;
 env.RITVIO_TEST_FILE_DIR=path.join(profile,'exports');
-let child,browser,page;
+let child,browser,page,debuggingEndpoint;
 let launchStarted;
 async function capture(filename){
   // Do not force-disable animations when capturing a hidden Electron window:
@@ -100,7 +109,8 @@ async function launch(){
     if(child.exitCode!==null)throw Error(`Il launcher si è chiuso con codice ${child.exitCode}`);
     try{return(await fetch(`http://127.0.0.1:${port}/json/version`,{signal:AbortSignal.timeout(1000)})).ok;}catch{return false;}
   },{timeout:90000,intervals:[500,1000,2000]}).toBe(true);
-  browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+  debuggingEndpoint=`http://127.0.0.1:${port}`;
+  browser=await chromium.connectOverCDP(debuggingEndpoint);
   await expect.poll(()=>browser.contexts()[0]?.pages().length??0,{timeout:30000}).toBeGreaterThan(0);
   const page=browser.contexts()[0].pages()[0];page.on('crash',()=>console.error('Packaged renderer crashed'));await page.waitForLoadState('domcontentloaded');return page;
 }
@@ -159,6 +169,12 @@ try {
   else if(radioOnly){await runNativeRadio({page,version,profile,capture});}
   else if(requestStressOnly){await runNativeRequestStress({page,version,profile,mediaId:legacyTrack.id,expectLocalLimit:process.argv.includes('--expect-local-limit')});}
   else if(latencyOnly){await runNativeLatency({page,version,profile,nextTitle:latencyNext.title,initialPosition:process.argv.includes('--restore-eight')?8:0});}
+  else if(mediaControlOnly){
+    const result=await runNativeMediaControl({page,browser,rootPid:child.pid,profile,mode:mediaControlMode,seconds:mediaControlSeconds,
+      disconnect:async()=>{await browser.close();browser=undefined;expect(child.exitCode,'Disconnecting CDP must leave the native app alive').toBe(null);},
+      reconnect:async()=>{browser=await chromium.connectOverCDP(debuggingEndpoint);page=browser.contexts()[0].pages()[0];return {page,browser};}});
+    console.log(JSON.stringify({scope:'native-media-control-complete',profile,mode:mediaControlMode,elapsedSeconds:result.elapsedSeconds,audioAdvancedSeconds:result.audioAdvancedSeconds,report:path.join(profile,'media-control.json')}));
+  }
   else if(performanceOnly){
     const cdp=await page.context().newCDPSession(page);await cdp.send('Performance.enable');
     const samples=[];

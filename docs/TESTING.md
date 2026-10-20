@@ -145,9 +145,37 @@ The subsequent hour-long controlled run on the same machine and published ZIP co
 | Paused 30 seconds, no forced GC | 479.7 | 91.8 | 247.9 | 116.3 | 10.5 |
 | New process paused, explicit GC | 397.7 | 104.8 | 55.9 | 178.3 | 5.8 |
 
-This establishes the controlled functional run, **not a resolved memory issue**. At the navigation GC endpoints, nodes were 819 → 814 and listeners 348 → 348; main private memory stayed close to baseline, but renderer private memory increased substantially beyond its measured JS heap and remained elevated after recovery/pause. Native media allocations, process caches and debugger preservation have not been separated. [CDP documents network-payload buffers](https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-enable); that is a measurement limitation, not proof they caused all the growth. No product optimisation is claimed from these observations.
+This establishes the controlled functional run, **not a resolved memory issue**. At the navigation GC endpoints, nodes were 819 → 814 and listeners 348 → 348; main private memory stayed close to baseline, but renderer private memory increased substantially beyond its measured JS heap and remained elevated after recovery/pause. At that stage, native media allocations, process caches and debugger preservation had not been separated. [CDP documents network-payload buffers](https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-enable); that is a measurement limitation, not proof they caused all the growth. No product optimisation is claimed from these observations.
 
 The fixture uses mono 8 kHz/16-bit generated PCM, 500 occurrences of one reference item with 61 initially rendered rows, and missing lyrics. It is not broad catalogue/codec coverage. The hidden-window frame check was insufficient for a visible-FPS conclusion. Real-provider hour-long listening, real OS suspend/resume, physical-phone and broad accessibility acceptance remain separate; a fresh paused process has no loaded audio decoder and has different helper lifetimes, so its lower total is not a like-for-like playback measurement.
+
+#### Media transport and observer controls
+
+To separate media response interception from a connected debugger, run these three **separate fresh-profile** controls against the same extracted Windows ZIP:
+
+```powershell
+node tests/packaged-desktop.mjs --media-control intercepted --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --media-control http-connected --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --media-control http-detached --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+```
+
+All arms use the same generated PCM, finite 256 KiB ranges, hidden native window, 500 repeated queue references and idle Now playing view. `intercepted` fulfills media through Playwright; `http-connected` serves identical bytes from an ephemeral loopback HTTP server while Playwright stays connected. `http-detached` uses that server and disconnects Playwright/CDP after starting playback. During all three measured intervals, only Windows process counters are polled, approximately every 30 seconds; connected arms receive no periodic heap/DOM queries. Renderer roles come from the initial CDP process map and are attached only to matching PID/creation identities. New helper process lifetimes are unclassified; replacement of the single identified renderer fails this comparison.
+
+The initial HTML response keeps its original document body and app origin. **In these test profiles only**, its CSP `media-src` adds the exact ephemeral loopback fixture origin; no production CSP, executable or ASAR is changed. Other CSP directives remain intact. Small playback descriptors are intercepted during setup. For the detached arm all routes are removed before disconnecting, so media delivery no longer depends on the automation connection. Playwright's CDP connection close disconnects its transport; the harness separately verifies the native app remains alive. The debugger port remains enabled on loopback, so this is not a completely debug-disabled launch.
+
+`media-control.json` is checkpointed in the isolated profile with `complete: false` until the measured interval ends, reconnection succeeds where needed, playback position advances with elapsed time, the transport bounds pass and playback pauses. The final OS memory sample precedes reconnection; endpoint heap/DOM/GC observations are instrumented and reported separately. PCM/server and native processes are closed on completion or failure. Reports contain process counters rather than command lines or app tokens.
+
+This is a **playback-only causal control**, not a repeat of the hour-long UI-navigation workload. Do not treat its lower memory level as a production optimisation or a passed long-term real-provider gate. Compare trends within each arm, allow for startup/native-cache settling, and repeat ambiguous results. The deterministic arm order, single session per arm, hidden window and other desktop activity limit causal confidence. `tests/native-media-fixture.test.ts` checks that real HTTP and intercepted ranges return identical bounded bytes.
+
+On 20 October 2026, all three 600-second playback controls passed on the same published 0.7.5 runtime and machine above. They used 63 OS samples across the measured intervals and identical 11,520,044-byte WAV resources, 44 finite responses per arm, with no invalid requests. The renderer identity stayed unchanged in every sample. All observed processes exited, and executable/ASAR hashes matched before and after. Core tests ran outside these three measured intervals. The final 226/226 core tests, TypeScript, documentation and public-source checks passed; a subsequent 60-second disconnected preflight also passed after adding stricter identity/CSP assertions and error cleanup.
+
+| Control | Media advanced | Renderer OS private MiB, first → last | Renderer private MiB, GC endpoints | Renderer heap MiB, GC endpoints |
+| --- | ---: | ---: | ---: | ---: |
+| Intercepted, connected | 600 s | 82.9 → 108.3 | 82.9 → 101.4 | 5.85 → 6.16 |
+| HTTP, connected | 601 s | 82.5 → 106.0 | 82.5 → 100.4 | 5.85 → 6.16 |
+| HTTP, disconnected | 601 s | 81.9 → 85.9 | 81.9 → 84.5 | 5.85 → 6.92 |
+
+Serving media over HTTP alone did not eliminate the increase. Disconnecting the observer reduced the increase in this single playback-only comparison; the responsible debugger subsystem was not isolated. This supports a measurement contribution, **not** an explanation of all prior hour-long UI-navigation growth or a product fix. Do not hide residual growth by using only the first/last snapshots: after initial settling, descriptive renderer-private slopes from minute 2 onward were approximately 3.01 / 2.89 / 1.44 MiB/minute respectively. Those are single-run regressions, not replicated statistical estimates. PCM/native-media allocations and caches still need classification with realistic codecs, repeated track changes and an equivalent navigation control. Reconnection itself can affect the disconnected arm's final heap/listener observation. No production leak is confirmed or declared resolved, and no application binary changed.
 
 ### Windows startup comparison
 
