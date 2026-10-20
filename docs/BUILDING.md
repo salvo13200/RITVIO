@@ -45,7 +45,9 @@ pnpm licenses:collect
 pnpm package:windows
 ```
 
-This builds the frontend/API, includes a separate Python runtime and production Node dependencies, and creates portable and per-user NSIS installer EXEs in `release/`, each with a `.sha256` sidecar. Packaging stages dependencies in an isolated pnpm project to avoid pulling Android development modules into the installer. Signing is not configured for Authenticode; SmartScreen warnings may appear.
+This builds the frontend/API, includes a separate Python runtime and production Node dependencies, and creates the self-extracting portable EXE, per-user NSIS installer EXE and extract-once portable ZIP in `release/`, each with a `.sha256` sidecar. Use `pnpm package:windows --zip-only` to build only the ZIP candidate. Packaging stages dependencies in an isolated pnpm project to avoid pulling Android development modules into the installer. Signing is not configured for Authenticode; SmartScreen warnings may appear.
+
+For the ZIP, extract the **entire archive** into a folder and start its `RITVIO.exe`. Keep the adjacent `resources`, runtime and other files together. Unlike the self-extracting EXE, subsequent launches do not unpack the whole application again. Both formats use the existing Windows user-data directory; the ZIP is an installation-free application folder, not a separate profile on a USB drive. Close RITVIO before extracting an update into a new folder; personal library data stay outside that folder. Building a candidate does not publish it or change existing GitHub downloads.
 
 The installer lifecycle test refuses existing RITVIO installations/open apps and does not terminate the user's player. Read `tests/installer-lifecycle.mjs` before running `pnpm test:installer` on an appropriate clean Windows environment.
 

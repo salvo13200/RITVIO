@@ -6,7 +6,7 @@ const root=path.resolve(import.meta.dirname,'..'),release=path.join(root,'releas
 const desktop=JSON.parse(await readFile(path.join(root,'package.json'),'utf8')),mobile=JSON.parse(await readFile(path.join(root,'apps/mobile/package.json'),'utf8'));
 const gradle=await readFile(path.join(root,'apps/mobile/android/app/build.gradle'),'utf8');
 if(!gradle.includes(`versionName "${mobile.version}"`))throw Error('Android package and Gradle versions differ');
-const names=[`RITVIO-${desktop.version}-portatile.exe`,`RITVIO-${desktop.version}-setup.exe`,`RITVIO-Android-${mobile.version}.apk`,'RITVIO-public-source.zip','RITVIO-resolver-sources.zip'];
+const names=[`RITVIO-${desktop.version}-portatile.exe`,`RITVIO-${desktop.version}-setup.exe`,`RITVIO-${desktop.version}-portatile.zip`,`RITVIO-Android-${mobile.version}.apk`,'RITVIO-public-source.zip','RITVIO-resolver-sources.zip'];
 const files=[];
 for(const name of names){const bytes=await readFile(path.join(release,name));if(name.endsWith('.exe')&&bytes.subarray(0,2).toString()!=='MZ')throw Error('Invalid Windows executable');if(/\.(zip|apk)$/.test(name)&&bytes.subarray(0,2).toString()!=='PK')throw Error('Invalid ZIP/APK');files.push({name,bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});}
 const jdkBase=path.join(root,'.packaging/android-tools/jdk');

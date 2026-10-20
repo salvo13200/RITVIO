@@ -56,7 +56,7 @@ For a Windows-only update, use a versioned tag such as `windows-v0.7.3`, attach 
 
 Use [the release checklist](RELEASE_CHECKLIST.md). Current native phone checks are open, so mark the initial public build as a **prerelease**, with the limitations from [release notes](RELEASE_NOTES.md). Keep Windows and Android version numbers distinct; do not reset the Android versionCode/signing key to call both apps 1.0.
 
-From the exact reviewed source commit used to build the assets, create a tag such as `public-preview-1` and a GitHub draft release. Attach only the files listed in `release/RELEASE-MANIFEST.json`, plus `SHA256SUMS` and the manifest itself: Windows portable/installer, signed APK, RITVIO source archive, exact resolver source archive. Do not upload local logs, private design reviews, signing keys or the old build history. Never attach old binaries to a tag with changed runtime source.
+From the exact reviewed source commit used to build the assets, create a tag such as `public-preview-1` and a GitHub draft release. Attach only the files listed in `release/RELEASE-MANIFEST.json`, plus `SHA256SUMS` and the manifest itself: Windows portable EXE, installer EXE and extract-once portable ZIP, signed APK, RITVIO source archive, exact resolver source archive. Do not upload local logs, private design reviews, signing keys or the old build history. Never attach old binaries to a tag with changed runtime source.
 
 Verify downloads and SHA-256, inspect source content, and test update/install from the downloaded assets before publishing the draft. Add actual relative release links to README after a release exists; no fake repository URL or expiring hosting link is embedded in the prepared README. Keep sources available as long as binaries are offered.
 

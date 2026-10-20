@@ -55,6 +55,8 @@ jobs:
           path: |
             release/*.exe
             release/*.exe.sha256
+            release/*-portatile.zip
+            release/*-portatile.zip.sha256
           if-no-files-found: error
           retention-days: 7
           compression-level: 0

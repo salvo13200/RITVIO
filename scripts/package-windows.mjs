@@ -6,6 +6,8 @@ import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import {build,Platform,Arch} from 'electron-builder';
 const root=path.resolve(fileURLToPath(new URL('../',import.meta.url)));
+const zipOnly=process.argv.includes('--zip-only');
+const windowsTargets=zipOnly?['zip']:['portable','nsis','zip'];
 // Avoid the builder's default ultra-compression memory spike on modest PCs.
 process.env.ELECTRON_BUILDER_COMPRESSION_LEVEL??='1';
 await import('./collect-licenses.mjs');
@@ -92,10 +94,10 @@ await writeFile(path.join(notices,'LEGGIMI.txt'),'RITVIO contiene runtime e libr
 // Never replace an unpacked app the user may be running. Each build owns its
 // intermediate output; only finished distributable artifacts go to release.
 const windowsOutput=path.join(staging,`windows-${pkg.version}-${Date.now()}`);
-await build({targets:Platform.WINDOWS.createTarget(['portable','nsis'],Arch.x64),config:{
+await build({targets:Platform.WINDOWS.createTarget(windowsTargets,Arch.x64),config:{
   appId:'it.ritvio.desktop',productName:'RITVIO',electronVersion:pkg.devDependencies.electron,
   electronDist:path.join(root,'node_modules/electron/dist'),directories:{app:appDir,output:windowsOutput,buildResources:path.join(root,'build-resources')},
-  asar:true,npmRebuild:false,nodeGypRebuild:false,publish:null,compression:'normal',
+  asar:true,npmRebuild:false,nodeGypRebuild:false,publish:null,compression:'normal',artifactName:'RITVIO-${version}-portatile.${ext}',
   files:['package.json','apps/desktop/**','dist/**','node_modules/**','!node_modules/@capacitor/**'],
   extraResources:[{from:runtime,to:'runtime/python',filter:['**/*','!**/__pycache__/**','!**/*.pyc','!**/bin/**']},
     {from:path.join(root,'scripts/music-catalog.py'),to:'scripts/music-catalog.py'},
@@ -103,7 +105,7 @@ await build({targets:Platform.WINDOWS.createTarget(['portable','nsis'],Arch.x64)
     {from:path.join(root,'scripts/playlist-catalog.py'),to:'scripts/playlist-catalog.py'},
     {from:path.join(root,'scripts/playback-worker.py'),to:'scripts/playback-worker.py'},
     {from:notices,to:'licenze'}],
-  win:{target:['portable','nsis'],executableName:'RITVIO',icon:path.join(root,'build-resources/icon.ico'),signAndEditExecutable:true,signExecutable:false,requestedExecutionLevel:'asInvoker'},
+  win:{target:windowsTargets,executableName:'RITVIO',icon:path.join(root,'build-resources/icon.ico'),signAndEditExecutable:true,signExecutable:false,requestedExecutionLevel:'asInvoker'},
   // In the pinned builder 26.15.3, true omits UNPACK_DIR_NAME and uses NSIS's
   // unique $PLUGINSDIR for each launch. false uses a shared directory per build.
   portable:{artifactName:'RITVIO-${version}-portatile.${ext}',requestExecutionLevel:'user',unpackDirName:true},
@@ -111,10 +113,10 @@ await build({targets:Platform.WINDOWS.createTarget(['portable','nsis'],Arch.x64)
     installerLanguages:['en_US','it_IT'],language:'1033',displayLanguageSelector:true,packElevateHelper:false,runAfterFinish:false,
     createDesktopShortcut:true,createStartMenuShortcut:true,deleteAppDataOnUninstall:false,include:path.join(root,'build-resources/installer.nsh')},
 }});
-for(const variant of ['portatile','setup']){
-  const exe=path.join(root,'release',`RITVIO-${pkg.version}-${variant}.exe`);
+for(const [variant,extension] of zipOnly?[['portatile','zip']]:[['portatile','exe'],['setup','exe'],['portatile','zip']]){
+  const exe=path.join(root,'release',`RITVIO-${pkg.version}-${variant}.${extension}`);
   await mkdir(path.dirname(exe),{recursive:true});
   await cp(path.join(windowsOutput,path.basename(exe)),exe);
   await writeFile(`${exe}.sha256`,`${createHash('sha256').update(await readFile(exe)).digest('hex')}  ${path.basename(exe)}\n`);
-  console.log(`EXE pronto: ${exe} (${Math.round((await stat(exe)).size/1048576)} MiB)`);
+  console.log(`Pacchetto pronto: ${exe} (${Math.round((await stat(exe)).size/1048576)} MiB)`);
 }

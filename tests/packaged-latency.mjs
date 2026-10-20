@@ -20,7 +20,10 @@ export async function runNativeLatency({page,version,profile,nextTitle='Big Buck
   const streamStatuses=[];page.on('response',response=>{if(response.url().includes('/v1/stream/'))streamStatuses.push({status:response.status(),type:response.headers()['content-type']});});
   const count=()=>page.evaluate(()=>window.__nativePlayback.records.length);
   try{await page.locator('.play-button').click();await expect.poll(count,{timeout:45000}).toBe(1);
-  await page.getByRole('slider',{name:'Posizione del brano',exact:true}).fill('8');await expect.poll(()=>page.evaluate(()=>window.__nativePlayback.audio.currentTime),{timeout:10000}).toBeGreaterThanOrEqual(8);
+  await page.getByRole('slider',{name:'Posizione del brano',exact:true}).fill('8');
+  // Assigning currentTime updates it before the asynchronous seek has finished.
+  // Settle that live seek before measuring pause/resume as a separate action.
+  await expect.poll(()=>page.evaluate(()=>{const a=window.__nativePlayback.audio;return a.currentTime>=8&&!a.seeking&&a.readyState>=3;}),{timeout:15000}).toBe(true);
   await page.locator('.play-button').click();await expect.poll(()=>page.evaluate(()=>window.__nativePlayback.audio.paused)).toBe(true);
   const beforeResume=requests.filter(r=>!r.prepared).length;
   await page.locator('.play-button').click();await expect.poll(count,{timeout:15000}).toBe(2);expect(requests.filter(r=>!r.prepared)).toHaveLength(beforeResume);

@@ -98,6 +98,38 @@ Do not substitute fixture or JVM results for this checklist. Use the official up
 
 Record app version, exact SHA-256, device/OS, connection, duration, result and diagnostic report when available. Strip personal listening identifiers before sharing reports. No hour-long phone trial or Bluetooth/call pass is implied by building these candidates.
 
+### Controlled Windows endurance probe
+
+The opt-in portable probe uses a new isolated profile, 500 stored queue items and locally generated PCM. It navigates Audio settings, lyrics and the queue while checking that media time keeps pace with real elapsed time, then injects a playback failure, retries and verifies the paused queue/position after restart. It does not use or alter the personal installation/library.
+
+```powershell
+node tests/packaged-desktop.mjs --performance --soak --soak-seconds 600 --exe-version 0.7.4
+```
+
+`--soak-seconds` accepts 60–7200 whole seconds and requires `--performance --soak`. Omit it for the existing 60-second smoke check; use `3600` for a real elapsed hour. The generated recording and descriptor lifetime cover the requested interval. The probe prints progress approximately every 30 seconds, after the current navigation cycle; a successful report records the requested/actual navigation duration, media-time advancement and the largest observed interval between progress samples. The interval includes navigation/sampling time and is not a measured audible gap. Results go to `test-results/native/NATIVE-<version>.json` only after the full probe succeeds. A controlled hidden-window run cannot establish real-provider continuity, whole-process memory stability, OS suspend/resume, phone battery use, calls or Bluetooth; retain the native acceptance checklist above.
+
+The separate `--latency` probe waits for its initial live seek to finish with sufficient media readiness before measuring pause/resume. Reading the assigned `currentTime` alone cannot establish that a seek has completed; otherwise the subsequent resume measurement can include the pending seek.
+
+The controlled fault interrupts both descriptor resolution and prepared media delivery, so a cached descriptor cannot bypass it. A navigation checkpoint in the isolated profile (`soak-navigation.json`) records only that phase, with retry/restart still pending; it must not be reported as a complete pass if later assertions fail. `soak-complete.json` is written only after those assertions succeed. Relaunch also updates the caller's page before further renderer checks, rather than querying the closed window.
+
+### Windows startup comparison
+
+On a Windows machine without an existing RITVIO installation, shortcuts or open app:
+
+```powershell
+node tests/desktop-startup.mjs --version 0.7.4 --samples 3
+```
+
+This verifies the EXE checksum sidecars, temporarily installs that exact version under a new `.packaging/startup-*` directory, then alternates installer/portable launches sequentially. Every launch gets a fresh English user-data directory and clean PATH. The probe measures debug availability, rendered search controls and usable Settings separately; it does not wait for online Home collections or measure first-track audio. It refuses existing installations/open players, closes only its own processes, checks the exact test uninstaller's registration and verifies personal data fingerprints after cleanup. A report is marked complete only after cleanup succeeds. Results are in `test-results/startup/desktop-<version>.json`.
+
+To check an already extracted ZIP without running an installer, provide its staged executable under this workspace's `.packaging/` directory:
+
+```powershell
+node tests/desktop-startup.mjs --version 0.7.5 --samples 3 --folder-only --folder-exe .packaging/zip-check/RITVIO.exe
+```
+
+That report is `test-results/startup/folder-<version>.json`. These are hidden native-window samples with OS/security caches retained, not cold-boot or visible-paint benchmarks. A large delay before debug availability locates work before the renderer; it cannot by itself distinguish decompression, disk access and antivirus scanning. Do not disable system protections to improve the result. Keep first and subsequent samples; do not substitute extraction-free folder timings for self-extracting EXE timings.
+
 ## Listening tools: Android 1.3.0 / Windows 0.7.5 candidate
 
 [Android 1.3.0 is published as a public preview](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0) after the maintainer authorised the exact signed APK; Windows 0.7.5 remains an unpublished candidate. This increment adapts Android lyric sharing, queue and lyric reading to full-height task workspaces. Sharing keeps selection and preview as separate history entries; Back preserves the contiguous excerpt and frozen track. The shared desktop/Android canvas measures wrapped lyric and credit rows before centring a content-sized inner card in the unchanged 1080×1920 image. It never stretches the thumbnail behind the verses. Preview generation/export must not issue playback or queue commands.

@@ -17,6 +17,9 @@ import {runNativeStoryAudio} from './packaged-story-audio.mjs';
 import {runNativeHome} from './packaged-home.mjs';
 const root=process.cwd();
 const performanceOnly=process.argv.includes('--performance');
+const soakSecondsIndex=process.argv.indexOf('--soak-seconds');
+const soakSeconds=soakSecondsIndex<0?60:Number(process.argv[soakSecondsIndex+1]);
+if(soakSecondsIndex>=0&&(!performanceOnly||!process.argv.includes('--soak')||!Number.isInteger(soakSeconds)||soakSeconds<60||soakSeconds>7200))throw Error('--soak-seconds requires --performance --soak and an integer from 60 to 7200');
 const latencyOnly=process.argv.includes('--latency');
 const requestStressOnly=process.argv.includes('--request-stress');
 const radioOnly=process.argv.includes('--radio');
@@ -166,7 +169,7 @@ try {
     let retainedMetrics;
     if(process.argv.includes('--retained-heap')){await cdp.send('HeapProfiler.collectGarbage');retainedMetrics=Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.filter(m=>['JSHeapUsedSize','JSHeapTotalSize','Nodes'].includes(m.name)).map(m=>[m.name,m.value]));}
     const resources=await page.evaluate(()=>performance.getEntriesByType('resource').filter(entry=>entry.name.includes('/assets/')&&entry.name.endsWith('.js')).map(entry=>({url:entry.name,bytes:entry.decodedBodySize,duration:entry.duration})));
-    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch,profile}):undefined;
+    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch:async()=>{page=await launch();return page;},profile,seconds:soakSeconds}):undefined;
     const frameTimes=await page.evaluate(()=>new Promise(resolve=>{const samples=[];let last;const fallback=setTimeout(()=>resolve({count:samples.length,unavailable:'Hidden window did not deliver 90 frames within 8 seconds; cannot infer visible FPS'}),8000);const tick=now=>{if(last!==undefined)samples.push(now-last);last=now;if(samples.length<90)requestAnimationFrame(tick);else{clearTimeout(fallback);samples.sort((a,b)=>a-b);resolve({count:samples.length,medianMs:samples[45],p95Ms:samples[85],maxMs:samples.at(-1),scope:'Hidden-window rAF intervals while idle; not motion FPS or an interactive animation benchmark'});}};requestAnimationFrame(tick);}));
     const record={version,frameTimes,scope:'packaged-performance',conditions:'One isolated hidden Windows portable launch, clean PATH; startup includes launcher extraction, no startup-speed or FPS guarantee; 3 warm UI transitions per page, 500 stored queue items, 61 initially rendered with load-more; CDP renderer metrics before soak, not whole-process RAM; retainedMetrics only when explicit GC requested',startupToVisibleMs,samples,metrics,retainedMetrics,resources,profile,soak};
     await mkdir(path.join(root,'test-results/native'),{recursive:true});await writeFile(path.join(root,`test-results/native/NATIVE-${version}${retainedMetrics?'-retained':''}.json`),JSON.stringify(record,null,2));console.log(JSON.stringify(record));
