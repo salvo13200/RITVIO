@@ -45,7 +45,7 @@ jobs:
       - run: pnpm i18n:check
       - run: pnpm exec tsx --test --test-concurrency=2 tests/*.test.ts
       - run: pnpm exec playwright install msedge
-      - run: pnpm exec playwright test --config tests/config/playwright.playback.config.ts
+      - run: pnpm exec playwright test --config tests/config/playwright.playback.config.ts --trace retain-on-failure
       - run: pnpm package:windows
       - name: Isolated installer lifecycle
         run: node tests/installer-lifecycle.mjs
@@ -55,6 +55,16 @@ jobs:
           path: |
             release/*.exe
             release/*.exe.sha256
+            release/*-portatile.zip
+            release/*-portatile.zip.sha256
           if-no-files-found: error
           retention-days: 7
           compression-level: 0
+      - name: Upload browser failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: RITVIO-Windows-browser-failure-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/playwright/
+          if-no-files-found: ignore
+          retention-days: 7
