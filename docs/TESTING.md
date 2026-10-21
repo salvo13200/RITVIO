@@ -1,5 +1,9 @@
 # Testing from a clean checkout
 
+## Current stable delivery
+
+Windows 1.0.0 / Android 1.4.0 acceptance, source correspondence, remote CI and public-download checks are recorded in [Quality status](QUALITY_STATUS.md). The staged test descriptions below distinguish their original source-only scope from later native acceptance; a browser fixture never substitutes for a physical-device result.
+
 ## Help and local presentation preparation
 
 `pnpm exec tsx --test tests/resolver-shutdown.test.ts` includes a real loopback HTTP connection held open during shutdown. It distinguishes listening-server exit from injection-only tests: quitting must stop renderer connections without waiting for an unfinished response, while existing resolver cancellation and cache-integrity checks still pass.

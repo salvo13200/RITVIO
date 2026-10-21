@@ -1,6 +1,6 @@
 # What you can do with RITVIO
 
-The local, unpublished sharing increment adds RITVIO song-reference links, a desktop **Copy text + link** action, and Android image captions with a short track message and link. A reference opens in the existing static download page with a fixed source link and official Android/Windows downloads; viewing it does not require installation. Deployment and installed-package verification are required before shipping. PNG cards remain image-only, and receiving apps may discard captions. Direct opening inside RITVIO and QR codes are not included in this increment.
+Windows 1.0.0 and Android 1.4.0 include RITVIO song-reference links, a desktop **Copy text + link** action, and Android image captions with a short track message and link. A reference opens in the existing static download page with a fixed source link and official Android/Windows downloads; viewing it does not require installation. PNG cards remain image-only, and receiving apps may discard captions. Direct opening inside RITVIO and QR codes are not included in this increment.
 
 [Back to RITVIO](../README.md) · [Screenshots](SCREENSHOTS.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases)
 
@@ -16,7 +16,7 @@ Like tracks, follow artists/albums, make playlists and keep listening history on
 
 No hosted account is required. Windows and Android libraries are separate: automatic cross-device synchronisation and online collaboration are not implemented.
 
-The unpublished first-use increment adds contextual search/import actions for an empty collection, supported-format help before reading a playlist and a transfer result with added, skipped-duplicate, unavailable and unselected counts. Android keeps that result open until you choose a next action. No mandatory tour, account or automatic library migration is added. Existing published packages retain their earlier interface; updated screenshots accompany the eventual candidate.
+The current releases include contextual search/import actions for an empty collection, supported-format help before reading a playlist and a transfer result with added, skipped-duplicate, unavailable and unselected counts. Android keeps that result open until you choose a next action. No mandatory tour, account or automatic library migration is added. See the current [walkthrough](ADOPTION.md) for these flows.
 
 ## Shape the listening session
 
@@ -52,8 +52,8 @@ English and Italian are available through Settings. Both platforms use the RITVI
 
 ### Updates in the current source
 
-The next candidate adds **Settings → Updates** on Windows and an **Updates** section in Android Settings. Check manually, optionally enable startup checks (at most daily), and choose whether to include previews. Available updates link to the official package and release notes for the current platform; installation remains manual and the existing local library is retained when updating the official installation without uninstalling. Network errors do not stop playback. These controls are source changes awaiting a new candidate, not a feature of the already published Windows 0.7.5 / Android 1.3.1 packages.
+The current releases include **Settings → Updates** on Windows and an **Updates** section in Android Settings. Check manually, optionally enable startup checks (at most daily), and choose whether to include previews. Available updates link to the official package and release notes for the current platform; installation remains manual and the existing local library is retained when updating the official installation without uninstalling. Network errors do not stop playback. Older previews lack this update control; their users can install the current official package from the download page.
 
 ### Service and platform limits
 
-RITVIO is a public preview. Offline audio downloads, online accounts, cloud sync and live social collaboration are not available. Unofficial catalogue resolvers can break or be rate-limited; lyrics and metadata depend on their sources. Read [release notes](RELEASE_NOTES.md), [privacy](../PRIVACY.md) and [source/licensing information](../THIRD_PARTY_NOTICES.md).
+The current Windows and Android releases are stable. Offline audio downloads, online accounts, cloud sync and live social collaboration are not available. Unofficial catalogue resolvers can break or be rate-limited; lyrics and metadata depend on their sources. Read [release notes](RELEASE_NOTES.md), [privacy](../PRIVACY.md) and [source/licensing information](../THIRD_PARTY_NOTICES.md).

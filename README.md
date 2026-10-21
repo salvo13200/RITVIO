@@ -5,7 +5,7 @@
 **A free, open-source music player for Windows and Android.** Discover something new, keep a library of your own and make room for the music you love.
 
 <p>
-  <a href="https://github.com/salvo13200/RITVIO/releases"><strong>Download RITVIO</strong></a> ·
+  <a href="https://salvo13200.github.io/RITVIO/"><strong>Download RITVIO</strong></a> ·
   <a href="#a-look-inside">Screenshots</a> ·
   <a href="docs/FEATURES.md">Features</a> ·
   <a href="docs/README.md">Documentation</a> ·
@@ -16,7 +16,7 @@
 
 [![CI](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml/badge.svg)](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml) · [GPL-3.0-only](LICENSE) · [English](README.md) / [Italiano](README.it.md)
 
-> **Public preview:** Windows **0.7.5** · Android **1.3.1**. Both are available now. Read the [release notes and known limits](docs/RELEASE_NOTES.md) before installing; device coverage remains limited.
+> **Stable releases:** Windows **1.0.0** · Android **1.4.0**. [Choose your download](https://salvo13200.github.io/RITVIO/) or read the [release notes and known limits](docs/RELEASE_NOTES.md).
 
 ## A look inside
 
@@ -44,6 +44,8 @@ Windows has a full desktop workspace, an immersive player and a mini-player. And
 
 English and Italian are available. Choose your language in **Settings → Language** (desktop: Appearance). Music titles and lyrics keep their original language. Spanish, French and German are planned.
 
+Check official updates in Settings; startup checks and preview releases are optional. Read and inspect a report in Help before choosing to copy it or open GitHub. Nothing submits automatically.
+
 See the [feature and platform guide](docs/FEATURES.md). There is currently no offline audio download, cloud account, cross-device library sync or live social collaboration.
 
 ## Share a moment
@@ -64,10 +66,10 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 <!-- downloads:start -->
 | Platform | Package | Get it |
 | --- | --- | --- |
-| Windows 10/11 · x64 | Per-user installer | [Download Setup EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe) |
-| Windows 10/11 · x64 | Portable ZIP · extract once | [Download portable ZIP](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip) |
-| Windows 10/11 · x64 | Self-extracting portable EXE | [Download portable EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe) |
-| Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.1/RITVIO-Android-1.3.1.apk) |
+| Windows 10/11 · x64 | Per-user installer | [Download Setup EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-setup.exe) |
+| Windows 10/11 · x64 | Portable ZIP · extract once | [Download portable ZIP](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.zip) |
+| Windows 10/11 · x64 | Self-extracting portable EXE | [Download portable EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.exe) |
+| Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/android-v1.4.0/RITVIO-Android-1.4.0.apk) |
 <!-- downloads:end -->
 
 [All release files, source archives and SHA-256 checksums](https://github.com/salvo13200/RITVIO/releases).
@@ -78,7 +80,7 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 - Windows executables include their runtime and are not Authenticode-signed; SmartScreen may display a warning. Choose the installer or extract-once ZIP for everyday use. Extract the entire ZIP and launch its `RITVIO.exe`, keeping the adjacent files together. The self-extracting EXE still unpacks on each launch and can start slowly. All Windows formats use the existing local profile.
 - On Android, install the APK from the release. A differently signed fork cannot update an official installation.
 - Update an existing official installation without uninstalling first to retain local data. Keep your own backups.
-- These releases are public previews. Windows 0.7.5 adds the extract-once ZIP and adaptive lyric-sharing cards; Android 1.3.1 improves lyric-sharing readability with enlarged text and short windows, preview focus and accessible playback labels. The maintainer reported successful initial Android 16 phone checks for locked-screen listening, Wi-Fi/data handoff, skips/seeks and headphones/calls. Broader device, accessibility, Bluetooth reconnection and prolonged-background testing remain open; browser and JVM tests cannot establish those behaviours.
+- These stable releases add official update checks, clearer first-use/import flows, shared song references and inspectable Help reports. Windows update/restart and live playback checks passed; the exact Android APK was accepted on Android 16 for retained library, locked-screen skips/seeks, Gallery saving and Help context. Broader device, native accessibility, Bluetooth reconnect and genuine Windows OS suspend coverage remains limited. Browser/JVM tests and human phone acceptance are separate evidence.
 
 </details>
 

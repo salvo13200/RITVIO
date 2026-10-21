@@ -1,6 +1,6 @@
 # Feedback and release communication
 
-This is preparation for the combined release. It does not publish a post, announce a new package or claim the local additions are already downloadable. Use the final approved release link and matching screenshots when publication is authorized.
+Use the [stable downloads](https://salvo13200.github.io/RITVIO/) and matching screenshots when explaining the app. The sample copy below is not a posted announcement; publishing to a community requires its own authorization and compliance with community rules.
 
 ## Useful feedback
 
@@ -10,7 +10,7 @@ This is preparation for the combined release. It does not publish a post, announ
 
 Settings opens the matching form with app context only. Sign-in and submission take place on GitHub. An opened form is not a submitted report. Security-sensitive reports follow [the security policy](../SECURITY.md).
 
-Current priorities are a verified combined candidate, reliable everyday listening and clear, accessible sharing/help flows. Online accounts, cross-device sync and dedicated backup tooling remain later work. Keep public priorities few and update them when scope changes; do not promise dates or an update frequency.
+Current priorities are reliable everyday listening, actionable user reports and clear, accessible sharing/help flows. Online accounts, cross-device sync and dedicated backup tooling remain later work. Keep public priorities few and update them when scope changes; do not promise dates or an update frequency.
 
 ## Short release copy, ready to adapt
 

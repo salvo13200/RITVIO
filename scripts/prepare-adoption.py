@@ -33,7 +33,9 @@ video = video_source.read_bytes()
 if video[:4] != bytes.fromhex("1a45dfa3") or len(video) > 5_000_000:
     raise RuntimeError("Expected a bounded WebM UI recording")
 shutil.copyfile(video_source, output / video_source.name)
-manifest = {"schema": 1, "language": "en", "status": "Unpublished local source additions; public APK/EXE baselines are unchanged.",
+manifest = {"schema": 1, "language": "en", "status": "English interface captures; see release notes for published-package evidence.",
+            "versions": {"windows": json.loads((root / "package.json").read_text(encoding="utf-8"))["version"],
+                         "android": json.loads((root / "apps/mobile/package.json").read_text(encoding="utf-8"))["version"]},
             "origin": capture["origin"], "encoding": "Metadata-free lossless WebP; screenshot pixels unchanged.", "files": records,
             "video": {"file": video_source.name, "bytes": len(video), "sha256": hashlib.sha256(video).hexdigest(),
                       "kind": "silent-browser-ui-recording", "scope": "Search, fixture playback UI, lyrics, selection and card preview. Not native or audio evidence."}}

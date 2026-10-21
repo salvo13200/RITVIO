@@ -8,7 +8,7 @@
 | --- | --- |
 | [Features](FEATURES.md) | Listening, library, lyrics, sharing and differences between platforms. |
 | [Interface gallery](SCREENSHOTS.md) | English desktop/mobile screenshots, with capture origins explained. |
-| [Release notes](RELEASE_NOTES.md) | Current versions, preview status and known limitations. |
+| [Release notes](RELEASE_NOTES.md) | Current stable versions, historical previews and known limitations. |
 | [Privacy](../PRIVACY.md) | Local storage, external requests and personal data. |
 
 ## Build and contribute
@@ -27,4 +27,4 @@
 
 [Publication guide](PUBLISHING.md) · [Release checklist](RELEASE_CHECKLIST.md) · [GPLv3](../LICENSE) · [Third-party licences and asset origins](../THIRD_PARTY_NOTICES.md).
 
-The documentation describes the current source and published preview separately. A source maintenance PR does not replace an APK or EXE already attached to a release. The package version number alone is not evidence of complete physical-device validation.
+The documentation describes the current stable packages and historical previews separately. A source maintenance PR does not replace an APK or EXE already attached to a release. The package version number alone is not evidence of complete physical-device validation.

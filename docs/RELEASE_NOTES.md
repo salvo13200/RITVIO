@@ -2,6 +2,20 @@
 
 Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
 
+## Windows 1.0.0 and Android 1.4.0 — 21 October 2026 (stable)
+
+The first stable delivery brings [Windows 1.0.0](https://github.com/salvo13200/RITVIO/releases/tag/windows-v1.0.0) and [Android 1.4.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.4.0), version code 22. Both keep local libraries and existing installation identities; previous previews remain available. [Choose a download](https://salvo13200.github.io/RITVIO/). Update an official installation without uninstalling.
+
+- Official per-platform updates in Settings, with opt-in startup checks, a stable default and optional previews. Installation stays manual.
+- Clear first-listen/search/import choices, supported-format help and inspectable transfer results.
+- Song-reference links with a web fallback and official downloads, desktop text/link copying and Android image captions. Receiving apps may omit captions; PNG files have no clickable link. Direct app opening and QR codes remain future work.
+- Help for bugs, interface feedback and feature ideas. Reports are inspectable; playback counters are optional and filtered. Nothing submits automatically.
+- Preserve useful desktop audio-buffer fragments during overlapping deliveries, prevent an interrupted Android preparation from cancelling an active listener, and close desktop HTTP connections cleanly on exit.
+
+The exact approved binaries passed 252 core tests, 73 JVM tests, 14 focused update/Help/playback browser cases, APK signature/identity/16 KB alignment and clean exported-source build correspondence. Windows passed isolated upgrade from 0.7.5, reinstall/uninstall with retained data, native Help/restart and real-provider playback/seek, plus a five-minute hidden-window listening run. The maintainer reported successful acceptance of the exact Android APK on Motorola edge 60 neo / Android 16 for retained library, locked-screen changes/seeks, Gallery saving and Help/version context. Required [PR #18 CI](https://github.com/salvo13200/RITVIO/pull/18) passed before merge. Pages, public packages and hashes were checked separately during publication.
+
+Both tags identify corresponding merged source `4425477cebaa37b5e0a2ca1d16d09963559865d8`. The manifests distinguish this from the earlier uncommitted build-source archive and record the verified non-runtime differences; native-APK bit reproducibility is not claimed. Each platform includes its binaries, corresponding RITVIO/resolver source archives, manifest and SHA-256 sums. Windows remains unsigned. External catalogue/lyrics availability, provider delays, broader devices, native screen readers, Bluetooth reconnection and genuine OS suspend remain limitations, not certified passes.
+
 ## Android 1.3.1 — 21 October 2026 (public preview)
 
 [Android 1.3.1 APK, corresponding sources and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.1). Version code 21 retains the official signing certificate. This Android-only maintenance release incorporates the approved readability changes into a complete Gradle build. Windows remains a separate release at 0.7.5; previous Android releases stay available.

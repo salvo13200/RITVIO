@@ -4,11 +4,11 @@
 
 **Player musicale gratuito e open source per Windows e Android.** Ricerca, scoperta, libreria locale e interfacce pensate per ciascuna piattaforma.
 
-[English](README.md) · **Italiano** · [Scarica RITVIO](https://github.com/salvo13200/RITVIO/releases) · [Galleria](docs/SCREENSHOTS.md)
+[English](README.md) · **Italiano** · [Scarica RITVIO](https://salvo13200.github.io/RITVIO/) · [Galleria](docs/SCREENSHOTS.md)
 
 [![Entra nella community Discord di RITVIO](https://img.shields.io/badge/Entra_su_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hCMwUtWZuM)
 
-> Anteprima pubblica: **Windows 0.7.5** e **Android 1.3.1**. La copertura dei test sui dispositivi resta limitata: consulta [note e limiti](docs/RELEASE_NOTES.md).
+> Versioni stabili: **Windows 1.0.0** e **Android 1.4.0**. [Scegli il download](https://salvo13200.github.io/RITVIO/) e consulta [note e limiti](docs/RELEASE_NOTES.md). La copertura dei dispositivi e dell’accessibilità nativa resta limitata.
 
 [![Home desktop di RITVIO con interfaccia in inglese e raccolte caricate](docs/media/desktop-home.webp)](docs/media/desktop-home.webp)
 
@@ -20,6 +20,7 @@ Le schermate mostrano l'interfaccia reale in inglese, con dati dimostrativi e im
 - Preferiti, playlist, artisti/album seguiti e cronologia conservati sul dispositivo.
 - Coda modificabile, shuffle/repeat, timer, testi ed equalizzatore/controlli audio.
 - Importazione/esportazione di playlist e condivisione di brani o versi come immagini 9:16.
+- Aggiornamenti ufficiali nelle Impostazioni, riferimenti condivisibili ai brani e report di assistenza ispezionabili, senza invio automatico.
 - Windows: player desktop, vista immersiva e mini-player. Android: interfaccia touch, riproduzione nativa Media3 e controlli di sistema.
 
 Italiano e inglese disponibili nelle impostazioni; metadati e testi mantengono la lingua originale. Alcune funzioni differiscono tra le piattaforme. Nessun account cloud, sincronizzazione tra dispositivi, download audio offline o collaborazione social in tempo reale. [Guida alle funzioni](docs/FEATURES.md).
@@ -31,8 +32,8 @@ Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 <!-- downloads:start -->
 | Piattaforma | Download |
 | --- | --- |
-| Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe) · [ZIP da estrarre una volta](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip) · [EXE autoestraente](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe) |
-| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.1/RITVIO-Android-1.3.1.apk) |
+| Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-setup.exe) · [ZIP da estrarre una volta](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.zip) · [EXE autoestraente](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.exe) |
+| Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.4.0/RITVIO-Android-1.4.0.apk) |
 <!-- downloads:end -->
 
 Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano scegli installer o ZIP: estrai lo ZIP interamente e avvia `RITVIO.exe`, mantenendo insieme tutti i file. L'EXE autoestraente continua a estrarsi a ogni avvio e può partire lentamente. Tutti i formati Windows usano il profilo locale esistente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).

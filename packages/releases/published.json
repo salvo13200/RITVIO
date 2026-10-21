@@ -3,45 +3,45 @@
   "verifiedAt": "2026-10-21",
   "releases": [
     {
-      "tag_name": "android-v1.3.1",
-      "html_url": "https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.1",
+      "tag_name": "windows-v1.0.0",
+      "html_url": "https://github.com/salvo13200/RITVIO/releases/tag/windows-v1.0.0",
       "draft": false,
-      "prerelease": true,
+      "prerelease": false,
       "assets": [
         {
-          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.1/RITVIO-Android-1.3.1.apk",
-          "digest": "sha256:9bf31e16cee37a9d9675bf5906bdbdce31ae9b4bcb96c0a7ba822bb49a8a406e",
-          "name": "RITVIO-Android-1.3.1.apk",
-          "size": 52479760,
+          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.exe",
+          "digest": "sha256:403b519a4bfe9724e6a5e649dd6ef4c321182c08c34528337cd0d4e0806bd9fb",
+          "name": "RITVIO-1.0.0-portatile.exe",
+          "size": 157290602,
+          "state": "uploaded"
+        },
+        {
+          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.zip",
+          "digest": "sha256:ea2252b57e35bb01b325021ee57456ed0b430335f1fa4393f609bf910f3eb7a7",
+          "name": "RITVIO-1.0.0-portatile.zip",
+          "size": 191267284,
+          "state": "uploaded"
+        },
+        {
+          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-setup.exe",
+          "digest": "sha256:427465f02a599a089433533f9bf6935ca5681fc9ad4d04e35d5091477c1f3cdd",
+          "name": "RITVIO-1.0.0-setup.exe",
+          "size": 157430662,
           "state": "uploaded"
         }
       ]
     },
     {
-      "tag_name": "windows-v0.7.5",
-      "html_url": "https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5",
+      "tag_name": "android-v1.4.0",
+      "html_url": "https://github.com/salvo13200/RITVIO/releases/tag/android-v1.4.0",
       "draft": false,
-      "prerelease": true,
+      "prerelease": false,
       "assets": [
         {
-          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe",
-          "digest": "sha256:f75e49c6e7ff9dc04097bfaad42bb5491d6c72d07c6ae81bd18185a6f1cc13aa",
-          "name": "RITVIO-0.7.5-portatile.exe",
-          "size": 157281429,
-          "state": "uploaded"
-        },
-        {
-          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip",
-          "digest": "sha256:d01a9378653bd592711c7bd244caf559f3e8c37d3b746e2ffc912320c9e095a7",
-          "name": "RITVIO-0.7.5-portatile.zip",
-          "size": 191248853,
-          "state": "uploaded"
-        },
-        {
-          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe",
-          "digest": "sha256:21f84ecd1e74e9dee9b2e77321e72c46cc7afa002180d67301d68e4e8586dc0b",
-          "name": "RITVIO-0.7.5-setup.exe",
-          "size": 157421505,
+          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/android-v1.4.0/RITVIO-Android-1.4.0.apk",
+          "digest": "sha256:29a828bab0ad62628f60aefbcac4cad3f928bb945d4faafae7d06837216930fd",
+          "name": "RITVIO-Android-1.4.0.apk",
+          "size": 52491840,
           "state": "uploaded"
         }
       ]

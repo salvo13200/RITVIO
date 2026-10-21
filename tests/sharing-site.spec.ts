@@ -24,8 +24,11 @@ test('mobile reference remains readable at narrow width, with enlarged text and 
  expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);await page.screenshot({path:output+'/mobile-long.png',animations:'disabled'});
 });
 test('invalid parameters fall back safely, and missing metadata has a useful source link',async({page})=>{
- for(const hash of ['#track=../invalid','#track=abcdefghijk&redirect=https://evil.invalid','#track=abcdefghijk&track=12345678901']){
-  await page.goto('/RITVIO/'+hash);await expect(page.locator('#shared-song-error')).toBeVisible();await expect(page.locator('#shared-song-source')).toBeHidden();await expect(page.locator('[data-download=android]')).toBeVisible();
+ for(const viewport of [{width:1440,height:940},{width:393,height:852}]){
+  await page.setViewportSize(viewport);
+  for(const hash of ['#track=../invalid','#track=abcdefghijk&redirect=https://evil.invalid','#track=abcdefghijk&track=12345678901']){
+   await page.goto('/RITVIO/'+hash);await expect(page.locator('#shared-song-error')).toBeVisible();await expect(page.locator('#shared-song-source')).toBeHidden();await expect(page.locator('[data-download=android]')).toBeVisible();
+  }
  }
  await page.goto('/RITVIO/#track=abcdefghijk');await expect(page.getByRole('heading',{name:'A song for you'})).toBeVisible();await expect(page.locator('#shared-song-artist')).toHaveText('Track reference: abcdefghijk');
 });
