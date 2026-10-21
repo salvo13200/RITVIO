@@ -1,5 +1,6 @@
 import {test,expect,type Page,type APIRequestContext} from '@playwright/test';
 import {tracks} from './fixtures';
+import {ritvioTrackLink} from '../packages/domain/track-sharing';
 const base='http://127.0.0.1:5199',headers={authorization:'Bearer test-token-only'};
 test.beforeEach(async({page,request})=>{
   await request.post(`${base}/test-reset-library`);
@@ -51,10 +52,10 @@ test('track menu labels, playlist tools and row removal remain usable',async({pa
 test('copy link keeps its confirmation visible and accessible inside the menu',async({page,request,context})=>{
   await context.grantPermissions(['clipboard-read','clipboard-write']);await collection(request,1);await openCollection(page);
   await page.locator('.playlist-item').getByRole('button',{name:'Opzioni di ascolto: Primo & brano'}).click();
-  const menu=page.locator('.listening-options:popover-open');await menu.getByRole('button',{name:'Copia link YouTube: Primo & brano'}).click();
+  const menu=page.locator('.listening-options:popover-open');await menu.getByRole('button',{name:'Copia link RITVIO: Primo & brano'}).click();
   await expect(menu).toBeVisible();await expect(menu.getByRole('status')).toHaveText('Link copiato');
-  await expect(menu.getByRole('button',{name:'Copia link YouTube: Primo & brano'})).toContainText('Link copiato');
-  expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(tracks[0].canonicalUrl);
+  await expect(menu.getByRole('button',{name:'Copia link RITVIO: Primo & brano'})).toContainText('Link copiato');
+  expect(await page.evaluate(()=>navigator.clipboard.readText())).toBe(ritvioTrackLink(tracks[0]));
 });
 test('unknown collection duration is not reported as zero',async({page,request})=>{
   const playlist=await collection(request,1);await page.route(`**/v1/me/playlists/${playlist.id}`,async route=>{const result=await route.fetch();await route.fulfill({response:result,json:{...await result.json(),durationSeconds:null}});});await openCollection(page);

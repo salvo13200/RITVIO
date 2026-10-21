@@ -28,10 +28,12 @@ Italiano e inglese disponibili nelle impostazioni; metadati e testi mantengono l
 
 Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
 
+<!-- downloads:start -->
 | Piattaforma | Download |
 | --- | --- |
 | Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe) · [ZIP da estrarre una volta](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip) · [EXE autoestraente](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe) |
 | Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.1/RITVIO-Android-1.3.1.apk) |
+<!-- downloads:end -->
 
 Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano scegli installer o ZIP: estrai lo ZIP interamente e avvia `RITVIO.exe`, mantenendo insieme tutti i file. L'EXE autoestraente continua a estrarsi a ogni avvio e può partire lentamente. Tutti i formati Windows usano il profilo locale esistente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
 

@@ -19,7 +19,10 @@ await writeFile(path.join(release,`RITVIO-Android-${mobile.version}.apk.signatur
 const certificate='6cf6e93d7ce553b00afdd29b6c10f5de7ed6fbaca9c8cd81cc3138e3f25963a6';
 if(!signature.toLowerCase().includes(certificate)||!/Verified using v2 scheme[^\r\n]*true/i.test(signature))throw Error('Official APK signature evidence is missing or uses a replacement key');
 const git=spawnSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8',windowsHide:true});
-const manifest={schema:1,status:'candidate',desktop:desktop.version,android:mobile.version,androidVersionCode:Number(gradle.match(/versionCode\s+(\d+)/)[1]),androidCertificateSha256:certificate,sourceCommit:git.status===0?git.stdout.trim():null,files,limitations:['Windows executables are not Authenticode-signed.','Current APK physical-device rendering, background playback and Gallery checks remain pending.','GitHub workflow execution and repository protections require the actual GitHub repository.','Do not describe this candidate as a fully verified stable 1.0 release.']};
+const state=spawnSync('git',['status','--porcelain','--untracked-files=all'],{cwd:root,encoding:'utf8',windowsHide:true});
+const sourceBaseCommit=git.status===0?git.stdout.trim():null;
+const sourceUncommitted=state.status!==0||state.stdout.trim().length>0;
+const manifest={schema:1,status:'candidate',desktop:desktop.version,android:mobile.version,androidVersionCode:Number(gradle.match(/versionCode\s+(\d+)/)[1]),androidCertificateSha256:certificate,sourceCommit:sourceUncommitted?null:sourceBaseCommit,sourceBaseCommit,sourceUncommitted,sourceArchiveSha256:files.find(file=>file.name==='RITVIO-public-source.zip').sha256,files,limitations:['Windows executables are not Authenticode-signed.','Current APK physical-device rendering, background playback and Gallery checks remain pending.','Remote CI, deployed song-reference links and issue forms require verification before publication.','Candidate status does not certify stable-release acceptance.']};
 await writeFile(path.join(release,'RELEASE-MANIFEST.json'),JSON.stringify(manifest,null,2)+'\n');
 await writeFile(path.join(release,'SHA256SUMS'),files.map(file=>`${file.sha256}  ${file.name}`).join('\n')+'\n');
 console.log(JSON.stringify({desktop:desktop.version,android:mobile.version,files:files.length,status:'candidate',sourceCommit:manifest.sourceCommit}));

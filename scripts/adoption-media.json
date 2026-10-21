@@ -1,0 +1,12 @@
+{
+  "views": [
+    {"name":"desktop-support","feature":"Review a report before copying or opening GitHub"},
+    {"name":"mobile-support","feature":"Android help with optional playback timings"},
+    {"name":"mobile-support-entry","feature":"Direct access to help from Android Settings"},
+    {"name":"desktop-updates","feature":"Opt-in update checks and platform-specific downloads"},
+    {"name":"desktop-first-listen","feature":"A clear first listening step on Windows"},
+    {"name":"mobile-first-listen","feature":"Search or import from an empty Android profile"},
+    {"name":"mobile-import-result","feature":"Review a completed playlist import"},
+    {"name":"desktop-song-reference","feature":"A shared song reference with official app downloads"}
+  ]
+}

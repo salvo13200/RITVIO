@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="referrer" content="no-referrer" />
+  <meta name="description" content="Meet RITVIO, a free, open-source music player for Android and Windows. Your library, lyrics and shareable music moments, in a space of your own." />
+  <meta property="og:title" content="RITVIO — Your music, with you." />
+  <meta property="og:description" content="A free, open-source music player for Android and Windows. Explore the app and get the official download." />
+  <meta property="og:type" content="website" />
+  <link rel="icon" type="image/svg+xml" href="../../docs/media/logo.svg" />
+  <link rel="stylesheet" href="./src/style.css" />
+  <title>RITVIO — Your music, with you.</title>
+</head>
+<body>
+  <svg aria-hidden="true" class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="download-icon" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 16v4h16v-4"/></symbol>
+    <symbol id="arrow-icon" viewBox="0 0 24 24"><path d="M7 17 17 7M7 7h10v10"/></symbol>
+    <symbol id="next-icon" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="windows-icon" viewBox="0 0 24 24"><path d="M3 5 10 4v7H3zm10-1.5L21 2v9h-8zM3 14h7v7l-7-1zm10 0h8v9l-8-1.5z"/></symbol>
+    <symbol id="android-icon" viewBox="0 0 24 24"><path d="m7 4-2-3m12 3 2-3M4 11a8 8 0 0 1 16 0v8H4zm-2 2v5m20-5v5M8 19v3m8-3v3M4 11h16"/><path d="M8 7h.01M16 7h.01"/></symbol>
+    <symbol id="refresh-icon" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6.1 6a8 8 0 0 1 13.6 4M4.3 14a8 8 0 0 0 13.6 4"/></symbol>
+    <symbol id="check-icon" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+  </defs></svg>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header wrap">
+    <a href="#main" class="brand" aria-label="RITVIO home"><img src="../../docs/media/logo.svg" width="38" height="38" alt=""/><span>RITVIO</span></a>
+    <nav aria-label="Main navigation"><a class="nav-proof" href="#screenshots">The app</a><a class="nav-proof" href="#sharing">Sharing</a><a href="https://github.com/salvo13200/RITVIO" target="_blank" rel="noopener noreferrer">Source<svg aria-hidden="true" class="icon small"><use href="#arrow-icon"/></svg></a><a class="nav-download" href="#downloads">Download</a></nav>
+  </header>
+  <main id="main" tabindex="-1">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="shared-song" hidden>
+        <h1 id="shared-song-title"></h1>
+        <p class="shared-song-artist" id="shared-song-artist"></p>
+        <a id="shared-song-source" class="download-button primary" target="_blank" rel="noopener noreferrer">Listen on YouTube<svg aria-hidden="true" class="icon"><use href="#arrow-icon"/></svg></a>
+        <p class="hero-detail">A song shared with RITVIO. Open it at the source, or get the app for Android and Windows.</p>
+        <p class="shared-song-note">Title and artist were supplied by the sender. Availability at the source may vary. This page does not play audio or open the app automatically.</p>
+        <a class="text-link" href="./">Explore RITVIO<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></a>
+      </div>
+      <div class="hero-copy">
+        <h1 id="hero-title">Your music.<br/><span>With you.</span></h1>
+        <p class="hero-description">A free, open-source player for the songs you come back to—and the ones you haven’t found yet.</p>
+        <p class="hero-detail">Your own library. Lyrics worth keeping.<br class="desktop-break"/> A little more room for listening.</p>
+        <a class="text-link hero-tour" href="#screenshots">Take a look inside<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></a>
+        <p id="shared-song-error" class="hero-detail" role="status" hidden>This song link is incomplete or invalid. Ask the sender for a new link. You can still explore RITVIO and download the app here.</p>
+        <p id="shared-song-fallback" class="shared-song-note">Opening a shared song? Enable JavaScript to read its reference. The official downloads below work without it.</p>
+      </div>
+      <div class="download-panel" id="downloads" aria-labelledby="download-title">
+        <h2 id="download-title">Get RITVIO</h2>
+        <p class="download-intro">No RITVIO account. No subscription.</p>
+        <div class="download-choices">
+          <article class="platform-download" data-platform="android">
+            <div class="platform-heading"><svg aria-hidden="true" class="icon platform-icon"><use href="#android-icon"/></svg><div><h3>Android</h3><p>Android 7.0+ · ARM64 / x86_64</p></div><span class="recommended" hidden>For your device</span></div>
+            <a class="download-button primary" data-download="android" href="{{android.download}}"><span>Download Android APK</span><svg aria-hidden="true" class="icon"><use href="#download-icon"/></svg></a>
+            <p class="release-line"><span data-version="android">v{{android.version}}</span><span aria-hidden="true">·</span><span data-channel="android">{{android.channel}}</span><span aria-hidden="true">·</span><span data-size="android">{{android.size}}</span></p>
+          </article>
+          <article class="platform-download" data-platform="windows">
+            <div class="platform-heading"><svg aria-hidden="true" class="icon platform-icon windows-icon"><use href="#windows-icon"/></svg><div><h3>Windows</h3><p>Windows 10 / 11 · x64</p></div><span class="recommended" hidden>For your device</span></div>
+            <a class="download-button" data-download="windows" href="{{windows.download}}"><span>Download Windows installer</span><svg aria-hidden="true" class="icon"><use href="#download-icon"/></svg></a>
+            <p class="release-line"><span data-version="windows">v{{windows.version}}</span><span aria-hidden="true">·</span><span data-channel="windows">{{windows.channel}}</span><span aria-hidden="true">·</span><span data-size="windows">{{windows.size}}</span></p>
+          </article>
+        </div>
+        <details class="other-formats"><summary>Other Windows formats<svg aria-hidden="true" class="icon small"><use href="#next-icon"/></svg></summary><div>
+          {{#windows.portableZip}}<a data-portable="zip" href="{{windows.portableZip}}">Portable ZIP<svg aria-hidden="true" class="icon small"><use href="#download-icon"/></svg></a><p>Extract once, then open RITVIO.exe. Keep the extracted files together.</p>{{/windows.portableZip}}
+          {{#windows.portableExe}}<a data-portable="exe" href="{{windows.portableExe}}">Self-extracting EXE<svg aria-hidden="true" class="icon small"><use href="#download-icon"/></svg></a><p>Unpacks on every launch. The installer or ZIP is better for everyday listening.</p>{{/windows.portableExe}}
+          <a data-release-link="windows" href="{{windows.url}}" target="_blank" rel="noopener noreferrer">All Windows files, sources and checksums<svg aria-hidden="true" class="icon small"><use href="#arrow-icon"/></svg></a>
+        </div></details>
+        <p class="update-install-note">Already listening? Install over your current official app to keep your library. Don’t uninstall first.</p>
+        <p class="release-status" role="status" aria-live="polite" id="release-status">Public links verified on <time datetime="{{verifiedAt}}">{{verifiedAt}}</time>.</p>
+        <button class="refresh-releases" id="refresh-releases" hidden type="button"><svg aria-hidden="true" class="icon small"><use href="#refresh-icon"/></svg><span>Check latest releases</span></button>
+        <noscript><p class="release-status">These download links work without JavaScript. See <a href="https://github.com/salvo13200/RITVIO/releases">all releases</a> for any newer packages.</p></noscript>
+      </div>
+    </section>
+
+    <section class="app-proof wrap" id="screenshots" aria-labelledby="proof-title">
+      <div class="section-heading"><h2 id="proof-title">At your desk.<br/>Out in the world.</h2><p>One name. Two interfaces, each made for the way you listen.</p></div>
+      <div class="device-pair">
+        <figure class="desktop-proof"><a href="../../docs/media/desktop-home.webp" target="_blank" rel="noopener noreferrer" aria-label="View full-size Windows Home screenshot"><img src="../../docs/media/desktop-home.webp" width="1600" height="1000" fetchpriority="high" alt="Windows Home with a listening library, loaded global hits, new releases and a persistent player"/></a><figcaption>Windows · Home and discovery</figcaption></figure>
+        <figure class="phone-proof"><a href="../../docs/media/mobile-player.webp" target="_blank" rel="noopener noreferrer" aria-label="View full-size Android player screenshot"><img src="../../docs/media/mobile-player.webp" width="393" height="852" loading="lazy" alt="Android player with cover art, waveform progress, lyrics, sharing and playback controls"/></a><figcaption>Android · Now playing</figcaption></figure>
+      </div>
+      <p class="capture-note">English app interfaces with demo music. Browser captures of the actual UI, not device photos. Your music uses its real catalogue artwork.</p>
+    </section>
+
+    <section class="listening-section wrap" aria-labelledby="listening-title">
+      <div class="listening-copy"><h2 id="listening-title">Settle into<br/>your own space.</h2><p>Keep favourites close, follow a lyric, or find what plays next. The everyday things, with a little more care.</p>
+        <div class="feature-tabs" role="tablist" aria-label="Explore the Android interface" hidden>
+          <button id="tab-library" type="button" role="tab" aria-controls="feature-panel" aria-selected="true" data-feature="library">Library</button>
+          <button id="tab-lyrics" type="button" role="tab" aria-controls="feature-panel" aria-selected="false" tabindex="-1" data-feature="lyrics">Lyrics</button>
+          <button id="tab-queue" type="button" role="tab" aria-controls="feature-panel" aria-selected="false" tabindex="-1" data-feature="queue">Queue</button>
+        </div>
+        <div class="feature-description" aria-live="polite" aria-atomic="true"><h3 id="feature-title">Make it yours.</h3><p id="feature-copy">Liked tracks, personal playlists, followed artists and albums. A library kept on your device, ready for your next listening session.</p></div>
+        <ul class="listening-points"><li><svg aria-hidden="true" class="icon"><use href="#check-icon"/></svg>Search tracks, artists and albums</li><li><svg aria-hidden="true" class="icon"><use href="#check-icon"/></svg>Discover genres, moods and track radio</li><li><svg aria-hidden="true" class="icon"><use href="#check-icon"/></svg>Shape your sound and set a sleep timer</li></ul>
+        <a class="text-link" href="https://github.com/salvo13200/RITVIO/blob/main/docs/SCREENSHOTS.md" target="_blank" rel="noopener noreferrer">See the complete app gallery<svg aria-hidden="true" class="icon"><use href="#arrow-icon"/></svg></a>
+      </div>
+      <div class="feature-visual" id="feature-panel" role="tabpanel" aria-labelledby="tab-library" tabindex="0"><figure><a id="feature-fullsize" href="../../docs/media/mobile-library.webp" target="_blank" rel="noopener noreferrer" aria-label="View full-size Android library screenshot"><img id="feature-image" src="../../docs/media/mobile-library.webp" width="393" height="852" loading="lazy" alt="Android library with personal playlists, large cover art and library categories"/></a><figcaption id="feature-caption">Android · Your library</figcaption></figure></div>
+    </section>
+
+    <section class="sharing-section" id="sharing" aria-labelledby="sharing-title"><div class="sharing-inner wrap">
+      <div class="sharing-copy"><h2 id="sharing-title">Send the song.<br/>Or the line<br/>that stayed.</h2><p>Turn a track or a consecutive lyrics excerpt into a 9:16 image. Choose your moment, preview the card, then save or share it.</p><p class="sharing-detail">With or without lyrics.<br/>With RITVIO on the card.</p><a class="text-link" href="https://github.com/salvo13200/RITVIO/blob/main/docs/SCREENSHOTS.md#sharing-with-and-without-lyrics" target="_blank" rel="noopener noreferrer">Explore music sharing<svg aria-hidden="true" class="icon"><use href="#arrow-icon"/></svg></a></div>
+      <div class="share-examples"><figure><a href="../../docs/media/share-card-track.webp" target="_blank" rel="noopener noreferrer" aria-label="View exported track card without lyrics"><img src="../../docs/media/share-card-track.webp" width="1080" height="1920" loading="lazy" alt="RITVIO 9:16 share image with track artwork, title and artist, without lyrics"/></a><figcaption>Just the song</figcaption></figure><figure><a href="../../docs/media/share-card-lyrics.webp" target="_blank" rel="noopener noreferrer" aria-label="View exported lyrics card"><img src="../../docs/media/share-card-lyrics.webp" width="1080" height="1920" loading="lazy" alt="RITVIO 9:16 share image with four consecutive original demo verses and track credits"/></a><figcaption>The words, too</figcaption></figure></div>
+      <p class="sharing-origin">Actual app exports with original demo music and lyrics. Images contain no audio.</p>
+    </div></section>
+
+    <section class="getting-started wrap" aria-labelledby="install-title"><div class="install-intro"><h2 id="install-title">A few things<br/>before you press play.</h2><p>No developer tools, API keys or RITVIO account needed to use the packaged apps.</p><a class="text-link" href="#downloads">Choose your download<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></a></div>
+      <div class="installation-answers">
+        <details><summary>How do I install on Android?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p>Download the official APK above and open it. Android may ask you to allow installation from your browser. Updates to the official app should be installed over it, without uninstalling, to keep your library.</p><a data-release-link="android" href="{{android.url}}" target="_blank" rel="noopener noreferrer">Android release notes and checksums</a></div></details>
+        <details><summary>Which Windows download should I choose?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p>The installer is the simplest everyday choice. The portable ZIP works after one extraction; open RITVIO.exe with its adjacent files in place. The self-extracting EXE unpacks each time and may start more slowly.</p><p>Windows packages are not Authenticode-signed, so SmartScreen may show a warning. Read the official release notes before continuing.</p></div></details>
+        <details><summary>Are these stable releases?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p id="channel-answer">The channel is shown beside each download. Packages labelled “Public preview” are usable releases still being refined. Read their notes for the tested scope and known limitations.</p><p>Older packages remain available in the <a href="https://github.com/salvo13200/RITVIO/releases" target="_blank" rel="noopener noreferrer">release archive</a>.</p></div></details>
+        <details><summary>Does my library sync across devices?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p>Your library stays on the device where you create it. Windows and Android libraries are separate. You can exchange supported playlist files; hosted accounts and automatic cloud sync are not available.</p></div></details>
+        <details><summary>Where do the music and lyrics come from?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p>Catalogue and playback depend on unofficial YouTube / YouTube Music resolvers. Lyrics come from LRCLIB when a match is available. External services can change, fail or limit requests; RITVIO is not affiliated with them.</p><p>The app’s GPLv3 licence does not grant rights to music, lyrics or artwork. See <a href="https://github.com/salvo13200/RITVIO/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noopener noreferrer">sources and attribution</a> for details.</p></div></details>
+        <details><summary>What does this page collect?<svg aria-hidden="true" class="icon"><use href="#next-icon"/></svg></summary><div><p>This page adds no advertising or analytics trackers. Checking releases and downloading files contact GitHub. Hosting providers may keep technical access logs. Platform recommendations are made locally in your browser.</p><a href="https://github.com/salvo13200/RITVIO/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Read the privacy information</a></div></details>
+      </div>
+    </section>
+    <section class="community wrap" aria-labelledby="community-title"><div><h2 id="community-title">Built in the open.<br/>Better with your feedback.</h2><p>Found a favourite feature, or something that needs work?<br/>There’s a place for both.</p></div><div class="community-links"><a href="https://discord.gg/hCMwUtWZuM" target="_blank" rel="noopener noreferrer">Join the Discord<svg aria-hidden="true" class="icon"><use href="#arrow-icon"/></svg></a><a href="https://github.com/salvo13200/RITVIO/issues" target="_blank" rel="noopener noreferrer">Report an issue<svg aria-hidden="true" class="icon"><use href="#arrow-icon"/></svg></a></div></section>
+  </main>
+  <footer class="site-footer wrap"><a href="#main" class="brand"><img src="../../docs/media/logo.svg" width="30" height="30" alt=""/><span>RITVIO</span></a><p>Your music, with you.</p><nav aria-label="Footer"><a href="./licenses/OFL-AncizarSans.txt">Font licence</a><a href="./licenses/GPL-3.0.txt" target="_blank" rel="noopener noreferrer">GPLv3</a><a href="https://github.com/salvo13200/RITVIO/blob/main/PRIVACY.md" target="_blank" rel="noopener noreferrer">Privacy</a><a href="https://github.com/salvo13200/RITVIO" target="_blank" rel="noopener noreferrer">GitHub</a></nav></footer>
+  <script type="module" src="./src/main.ts"></script>
+</body>
+</html>

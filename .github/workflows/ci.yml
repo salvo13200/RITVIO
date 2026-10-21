@@ -30,6 +30,7 @@ jobs:
       - run: pnpm release:check
       - run: pnpm check:assets
       - run: pnpm check:docs
+      - run: pnpm downloads:check
       - run: pnpm check:architecture
       - run: pnpm check:locales
       - run: pnpm i18n:check
@@ -39,6 +40,7 @@ jobs:
       - run: python tests/mobile-discovery.test.py
       - run: pnpm build
       - run: pnpm --dir apps/mobile build
+      - run: pnpm site:build
   browser:
     name: Browser regression
     runs-on: windows-latest
@@ -58,11 +60,25 @@ jobs:
       - run: pnpm exec playwright test --config tests/config/playwright.home.config.ts --trace retain-on-failure
       - run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts --trace retain-on-failure
       - run: pnpm exec playwright test --config tests/config/playwright.listening-tools.config.ts --grep-invert 'capture:' --trace retain-on-failure
+      - run: pnpm exec playwright test --config tests/config/playwright.updates.config.ts --trace retain-on-failure
+      - run: pnpm test:site --trace retain-on-failure
+      - run: pnpm exec playwright test --config tests/config/playwright.first-use.config.ts --trace retain-on-failure
+      - run: pnpm test:playback --trace retain-on-failure
+      - run: pnpm exec playwright test --config tests/config/playwright.continuity.config.ts --trace retain-on-failure
+      - run: pnpm exec playwright test --config tests/config/playwright.sharing-discovery.config.ts --trace retain-on-failure
+      - run: pnpm exec playwright test --config tests/config/playwright.support.config.ts --grep-invert 'capture:' --trace retain-on-failure
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: RITVIO-browser-failure-${{ github.run_id }}-${{ github.run_attempt }}
-          path: test-results/playwright/
+          path: |
+            test-results/playwright/
+            test-results/updates/
+            test-results/site/
+            test-results/first-use/
+            test-results/continuity/
+            test-results/sharing-discovery/
+            test-results/support/
           if-no-files-found: ignore
           retention-days: 7

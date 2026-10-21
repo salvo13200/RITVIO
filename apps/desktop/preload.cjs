@@ -1,5 +1,9 @@
 const {contextBridge,ipcRenderer}=require('electron');
 contextBridge.exposeInMainWorld('ritvio',{
+  updatesRead:()=>ipcRenderer.invoke('ritvio:updates-read'),
+  updatesWrite:value=>ipcRenderer.invoke('ritvio:updates-write',value),
+  updatesFetch:etag=>ipcRenderer.invoke('ritvio:updates-fetch',etag),
+  updatesOpen:url=>ipcRenderer.invoke('ritvio:updates-open',url),
   readLanguage:()=>ipcRenderer.invoke('ritvio:language-read'),
   writeLanguage:preference=>ipcRenderer.invoke('ritvio:language-write',preference),
   onLanguage:callback=>{const listener=(_event,value)=>callback(value);ipcRenderer.on('ritvio:language-state',listener);return()=>ipcRenderer.removeListener('ritvio:language-state',listener);},
@@ -13,7 +17,9 @@ contextBridge.exposeInMainWorld('ritvio',{
   openYouTube:videoId=>ipcRenderer.invoke('ritvio:open-youtube',videoId),
   openMetadataSource:(kind,id)=>ipcRenderer.invoke('ritvio:open-metadata-source',kind,id),
   openLyricsSource:id=>ipcRenderer.invoke('ritvio:open-lyrics-source',id),
-  copyTrackLink:videoId=>ipcRenderer.invoke('ritvio:copy-track-link',videoId),
+  copyTrackLink:(track,withText=false)=>ipcRenderer.invoke('ritvio:copy-track-link',track,withText),
+  supportOpen:url=>ipcRenderer.invoke('ritvio:support-open',url),
+  supportCopy:text=>ipcRenderer.invoke('ritvio:support-copy',text),
   exportPlaylist:id=>ipcRenderer.invoke('ritvio:export-playlist',id),
   exportStory:(bytes,title)=>ipcRenderer.invoke('ritvio:export-story',bytes,title),
   readPlayer:()=>ipcRenderer.invoke('ritvio:read-player'),

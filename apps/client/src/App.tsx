@@ -1,3 +1,5 @@
+import {UpdateNotice} from '../../../packages/updates/ui';
+import {updates} from './updates';
 import { noticeText } from './i18n';
 import { MiniController } from './mini-controller';
 import { QueuePanel } from './queue-panel';
@@ -81,6 +83,7 @@ export function App({ offlinePreview = false, quickArtwork }: {
     const { page, setPage, back, forward, canBack, canForward } = usePageNavigation();
     const libraryTab = useLibraryBrowser(s => s.tab), setLibraryTab = useLibraryBrowser(s => s.setTab);
     const [createRequested, setCreateRequested] = useState(false);
+    const [importRequested, setImportRequested] = useState(false);
     const [query, setQuery] = useState('');
     const [search, setSearch] = useState<SearchResponse | null>(null);
     const navPage = page.startsWith('situation:') || page === 'immersive' ? 'home' : page.startsWith('collection:') ? 'home' : page.startsWith('album:') || page.startsWith('artist:') ? 'search' : page;
@@ -318,6 +321,7 @@ export function App({ offlinePreview = false, quickArtwork }: {
                 closePreferences();
             }
         }}>
+      {page!=='preferences'&&<UpdateNotice controller={updates} onDetails={()=>{setPreferenceCategory('updates');setPage('preferences');}}/>}
       <header className="topbar"><div className="history-controls"><Button label={t('listen.back')} disabled={!canBack} onClick={() => {
             if (page === 'library' && library.selected)
                 useLibrary.setState({ selected: null });
@@ -338,7 +342,7 @@ export function App({ offlinePreview = false, quickArtwork }: {
       <div className="content"><MotionSurface kind="page" className="page-surface" motionKey={`${page}:${page === 'library' ? (library.selected?.id ?? 'overview') : ''}`}><DeferredContent key={page}>
         {error && <div className="notice" role="alert"><AlertCircle size={18}/><span>{noticeText(error)}</span>{query && <button onClick={() => setRetry(n => n + 1)}>{t("App.riprova")}</button>}<button aria-label={t("App.chiudi.avviso")} onClick={() => setError(null)}><X size={16}/></button></div>}
         {library.error && <div className="notice" role="alert"><AlertCircle size={18}/><span>{noticeText(library.error)}</span><button onClick={() => { useLibrary.setState({ error: null }); void library.load(); }}>{t("App.ricarica.libreria")}</button><button aria-label={t("App.chiudi.avviso.libreria")} onClick={() => useLibrary.setState({ error: null })}><X size={16}/></button></div>}
-        {page === 'home' && <HomePage onSituation={id => setPage(`situation:${id}`)} offline={offlinePreview} onCollection={(id, play) => { setCollectionAutoplay(!!play); setPage(`collection:${id}`); }} onTaste={() => { useLibrary.setState({ selected: null }); setLibraryTab("taste"); setPage("library"); }} quickArtwork={quickArtwork} onHistory={() => { useLibrary.setState({ selected: null }); setLibraryTab("history"); setPage("library"); }} onSearch={q => {
+        {page === 'home' && <HomePage onImport={() => { showLibrary(); setImportRequested(true); }} onSituation={id => setPage(`situation:${id}`)} offline={offlinePreview} onCollection={(id, play) => { setCollectionAutoplay(!!play); setPage(`collection:${id}`); }} onTaste={() => { useLibrary.setState({ selected: null }); setLibraryTab("taste"); setPage("library"); }} quickArtwork={quickArtwork} onHistory={() => { useLibrary.setState({ selected: null }); setLibraryTab("history"); setPage("library"); }} onSearch={q => {
                 if (q)
                     navigate(q);
                 else {
@@ -373,7 +377,7 @@ export function App({ offlinePreview = false, quickArtwork }: {
                     setPage('home');
             }}/>}
         {page === 'preferences' && <PreferencesPage category={preferenceCategory} onCategory={setPreferenceCategory} status={status} onClose={closePreferences}/>}
-        {page === 'library' && <LibraryPage createRequested={createRequested} onCreateHandled={() => setCreateRequested(false)}/>}
+        {page === 'library' && <LibraryPage onSearch={() => { setPage('search'); searchInput.current?.focus(); }} importRequested={importRequested} onImportHandled={() => setImportRequested(false)} createRequested={createRequested} onCreateHandled={() => setCreateRequested(false)}/>}
         {page.startsWith('situation:') && <SituationPage key={page} id={page.split(':')[1] as import('../../../packages/domain/situations').SituationKey} playlistId={page.split(':')[2]} back={back} openPlaylist={id => setPage(`situation:${page.split(':')[1]}:${id}`)}/>}
         {page.startsWith('collection:') && <HomeCollectionPage key={page} id={page.slice(11) as HomeCollectionId} back={back} autoplay={collectionAutoplay}/>}
         {(page.startsWith('album:') || page.startsWith('artist:')) && <><button className="text-button catalog-route-back" disabled={!canBack} onClick={back}><ChevronLeft size={18}/>{t('listen.back')}</button><CatalogPage onArtistSearch={selectSearchArtist} focusRequest={albumTrackTarget?.request} focusTrackId={albumTrackTarget?.albumId === page.slice(6) ? albumTrackTarget.trackId : undefined} key={page} kind={page.startsWith('album:') ? 'album' : 'artist'} id={page.slice(page.indexOf(':') + 1)}/></>}

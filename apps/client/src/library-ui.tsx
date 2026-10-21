@@ -1,3 +1,4 @@
+import {FirstListen} from '../../../packages/first-use/ui';
 import { noticeText } from './i18n';
 import { displayLocale } from '../../../packages/i18n/display';
 import { TastePage } from './taste-ui';
@@ -42,7 +43,10 @@ function LibraryTrack({ track, onPlay, children }: {
     onPlay: () => void;
     children?: ReactNode;
 }) { return <div className="library-track"><button className="library-track-play" aria-label={t("App.riproduci", { p0: track.title })} onClick={onPlay}>{track.thumbnail ? <img src={track.thumbnail} alt="" loading="lazy"/> : <Music2 />}<Play size={15}/></button><div className="library-track-title"><button onClick={onPlay} aria-label={t("App.riproduci", { p0: track.title })}><ScrollingLine as="span" className="library-collection-name" text={track.title} resetKey={track.id}><strong title={track.title}>{track.title}</strong></ScrollingLine></button><TrackCatalogLinks track={track}/><ExcludedBadge track={track}/></div><span className="track-album">{track.album ? <CatalogResourceLink resource={track.album} kind="album"/> : "—"}</span><span className="duration">{formatTime(track.duration)}</span><TrackLibraryActions track={track}>{children}</TrackLibraryActions></div>; }
-export function LibraryPage({ createRequested = false, onCreateHandled }: {
+export function LibraryPage({ createRequested = false, onCreateHandled, onSearch, importRequested = false, onImportHandled }: {
+    onSearch: () => void;
+    importRequested?: boolean;
+    onImportHandled?: () => void;
     createRequested?: boolean;
     onCreateHandled?: () => void;
 }) {
@@ -113,6 +117,8 @@ export function LibraryPage({ createRequested = false, onCreateHandled }: {
             ref.current?.closest('main')?.focus({ preventScroll: true });
         }
     }, [selected?.id]);
+    const showImports = () => { const trigger = ref.current?.querySelector<HTMLElement>('#library-import-trigger'); const menu = trigger?.closest('details'); if (menu) menu.open = true; trigger?.focus(); };
+    useEffect(() => { if (importRequested && data && !detail) { showImports(); onImportHandled?.(); } }, [importRequested, !!data, detail]);
     if (loading || !data)
         return <div className="large-empty" role="status"><LoaderCircle className="spin"/><p>{t("library-ui.carico.la.tua.libreria")}</p><button className="secondary-button" onClick={() => void library.load()}>{t("App.riprova")}</button></div>;
     const backToLibrary = () => { playRequest.current++; useLibrary.getState().cancelOpen(); setDetail(false); };
@@ -156,7 +162,7 @@ export function LibraryPage({ createRequested = false, onCreateHandled }: {
       {tab === 'likes' && data.likes.length > 0 && <div className="library-section-head library-favourites-heading"><div><h2>{t('lib2.likedSongs')}</h2><p>{t('design.home.trackCount', { count: data.likes.length })}</p></div><button className="primary-button" disabled={!count} onClick={() => playAll(filtered.likes)}><Play size={18} fill="currentColor"/>{t('library-ui.riproduci.preferiti')}</button></div>}
       {!['activity', 'taste'].includes(tab) && toolbar}
       {total > 0 && count === 0 && !['activity', 'taste'].includes(tab) ? <LibraryNoResults reset={reset}/> : <>
-      {tab === 'playlists' && (data.playlists.length ? <>{layout === 'list' && <div className="library-playlist-columns" aria-hidden="true"><span>{t('lib2.collection')}</span><span>{t('lib2.tracks')}</span><span>{t('App.durata')}</span><span /></div>}<div className="playlist-grid library-gallery">{filtered.playlists.slice(0, shown).map(playlist => <LibraryPlaylistTile key={playlist.id} playlist={playlist} onOpen={() => void open(playlist.id)} onPlay={() => void playCollection(playlist.id)} onManage={() => void open(playlist.id, true)}/>)}</div>{moreButton}</> : <div className="large-empty"><Music2 size={38}/><h2>{t("library-ui.una.playlist.tutta.tua")}</h2><p>{t("library-ui.raccogli.i.brani.che.vuoi.ritrovare")}</p><button className="primary-button" onClick={() => { setName(''); setCreate(true); }}>{t("library-ui.crea.la.prima.playlist")}</button></div>)}
+      {tab === 'playlists' && (data.playlists.length ? <>{layout === 'list' && <div className="library-playlist-columns" aria-hidden="true"><span>{t('lib2.collection')}</span><span>{t('lib2.tracks')}</span><span>{t('App.durata')}</span><span /></div>}<div className="playlist-grid library-gallery">{filtered.playlists.slice(0, shown).map(playlist => <LibraryPlaylistTile key={playlist.id} playlist={playlist} onOpen={() => void open(playlist.id)} onPlay={() => void playCollection(playlist.id)} onManage={() => void open(playlist.id, true)}/>)}</div>{moreButton}</> : !data.likes.length && !data.follows.length ? <div className="library-first-use"><FirstListen library onSearch={onSearch} onImport={showImports}/><button className="text-button" onClick={() => {setName('');setCreate(true);}}>{t("library-ui.crea.la.prima.playlist")}</button></div> : <div className="large-empty"><Music2 size={38}/><h2>{t("library-ui.una.playlist.tutta.tua")}</h2><p>{t("library-ui.raccogli.i.brani.che.vuoi.ritrovare")}</p><button className="primary-button" onClick={() => { setName(''); setCreate(true); }}>{t("library-ui.crea.la.prima.playlist")}</button></div>)}
       {tab === 'likes' && (data.likes.length ? <>{layout === 'list' && <div className="library-liked-columns" aria-hidden="true"><span>#</span><span>{t('App.brano.artista')}</span><span>{t('catalog.album')}</span><span>{t('App.durata')}</span><span /></div>}<div className="library-favourite-list">{filtered.likes.slice(0, shown).map((track, index) => <div key={track.id} data-library-id={track.id} className={`library-song-row ${currentId === track.id ? 'is-playing' : ''}`}><span className="library-song-number" aria-hidden="true">{index + 1}</span><LibraryTrack track={track} onPlay={() => usePlayer.getState().play(track, libraryPlaybackWindow(filtered.likes, track))}/></div>)}</div>{moreButton}</> : <div className="large-empty"><Heart size={38}/><h2>{t('library-ui.tieni.vicino.quello.che.ami')}</h2><p>{t('library-ui.premi.il.cuore.accanto.a.un.brano.per.salvarlo.qui')}</p></div>)}
       {(tab === 'artists' || tab === 'albums') && <>{total ? <><div className={`follow-grid library-gallery ${tab === 'artists' ? 'library-artists-gallery' : ''}`}>{filtered.follows.slice(0, shown).map(resource => <LibraryResourceTile key={resource.kind + ':' + resource.id} resource={resource} subtitle={resource.kind === 'album' ? albumArtists.get(resource.id) : undefined}/>)}</div>{moreButton}</> : <div className="large-empty"><Disc3 size={38}/><h2>{tab === 'artists' ? t("library-ui.ritrova.i.tuoi.artisti") : t("library-ui.il.tuo.scaffale.di.album")}</h2><p>{t("library-ui.riproduci.un.risultato.della.ricerca.e.usa.segui.nel.pannello.in.")}</p></div>}</>}
       {tab === 'activity' && <ListeningActivity />}

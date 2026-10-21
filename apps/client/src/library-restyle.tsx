@@ -1,3 +1,4 @@
+import {useTranslation} from '../../../packages/i18n/react';
 import {useLayoutEffect,useRef,useEffect,useState,type ReactNode,type RefObject} from 'react';
 import {useArtistArtwork} from './artist-artwork';
 import {ListMusic,Heart,Disc3,UserRound,Clock3,ChartNoAxesColumn,History,LayoutGrid,List,MoreHorizontal,ArrowUpRight,Play,Download,ChevronDown} from 'lucide-react';
@@ -38,7 +39,7 @@ export function LibraryMenu({label,children,importMenu=false}:{label:string;chil
   useEffect(()=>{const outside=(event:PointerEvent)=>{if(root.current?.open&&!root.current.contains(event.target as Node)&&!document.querySelector('dialog[open]'))root.current.open=false;};document.addEventListener('pointerdown',outside);return()=>document.removeEventListener('pointerdown',outside);},[]);
   return <details ref={root} className={importMenu?'library-import-menu':'library-collection-actions'} onClick={event=>{if((event.target as Element).closest('.library-action-menu button')&&root.current)root.current.open=false;}} onKeyDown={event=>{if(event.key==='Escape'&&root.current?.open){event.preventDefault();event.stopPropagation();root.current.open=false;root.current.querySelector<HTMLElement>('summary')?.focus();}}}><summary id={importMenu?'library-import-trigger':undefined} aria-label={label} title={label}>{importMenu?<><Download size={18}/><span>{t('lib2.import')}</span><ChevronDown size={15}/></>:<MoreHorizontal size={20}/>}</summary><div className="library-action-menu">{children}</div></details>;
 }
-export function LibraryImports({slot,onImported}:{slot:RefObject<HTMLDivElement|null>;onImported:(playlist:PersonalPlaylist)=>void}){return <LibraryMenu label={t('lib2.import')} importMenu><RemotePlaylistImport slot={slot} onImported={onImported}/><ImportPlaylistButton/></LibraryMenu>;}
+export function LibraryImports({slot,onImported}:{slot:RefObject<HTMLDivElement|null>;onImported:(playlist:PersonalPlaylist)=>void}){const {t:copy}=useTranslation('common');return <LibraryMenu label={t('lib2.import')} importMenu><p className="import-menu-help">{copy('transfer.fileShort')}</p><RemotePlaylistImport slot={slot} onImported={onImported}/><ImportPlaylistButton/></LibraryMenu>;}
 function CollectionName({name,id}:{name:string;id:string}){return <ScrollingLine as="span" className="library-collection-name" text={name} resetKey={id}><strong>{name}</strong></ScrollingLine>;}
 export function LibraryPlaylistTile({playlist,onOpen,onPlay,onManage}:{playlist:PlaylistSummary;onOpen:()=>void;onPlay:()=>void;onManage:()=>void}){
   return <article className="playlist-card library-collection-card" data-library-id={playlist.id}>

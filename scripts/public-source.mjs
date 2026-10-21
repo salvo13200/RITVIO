@@ -5,9 +5,10 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {imageMetadataIssue} from './check-assets.mjs';
 import showcase from './showcase-files.json' with {type:'json'};
+import adoptionMedia from './adoption-media.json' with {type:'json'};
 
-const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','QUALITY_STATUS.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md']);
-const publicMedia=new Set(['README.md','manifest.json','logo.svg','banner.webp',...showcase.views.map(view=>`${view.name}.webp`)]);
+const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','QUALITY_STATUS.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md','ADOPTION.md','COMMUNITY.md']);
+const publicMedia=new Set(['README.md','manifest.json','logo.svg','banner.webp','adoption.json','adoption-demo.webm',...showcase.views.map(view=>`${view.name}.webp`),...adoptionMedia.views.map(view=>`${view.name}.webp`)]);
 const rootFiles=new Set(['LICENSE','README.md','README.en.md','README.it.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','THIRD_PARTY_NOTICES.md','.gitignore','.gitattributes','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements-resolver.txt','tsconfig.json','vite.config.ts']);
 export function isPublicSource(file){
   const name=file.replaceAll('\\','/'),parts=name.split('/');
@@ -46,6 +47,11 @@ export async function scanPublicSource(root,files){
     if(!isPublicSource(file)){findings.push({file,reason:'not allowed'});continue;}
     if(/\.(png|webp)$/i.test(file)){const issue=imageMetadataIssue(await readFile(path.join(root,file)));if(issue)findings.push({file,reason:issue});continue;}
     if(/\.(ico|ttf|jar)$/i.test(file))continue;
+    if(file==='docs/media/adoption-demo.webm'){
+      const video=await readFile(path.join(root,file));
+      if(video.length<100||video.length>5_000_000||video.subarray(0,4).toString('hex')!=='1a45dfa3')findings.push({file,reason:'invalid or oversized presentation video'});
+      continue; // The exact bytes/checksum are additionally checked by check-docs.
+    }
     const text=await readFile(path.join(root,file),'utf8');
     if(patterns.some(pattern=>pattern.test(text)))findings.push({file,reason:'possible credential or personal path'});
     if(file!=='.env.example'&&/(^|\/)\.env($|\.)/.test(file))findings.push({file,reason:'environment file'});

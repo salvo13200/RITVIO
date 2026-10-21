@@ -1,3 +1,4 @@
+import {useTranslation} from '../../../packages/i18n/react';
 import { noticeText } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -8,7 +9,7 @@ import { animateUI, useMotionMode } from './ui-motion';
 import { useStoryShare } from './story-share-state';
 import { renderStory, storyBlob, type StoryMode } from './story-canvas';
 import { excerptRows, selectedExcerpt, chooseExcerpt, excerptRange, excerptLimits, type ExcerptSelection, type ExcerptProblem } from '../../../packages/domain/story-sharing';
-import { sharedTrackLink } from '../../../packages/domain/sharing';
+import {ritvioTrackLink,sharedTrackMessage} from '../../../packages/domain/track-sharing';
 import type { LyricsDocument } from '../../../packages/domain/lyrics';
 import type { Track } from '../../../packages/domain/index';
 export function StoryShareButton({ track }: {
@@ -29,6 +30,7 @@ function StoryComposer({ track, opener }: {
     track: Track;
     opener: HTMLElement | null;
 }) {
+    const {t:common}=useTranslation('common');
     const dialog = useRef<HTMLDialogElement>(null), canvas = useRef<HTMLCanvasElement>(null), preview = useRef<HTMLDivElement>(null), picture = useRef<ImageBitmap | null>(null), copyTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     const alive = useRef(true), savingLock = useRef(false);
     const motion = useMotionMode();
@@ -38,7 +40,7 @@ function StoryComposer({ track, opener }: {
         selection: ExcerptSelection | null;
         problem: ExcerptProblem | null;
     }>({ selection: null, problem: null });
-    const [error, setError] = useState<string | null>(null), [saving, setSaving] = useState(false), [saved, setSaved] = useState(false), [copied, setCopied] = useState(false);
+    const [error, setError] = useState<string | null>(null), [saving, setSaving] = useState(false), [saved, setSaved] = useState(false), [copied, setCopied] = useState<false|'link'|'text'>(false);
     const rows = lyrics ? excerptRows(lyrics) : [], range = excerptRange(selectionState.selection), excerpt = selectedExcerpt(rows, range);
     const selectionProblem = selectionState.problem ?? (range ? excerpt.problem : null);
     const previewKey = JSON.stringify([mode, excerpt.text, excerpt.problem, artwork, paintVersion]), painted = paintedFor === previewKey;
@@ -175,16 +177,16 @@ function StoryComposer({ track, opener }: {
             }
         }
     };
-    const copy = async () => {
+    const copy = async (withText=false) => {
         setError(null);
         try {
             if (window.ritvio)
-                await window.ritvio.copyTrackLink(track.videoId);
+                await window.ritvio.copyTrackLink(track,withText);
             else
-                await navigator.clipboard.writeText(sharedTrackLink(track));
+                await navigator.clipboard.writeText(withText?sharedTrackMessage(track,common('share.credit')):ritvioTrackLink(track));
             if (!alive.current)
                 return;
-            setCopied(true);
+            setCopied(withText?'text':'link');
             clearTimeout(copyTimer.current);
             copyTimer.current = setTimeout(() => setCopied(false), 2200);
         }
@@ -233,10 +235,11 @@ function StoryComposer({ track, opener }: {
       {artwork === 'missing' && <div className="story-artwork-warning"><ImageOff size={18}/><p>{t('story.artworkMissing')}</p><button type="button" disabled={saving} onClick={() => setRetry(v => v + 1)}>{t('story.retry')}</button><button type="button" disabled={saving || allowFallback} onClick={() => setAllowFallback(true)}>{t(allowFallback ? 'story.fallbackActive' : 'story.withoutArtwork')}</button></div>}
       {metadataTruncated && <p className="story-source">{t('story.metadataShortened')}</p>}
       </div>
+      <p className="story-source">{common('share.imageHint')}</p><button type="button" className="text-button" disabled={saving} onClick={() => void copy(true)}>{common(copied==='text'?'share.copyDone':'share.copyText')}</button>
       <div className="story-output"><h3>{t('story.format')}</h3><div><span>{t('story.ratio')}</span><strong>1080 × 1920</strong><span>PNG</span></div></div>
       {error && <p className="story-warning" role="alert">{noticeText(error)}</p>}
-      <div className="story-actions"><button type="button" className="primary-button" disabled={!available} onClick={() => void save()}>{saving ? <LoaderCircle className="spin" size={20}/> : saved ? <Check size={20}/> : <Download size={20}/>} {t(saving ? 'story.saving' : saved ? 'story.saved' : 'story.save')}</button><button type="button" className="secondary-button" onClick={() => void copy()}>{copied ? <Check size={19}/> : <Link2 size={19}/>} {t(copied ? 'story.copied' : 'story.copy')}</button></div>
-      <span className="sr-only" role="status">{saved ? t('story.saved') : copied ? t('story.copied') : ''}</span>
+      <div className="story-actions"><button type="button" className="primary-button" disabled={!available} onClick={() => void save()}>{saving ? <LoaderCircle className="spin" size={20}/> : saved ? <Check size={20}/> : <Download size={20}/>} {t(saving ? 'story.saving' : saved ? 'story.saved' : 'story.save')}</button><button type="button" className="secondary-button" onClick={() => void copy()}>{copied==='link' ? <Check size={19}/> : <Link2 size={19}/>} {t(copied==='link' ? 'story.copied' : 'story.copy')}</button></div>
+      <span className="sr-only" role="status">{saved ? t('story.saved') : copied==='text' ? common('share.copyDone') : copied==='link' ? t('story.copied') : ''}</span>
     </section></div>
   </dialog>;
 }

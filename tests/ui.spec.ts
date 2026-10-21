@@ -675,13 +675,15 @@ test('playlist files can be exported, previewed, renamed and imported as distinc
   await page.screenshot({path:'data/analysis/fase4-condivisione.png'});
 });
 
-test('track sharing copies a canonical YouTube link',async({page,context})=>{
+test('track sharing copies a canonical RITVIO reference',async({page,context})=>{
   await context.grantPermissions(['clipboard-read','clipboard-write'],{origin:'http://127.0.0.1:5173'});
   await page.goto('/');await page.getByRole('textbox',{name:'Cerca musica'}).fill('Musica test');
   const row=page.locator('.tracks .track-row').first();await expect(row).toContainText('Secondo brano');
-  await row.getByRole('button',{name:'Copia link YouTube: Secondo brano',exact:true}).click();
-  await expect.poll(()=>page.evaluate(()=>navigator.clipboard.readText())).toBe('https://www.youtube.com/watch?v=testmusic02');
-  await expect(row.getByRole('status')).toContainText('Link copiato');
+  await row.getByRole('button',{name:'Opzioni di ascolto: Secondo brano',exact:true}).click();
+  const menu=page.locator('.listening-options:popover-open');await menu.getByRole('button',{name:'Copia link RITVIO: Secondo brano',exact:true}).click();
+  await expect.poll(()=>page.evaluate(async()=>new URL(await navigator.clipboard.readText()).origin+new URL(await navigator.clipboard.readText()).pathname)).toBe('https://salvo13200.github.io/RITVIO/');
+  expect(new URLSearchParams(new URL(await page.evaluate(()=>navigator.clipboard.readText())).hash.slice(1)).get('track')).toBe('testmusic02');
+  await expect(menu.getByRole('status')).toContainText('Link copiato');
 });
 
 test('pause and resume reuse the stream and do not count another listen',async({page})=>{

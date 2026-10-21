@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "language": "en",
+  "status": "Unpublished local source additions; public APK/EXE baselines are unchanged.",
+  "origin": "Actual React UI in Edge; synthetic fixture catalogue, lyrics and native responses; silent, not native/audio evidence.",
+  "encoding": "Metadata-free lossless WebP; screenshot pixels unchanged.",
+  "files": [
+    {
+      "file": "desktop-support.webp",
+      "feature": "Review a report before copying or opening GitHub",
+      "width": 1440,
+      "height": 940,
+      "bytes": 47844,
+      "sha256": "eeb666622a0680a51e1b4a07686b05d2a38547f05259df72197d611dc1a1f96b",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "mobile-support.webp",
+      "feature": "Android help with optional playback timings",
+      "width": 393,
+      "height": 852,
+      "bytes": 23830,
+      "sha256": "cd0b08cdda223b4bc328d119911ed655f76810def993432bdb62caf75269185e",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "mobile-support-entry.webp",
+      "feature": "Direct access to help from Android Settings",
+      "width": 393,
+      "height": 852,
+      "bytes": 24604,
+      "sha256": "5bc543dbd718d66dee667483e47e657e84ee1e45b5865fd762496a564015eb19",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "desktop-updates.webp",
+      "feature": "Opt-in update checks and platform-specific downloads",
+      "width": 1440,
+      "height": 940,
+      "bytes": 52290,
+      "sha256": "baefa0f7d47e7150dd8dfaf90c432cc4045c5b0cdee53f24d688857b897e3aa4",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "desktop-first-listen.webp",
+      "feature": "A clear first listening step on Windows",
+      "width": 1440,
+      "height": 940,
+      "bytes": 205888,
+      "sha256": "10d3569af75b28849a463ed1003bbf6256849298f475e0ddfc431821b817491f",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "mobile-first-listen.webp",
+      "feature": "Search or import from an empty Android profile",
+      "width": 393,
+      "height": 852,
+      "bytes": 84126,
+      "sha256": "7660a151a39cabe90ce14fef6300a8b57cf7dd422254409d81eb9a1996388a46",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "mobile-import-result.webp",
+      "feature": "Review a completed playlist import",
+      "width": 393,
+      "height": 852,
+      "bytes": 30246,
+      "sha256": "eaba65aad3ca7b8d9d9a7108337d8b54840495a8e24888e9c190df7546b6074d",
+      "kind": "browser-source-capture"
+    },
+    {
+      "file": "desktop-song-reference.webp",
+      "feature": "A shared song reference with official app downloads",
+      "width": 1440,
+      "height": 940,
+      "bytes": 41530,
+      "sha256": "ba428302803c58cc4889dcf9e814413e9081981657a15a8e161b9afcd8d2a399",
+      "kind": "browser-source-capture"
+    }
+  ],
+  "video": {
+    "file": "adoption-demo.webm",
+    "bytes": 880261,
+    "sha256": "9d566cc8d1aa4593ae421e4b91f8040684fe24b4b01cc7584f56608b1ce9e839",
+    "kind": "silent-browser-ui-recording",
+    "scope": "Search, fixture playback UI, lyrics, selection and card preview. Not native or audio evidence."
+  }
+}

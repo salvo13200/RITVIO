@@ -1,3 +1,4 @@
+import {useTranslation} from '../../../packages/i18n/react';
 import { noticeText } from './i18n';
 import { t } from './i18n';
 import { useEffect, useRef, useState } from 'react';
@@ -5,7 +6,8 @@ import { createPortal } from 'react-dom';
 import { Share2, Check, Download, Upload, X, FileMusic, LoaderCircle } from 'lucide-react';
 import { api } from './api';
 import { useLibrary } from './library';
-import { playlistFileLimit, playlistFilename, sharedTrackLink, type PlaylistFile } from '../../../packages/domain/sharing';
+import { playlistFileLimit, playlistFilename, type PlaylistFile } from '../../../packages/domain/sharing';
+import {ritvioTrackLink} from '../../../packages/domain/track-sharing';
 import type { Track, PersonalPlaylist } from '../../../packages/domain/index';
 function describe(error: unknown) { return error instanceof Error ? error.message : t("sharing-ui.operazione.non.riuscita.riprova"); }
 export function ShareTrackButton({ track, visibleLabel = false }: {
@@ -18,9 +20,9 @@ export function ShareTrackButton({ track, visibleLabel = false }: {
     return <button type="button" data-menu-retain="true" className={`icon-button ${copied ? 'active' : ''}`} aria-label={t("sharing-ui.copia.link.youtube", { p0: track.title })} title={copied ? t("sharing-ui.link.copiato") : t("sharing-ui.copia.link.youtube.1")} onClick={async () => {
             try {
                 if (window.ritvio)
-                    await window.ritvio.copyTrackLink(track.videoId);
+                    await window.ritvio.copyTrackLink(track);
                 else
-                    await navigator.clipboard.writeText(sharedTrackLink(track));
+                    await navigator.clipboard.writeText(ritvioTrackLink(track));
                 setCopied(true);
                 clearTimeout(timer.current);
                 timer.current = setTimeout(() => setCopied(false), 2000);
@@ -82,6 +84,8 @@ function previewFile(value: unknown): PlaylistFile {
     return { ...candidate, format: 'ritvio-playlist' } as PlaylistFile;
 }
 export function ImportPlaylistButton() {
+    const {t:copy}=useTranslation('common');
+    const [shown,setShown]=useState(60);
     const input = useRef<HTMLInputElement>(null);
     const modal = useRef<HTMLDialogElement>(null);
     const [file, setFile] = useState<PlaylistFile | null>(null);
@@ -101,6 +105,7 @@ export function ImportPlaylistButton() {
                 document.getElementById('library-import-trigger')?.focus();
         }
         setSkipCopies(false);
+        setShown(60);
     }, [file]);
     const seen = new Set<string>();
     const uniqueTracks = file?.playlist.tracks.filter(track => {
@@ -153,7 +158,7 @@ export function ImportPlaylistButton() {
                     close();
             }}>
       <div className="dialog-heading"><h2 id="import-title">{t("sharing-ui.importa.playlist")}</h2><button type="button" aria-label={t("sharing-ui.chiudi.importazione")} className="icon-button" onClick={close} disabled={busy}><X size={20}/></button></div>
-      {file && <><div className="import-summary"><FileMusic size={28}/><div><strong>{file.playlist.name}</strong><span>{file.playlist.tracks.length} {t("library-ui.brani.2")}{filename}</span></div></div><p className="dialog-copy">{t("sharing-ui.verra.creata.una.nuova.playlist.privata.potrai.modificarla.nella.")}</p>{error && <p role="alert" className="form-error">{noticeText(error)}</p>}
+      {file && <><div className="import-summary"><FileMusic size={28}/><div><strong>{file.playlist.name}</strong><span>{copy('transfer.fileSummary',{count:file.playlist.tracks.length,name:filename})}</span></div></div><p className="dialog-copy">{t("sharing-ui.verra.creata.una.nuova.playlist.privata.potrai.modificarla.nella.")}</p>{error && <p role="alert" className="form-error">{noticeText(error)}</p>}
         <form className="library-form" onSubmit={async (e) => {
                     e.preventDefault();
                     useLibrary.setState({ error: null });
@@ -167,7 +172,7 @@ export function ImportPlaylistButton() {
           {!!file.playlist.description && <p className="import-description">{file.playlist.description}</p>}
           {!!duplicateCount && <><p>{t('sharing.duplicatesCount', { count: duplicateCount })}</p><label className="playlist-option"><input type="checkbox" checked={skipCopies} disabled={busy} onChange={e => setSkipCopies(e.target.checked)}/>{t('sharing.skipCopies')}</label></>}
           <p role="status">{t('sharing.importCount', { count: skipCopies ? uniqueTracks.length : file.playlist.tracks.length })}</p>
-          <div className="import-tracks">{file.playlist.tracks.slice(0, 5).map((track, index) => <div key={`${track.videoId}-${index}`}><span>{index + 1}</span><strong>{track.title}</strong><small>{track.artist}</small></div>)}{file.playlist.tracks.length > 5 && <p>{t("sharing-ui.altri")}{file.playlist.tracks.length - 5} {t("library-ui.brani")}</p>}</div>
+          <div className="import-tracks" tabIndex={0} role="region" aria-label={copy('transfer.fileTracks')}>{file.playlist.tracks.slice(0, shown).map((track, index) => <div key={`${track.videoId}-${index}`}><span>{index + 1}</span><strong>{track.title}</strong><small>{track.artist}</small></div>)}{shown < file.playlist.tracks.length && <button type="button" className="text-button" onClick={() => setShown(value=>value+60)}>{copy('transfer.showMore')}</button>}</div>
           <button className="primary-button" type="submit" disabled={busy || !name.trim()}>{busy ? <LoaderCircle className="spin" size={16}/> : <Upload size={16}/>}{t("sharing-ui.importa.come.nuova.playlist")}</button>
         </form></>}
     </dialog>, document.body)}

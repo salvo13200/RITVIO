@@ -1,6 +1,6 @@
 {
   "name": "ritvio",
-  "version": "0.7.5",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -45,7 +45,13 @@
     "licenses:collect": "node scripts/collect-licenses.mjs",
     "release:check": "node scripts/public-source.mjs",
     "release:source": "node scripts/public-source.mjs --export",
-    "funding:configure": "node scripts/configure-funding.mjs"
+    "funding:configure": "node scripts/configure-funding.mjs",
+    "site:dev": "vite --config apps/site/vite.config.ts",
+    "site:build": "vite build --config apps/site/vite.config.ts",
+    "site:preview": "node scripts/preview-site.mjs",
+    "downloads:sync": "tsx scripts/sync-downloads.ts",
+    "downloads:check": "tsx scripts/sync-downloads.ts --check",
+    "test:site": "playwright test --config tests/config/playwright.site.config.ts"
   },
   "dependencies": {
     "@capacitor/android": "8.5.3",

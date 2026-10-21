@@ -61,12 +61,14 @@ Create a 9:16 track card or choose a consecutive lyrics excerpt. Preview it befo
 
 You do **not** need Node.js, Python, an API key or a RITVIO account to use the packaged apps.
 
+<!-- downloads:start -->
 | Platform | Package | Get it |
 | --- | --- | --- |
 | Windows 10/11 · x64 | Per-user installer | [Download Setup EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-setup.exe) |
 | Windows 10/11 · x64 | Portable ZIP · extract once | [Download portable ZIP](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.zip) |
 | Windows 10/11 · x64 | Self-extracting portable EXE | [Download portable EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v0.7.5/RITVIO-0.7.5-portatile.exe) |
 | Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/android-v1.3.1/RITVIO-Android-1.3.1.apk) |
+<!-- downloads:end -->
 
 [All release files, source archives and SHA-256 checksums](https://github.com/salvo13200/RITVIO/releases).
 

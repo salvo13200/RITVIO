@@ -1,3 +1,8 @@
+import {UpdateSettings,UpdateNotice} from '../../../packages/updates/ui';
+import {updates} from './updates';
+import {useTranslation} from '../../../packages/i18n/react';
+import {SupportSettings} from '../../../packages/support/ui';
+import {supportHost} from './support';
 import {SourcesInfo} from '../../../packages/i18n/sources-info';
 import { noticeText } from './messages';
 import { msg } from './messages';
@@ -22,8 +27,10 @@ type TrackContext = {
     index: number;
 };
 export function App() {
+    const {t:helpText}=useTranslation('common');
     const [state, updateState] = useState<MobilePlayback>(emptyMobilePlayback), [library, setLibrary] = useState<MobileLibrary>(emptyMobileLibrary), [libraryError, setLibraryError] = useState(false), [librarySearch, setLibrarySearch] = useState(false);
     const setState=(incoming:MobilePlayback)=>updateState(current=>acceptPlaybackSnapshot(current,incoming));
+    const [libraryReady, setLibraryReady] = useState(false);
     const [tab, setTab] = useState<Tab>('home'), [route, setRoute] = useState(location.hash.slice(1)), [query, setQuery] = useState(''), [notice, setNotice] = useState('');
     const [detail, setDetail] = useState<DetailTarget | null>(null), [selectedTrack, setSelectedTrack] = useState<NativeTrack | null>(null), [context, setContext] = useState<TrackContext | undefined>();
     const [browse, setBrowse] = useState<BrowseCategory | null>(null);
@@ -76,6 +83,7 @@ export function App() {
     async function refreshLibrary() {
         try {
             setLibrary(await nativePlayback.library());
+            setLibraryReady(true);
             setLibraryError(false);
         }
         catch {
@@ -250,11 +258,12 @@ export function App() {
     return <div className="mobile-shell">
   <header inert={hasModal} className="app-header"><button className="brand" aria-label="RITVIO, Home" onClick={() => changeTab('home')}><svg width="27" height="30" viewBox="0 0 25 28" aria-hidden="true"><path d="M2 12v4m5-9v14m5-19v24m5-20v16m5-11v6" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"/></svg>{msg("RITVIO")}</button>{tab === 'library' && !detailVisible && <div className="header-tools"><button aria-label={msg("Cerca nella libreria")} aria-pressed={librarySearch} onClick={() => setLibrarySearch(!librarySearch)}><Search size={23}/></button><button aria-label={msg("Importa playlist")} onClick={() => navigate('import')}><Download size={24}/></button><button aria-label={msg("Crea playlist")} onClick={create}><Plus size={26}/></button></div>}{tab === 'home' && <div className="header-tools"><button aria-label={msg("Cerca musica")} onClick={() => openSearch()}><Search size={24}/></button><button aria-label={msg("Impostazioni")} onClick={() => navigate('settings')}><Settings size={24}/></button></div>}</header>
   <main inert={hasModal} ref={main} className="page-content">
+   <UpdateNotice controller={updates} onDetails={()=>navigate('settings')}/>
    {!isAndroid && <p className="inline-error">{msg("Questa interfaccia usa il servizio nativo nell'APK Android.")}</p>}
    {libraryError && <div className="inline-error" role="alert"><p>{msg("La libreria non \u00E8 disponibile. I dati non sono stati sostituiti.")}</p><button className="text-action" onClick={() => void refreshLibrary()}>{msg("Riprova")}</button></div>}
-   <div hidden={tab !== 'home' || detailVisible}><HomePage openBrowse={openBrowse} {...common} library={library} openCollection={openCollection} openLikes={() => navigate('likes')} openRecent={() => navigate('recent')} openSearch={() => openSearch()} openPlayer={() => showPlayer('.home-resume .artwork')} playback={state} toggleCurrent={() => void command({ type: state.playing ? 'pause' : 'play' })}/></div>
+   <div hidden={tab !== 'home' || detailVisible}><HomePage libraryReady={libraryReady && !libraryError} openImport={() => navigate('import')} openBrowse={openBrowse} {...common} library={library} openCollection={openCollection} openLikes={() => navigate('likes')} openRecent={() => navigate('recent')} openSearch={() => openSearch()} openPlayer={() => showPlayer('.home-resume .artwork')} playback={state} toggleCurrent={() => void command({ type: state.playing ? 'pause' : 'play' })}/></div>
    <div hidden={tab !== 'search' || detailVisible}><SearchPage openBrowse={openBrowse} {...common} query={query} setQuery={setQuery} playing={state.playing && !state.loading}/></div>
-   <div hidden={tab !== 'library' || detailVisible}><LibraryPage library={library} openResource={openResource} openPlaylist={item => { navigate(`playlist/${item.id}`); window.scrollTo(0, 0); }} openLikes={() => navigate('likes')} searching={librarySearch}/></div>
+   <div hidden={tab !== 'library' || detailVisible}><LibraryPage libraryReady={libraryReady && !libraryError} openSearch={() => openSearch()} openImport={() => navigate('import')} library={library} openResource={openResource} openPlaylist={item => { navigate(`playlist/${item.id}`); window.scrollTo(0, 0); }} openLikes={() => navigate('likes')} searching={librarySearch}/></div>
    {route === 'browse' && browse && <BrowsePage key={browse.id} category={browse} close={close} {...common}/>}
    {route === 'detail' && detail && <CatalogDetail key={JSON.stringify(detail)} {...common} target={detail} close={close} library={library} follow={(resource, followed) => void libraryAction({ type: 'follow', resource, followed }, followed ? msg("Aggiunto alla libreria") : msg("Rimosso dalla libreria"))}/>}
    {(route === 'likes' || route === 'recent' || route.startsWith('playlist/')) && <section className="playlist-page"><button className="back-control" onClick={close}><ChevronLeft size={23}/>{msg("Indietro")}</button><div className="detail-hero"><Artwork src={playlist?.cover ?? playlistTracks[0]?.thumbnail} large>{route === 'likes' ? <Heart size={66}/> : <ListMusic size={66}/>}</Artwork><h1>{route === 'likes' ? msg("Brani piaciuti") : route === 'recent' ? msg("Ascoltati di recente") : playlist?.name ?? msg("Playlist non disponibile")}</h1><p>{playlistTracks.length}{" " + msg("brani \u00B7 sul dispositivo")}</p>{playlist?.description && <p className="playlist-description">{playlist.description}</p>}<div className="detail-actions"><button className="primary" disabled={!playlistTracks.length} onClick={() => void play(playlistTracks, 0)}><Play fill="currentColor" size={20}/>{msg("Ascolta")}</button>{playlist && <><button aria-label={msg("Cambia copertina playlist")} disabled={saving} onClick={() => void changeArtwork("playlist", playlist.id)}><ImagePlus size={22}/></button><button aria-label={msg("Rinomina playlist")} onClick={() => { setName(playlist.name); setContext({ playlistId: playlist.id, index: 0 }); navigate('rename'); }}><Pencil size={22}/></button><button aria-label={msg("Esporta playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('export'); }}><Upload size={22}/></button><button aria-label={msg("Elimina playlist")} onClick={() => { setContext({ playlistId: playlist.id, index: 0 }); navigate('delete'); }}><Trash2 size={22}/></button></>}</div></div>{playlistTracks.length ? <div className="track-list">{playlistTracks.map((item, index) => <TrackRow key={`${item.videoId}:${index}`} track={item} active={track?.videoId === item.videoId} onPlay={() => void play(playlistTracks, index)} onMore={() => more(item, playlist ? { playlistId: playlist.id, index } : undefined)}/>)}</div> : <Empty title={route === 'likes' ? msg("Tieni vicini i tuoi brani") : msg("Fai spazio alla tua musica")} action={<button className="tonal" onClick={() => openSearch()}>{msg("Cerca un brano")}</button>}>{msg("Aggiungi brani dal player o dal menu accanto a un risultato.")}</Empty>}</section>}
@@ -310,9 +319,9 @@ export function App() {
                             history.go(-2);
                     });
             }}>{msg("Elimina playlist")}</button><button onClick={close}>{msg("Annulla")}</button></Modal>}
-  {route === 'import' && <Modal label={msg("Importa playlist")} onClose={close}><ImportPlaylistPanel library={library} refresh={refreshLibrary} complete={value => { setLibrary(value.library); notify(msg("{p0} brani importati{p1}", { p0: value.added, p1: value.skippedDuplicates ? msg(" \u00B7 {p0} duplicati saltati", { p0: value.skippedDuplicates }) : '' })); }} close={close}/></Modal>}
+  {route === 'import' && <Modal label={msg("Importa playlist")} onClose={close}><ImportPlaylistPanel openPlaylist={id => { setTab('library'); history.replaceState({ritvio:true,detail},'',`#playlist/${id}`); setRoute(`playlist/${id}`); window.scrollTo(0,0); }} library={library} refresh={refreshLibrary} complete={value => { setLibrary(value.library); setLibraryError(false); }} close={close}/></Modal>}
   {route === 'export' && <Modal label={msg("Esporta playlist")} onClose={close}>{library.playlists.find(p => p.id === context?.playlistId) ? <ExportPlaylistPanel playlist={library.playlists.find(p => p.id === context?.playlistId)!}/> : <Empty title={msg("Playlist non disponibile")}>{msg("Chiudi il pannello e scegli una playlist dalla Libreria.")}</Empty>}</Modal>}
-  {route === 'settings' && <Modal label={msg("Impostazioni")} onClose={close}><LanguagePreferenceControl /><div className="settings-row"><span>{msg("Riduci animazioni")}</span><button className="tonal" aria-pressed={reduced} onClick={() => setReduced(!reduced)}>{reduced ? msg("Attivo") : msg("Disattivato")}</button></div><p>{msg("Profilo locale: libreria e preferenze sono salvate su questo dispositivo.")}</p><button className="tonal" onClick={() => void nativePlayback.copyPlaybackDiagnostics().then(() => notify(msg("Diagnostica audio copiata"))).catch(reportError)}>{msg("Copia diagnostica audio")}</button><p className="source-date">{msg("Per segnalare un caricamento lento: copia i tempi del player. Titoli e URL non sono inclusi.")}</p><SourcesInfo/><p className="source-date">RITVIO Android {version}</p></Modal>}
+  {route === 'settings' && <Modal label={msg("Impostazioni")} onClose={close}><button type="button" className="tonal" onClick={event=>{const heading=event.currentTarget.closest('dialog')?.querySelector<HTMLElement>('.support-settings h3');heading?.focus({preventScroll:true});heading?.scrollIntoView({block:'start',behavior:reduced||matchMedia('(prefers-reduced-motion: reduce)').matches?'instant':'smooth'});}}>{helpText('support.title')}</button><LanguagePreferenceControl /><div className="settings-row"><span>{msg("Riduci animazioni")}</span><button className="tonal" aria-pressed={reduced} onClick={() => setReduced(!reduced)}>{reduced ? msg("Attivo") : msg("Disattivato")}</button></div><p>{msg("Profilo locale: libreria e preferenze sono salvate su questo dispositivo.")}</p><UpdateSettings controller={updates}/><SupportSettings context={{platform:'android',version}} host={supportHost}/><SourcesInfo/><p className="source-date">RITVIO Android {version}</p></Modal>}
   <Notice text={noticeText(notice)}/>
  </div>;
 }

@@ -1,13 +1,21 @@
 import {registerPlugin,Capacitor,type PluginListenerHandle} from '@capacitor/core';
 import type {MobilePlayback,MobileCommand,NativeTrack,MobileLibrary,MobileCatalog,MobileAudio,MobileImportPreview,MobileImportResult} from '../../../packages/domain/mobile';
 import type {LanguageHostState,LanguagePreference} from '../../../packages/i18n/languages';
+import type {ReleaseResponse} from '../../../packages/domain/updates';
 export interface PlaybackPlugin{
+  updatesRead():Promise<{version:string;stored:string|null}>;
+  updatesWrite(options:{value:string}):Promise<void>;
+  updatesFetch(options:{etag?:string}):Promise<ReleaseResponse>;
+  updatesOpen(options:{url:string}):Promise<void>;
   languageRead():Promise<LanguageHostState>;
   languageWrite(options:{preference:LanguagePreference}):Promise<LanguageHostState>;
   addListener(event:'language',listener:(state:LanguageHostState)=>void):Promise<PluginListenerHandle>;
   search(options:{query:string}):Promise<{items:NativeTrack[];cached:boolean}>;
   snapshot():Promise<MobilePlayback>;
   copyPlaybackDiagnostics():Promise<void>;
+  readPlaybackDiagnostics():Promise<unknown>;
+  supportCopy(options:{text:string}):Promise<void>;
+  supportOpen(options:{url:string}):Promise<void>;
   playTracks(options:{items:NativeTrack[];index:number}):Promise<MobilePlayback>;
   enqueue(options:{track:NativeTrack;next?:boolean}):Promise<MobilePlayback>;
   command(options:MobileCommand):Promise<MobilePlayback>;
@@ -29,7 +37,7 @@ export interface PlaybackPlugin{
   lyrics(options:{track:NativeTrack}):Promise<{plainLyrics:string|null;syncedLyrics:string|null;instrumental:boolean}>;
   share(options:{track:NativeTrack}):Promise<void>;
   storyArtwork(options:{videoId:string;thumbnail?:string|null}):Promise<{dataUrl:string}>;
-  exportStory(options:{videoId:string;base64:string;save:boolean}):Promise<{status:'saved'|'opened'|'cancelled';destination?:'gallery'|'document';album?:string}>;
+  exportStory(options:{videoId:string;track:NativeTrack;base64:string;save:boolean}):Promise<{status:'saved'|'opened'|'cancelled';destination?:'gallery'|'document';album?:string}>;
   addListener(event:'playback',listener:(state:MobilePlayback)=>void):Promise<PluginListenerHandle>;
 }
 export const nativePlayback=registerPlugin<PlaybackPlugin>('RitvioPlayback');

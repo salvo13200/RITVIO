@@ -4,8 +4,8 @@
 .preferences-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin:0 0 26px}
 .preferences-heading h1{font-size:var(--r-page-title-font,40px);line-height:1.15;margin:0 0 12px;letter-spacing:-.025em}
 .preferences-heading p{font-size:1.125rem;color:var(--muted);line-height:1.5;margin:0;max-width:65ch}
-.preference-tabs{display:flex;gap:12px;border-bottom:1px solid var(--line);margin-bottom:22px}
-.preference-tabs button{display:flex;align-items:center;justify-content:center;gap:10px;flex:1;min-width:0;min-height:56px;padding:12px 8px;font-size:1rem;color:var(--muted);position:relative}
+.preference-tabs{display:flex;flex-wrap:wrap;gap:12px;border-bottom:1px solid var(--line);margin-bottom:22px}
+.preference-tabs button{display:flex;align-items:center;justify-content:center;gap:10px;flex:1 1 auto;min-width:max-content;min-height:56px;padding:12px 8px;font-size:1rem;color:var(--muted);position:relative}
 .preference-tabs button::after{content:'';position:absolute;inset:auto 10px -1px;height:3px;border-radius:3px;background:var(--accent);transform:scaleX(0);transition:transform 180ms var(--motion-ease)}
 .preference-tabs button[aria-selected=true]{color:var(--accent);font-weight:600}
 .preference-tabs button[aria-selected=true]::after{transform:scaleX(1)}

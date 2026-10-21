@@ -38,3 +38,11 @@
 @media(max-width:720px){.remote-import{padding:20px 0;}.remote-heading h2,.remote-source h3{font-size:24px;}.remote-source{gap:12px;}.remote-source img{width:64px;height:64px;}.remote-link-form label,.remote-destination label{flex-basis:100%;}.remote-entries{max-height:280px;}.remote-number{width:24px;}}
 @media(prefers-reduced-motion:reduce){.remote-entry{transition:none;}}
 @media(max-width:720px){.library-page .library-header-actions{width:100%;min-width:0;flex:0 1 100%;justify-content:flex-start;}.library-page .library-header-actions>.secondary-button{min-height:44px;font-size:14px;}}
+.import-menu-help{color:var(--muted);font-size:14px;line-height:1.4;padding:8px 12px;margin:0;max-width:32ch}.import-tracks{max-height:360px;overflow:auto;overscroll-behavior:contain;scrollbar-color:var(--muted) var(--surface-2)}
+
+.library-dialog .import-tracks{font-size:16px;line-height:1.4;gap:0;margin:16px 0}.library-dialog .import-tracks>div{grid-template-columns:30px minmax(0,1fr);padding:12px 0;min-height:56px;border-bottom:1px solid var(--line);gap:4px 12px}.library-dialog .import-tracks strong{font-size:16px}.library-dialog .import-tracks small{font-size:14px}.library-dialog .import-summary span,.library-dialog .import-description{font-size:14px}.library-dialog .library-form .playlist-option{display:flex;align-items:center;gap:12px;line-height:1.4}.library-dialog .library-form .playlist-option input{width:18px;min-height:18px;height:18px;margin:0;flex:none;}
+
+/* Retain the task context while the inline preview scrolls below the fixed app bar. */
+.remote-heading{position:sticky;top:76px;z-index:6;background:var(--base);padding:8px 0}.library-dialog .library-form .playlist-option{flex-direction:row;justify-content:flex-start;text-align:left}.library-dialog .library-form .playlist-option input{padding:0;}
+.library-dialog .import-tracks:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.remote-import{scroll-margin-block-start:80px;overflow-anchor:none}.library-page:has(.remote-import){overflow-anchor:none}

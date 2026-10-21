@@ -9,6 +9,10 @@ import {chromium,expect} from '@playwright/test';
 const exec=promisify(execFile);const root=process.cwd();
 const version=JSON.parse(await readFile('package.json','utf8')).version;
 const setup=path.join(root,'release',`RITVIO-${version}-setup.exe`);
+const previousIndex=process.argv.indexOf('--from-version');
+const previousVersion=previousIndex<0?null:process.argv[previousIndex+1];
+if(previousIndex>=0)assert(typeof previousVersion==='string'&&/^\d+\.\d+\.\d+$/.test(previousVersion)&&previousVersion!==version,'--from-version requires a different numeric release version.');
+const previousSetup=previousVersion?path.join(root,'release',`RITVIO-${previousVersion}-setup.exe`):null;
 const testRoot=path.join(root,'.packaging',`installer-test-${randomUUID()}`);
 const installed=path.join(testRoot,'app');const profile=path.join(testRoot,'profile');
 assert(process.platform==='win32','Questo test richiede Windows.');
@@ -21,6 +25,7 @@ const running=await shell("@(Get-Process -Name RITVIO -ErrorAction SilentlyConti
 assert.equal(Number(running),0,'Chiudi RITVIO prima del test installer: il test non termina app dell’utente.');
 const artifact=await readFile(setup);const checksum=(await readFile(setup+'.sha256','utf8')).split(' ')[0];
 assert.equal(createHash('sha256').update(artifact).digest('hex'),checksum,'Checksum installer errato.');
+if(previousSetup){const bytes=await readFile(previousSetup),expected=(await readFile(previousSetup+'.sha256','utf8')).split(' ')[0];assert.equal(createHash('sha256').update(bytes).digest('hex'),expected,'Previous installer checksum mismatch.');}
 async function fingerprint(filename){try{return createHash('sha256').update(await readFile(filename)).digest('hex');}catch(error){if(error.code==='ENOENT')return null;throw error;}}
 const personalFiles=['cache/mvp.sqlite','cache/mvp.sqlite-wal','player-state.json'].map(file=>path.join(process.env.APPDATA,'RITVIO',file));
 const before=await Promise.all(personalFiles.map(fingerprint));
@@ -79,7 +84,10 @@ async function uninstall(){
   await execute(uninstaller,['/S']);await waitFor(async()=>!await exists(path.join(installed,'RITVIO.exe')));
 }
 try{
+  let previousDatabase;
+  if(previousSetup){await execute(previousSetup,['/S',`/D=${installed}`]);await smoke();previousDatabase=await fingerprint(path.join(profile,'cache/mvp.sqlite'));assert(previousDatabase,'Previous installed version must create its database.');}
   await execute(setup,['/S',`/D=${installed}`]);assert(await exists(path.join(installed,'RITVIO.exe')));
+  if(previousSetup)assert.equal(await fingerprint(path.join(profile,'cache/mvp.sqlite')),previousDatabase,'The installer update changed the existing database.');
   const quoted=path.join(installed,'RITVIO.exe').replaceAll("'","''");
   const metadata=JSON.parse(await shell(`(Get-Item -LiteralPath '${quoted}').VersionInfo | Select-Object ProductName,ProductVersion,FileVersion | ConvertTo-Json -Compress`));
   assert.equal(metadata.ProductName,'RITVIO');assert(metadata.ProductVersion.startsWith(version));
@@ -90,5 +98,5 @@ try{
   await uninstall();assert(await exists(path.join(profile,'data-kept.txt')));assert(await exists(path.join(profile,'cache/mvp.sqlite')));
   assert.deepEqual(await Promise.all(personalFiles.map(fingerprint)),before,'I dati personali sono cambiati durante la prova installer.');
   const remaining=await shell("@(Get-ChildItem 'HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall' -ErrorAction SilentlyContinue | Get-ItemProperty | Where-Object { $_.DisplayName -like 'RITVIO*' }).Count");assert.equal(Number(remaining),0);
-  console.log(JSON.stringify({setup,perUserInstallation:true,cleanPathLaunch:true,englishInstalledUi:true,globalHome:true,versionMetadata:true,reinstall:true,dataPreserved:true,personalDataUntouched:true,uninstall:true,registryClean:true,testRoot}));
+  console.log(JSON.stringify({setup,previousVersion,perUserInstallation:true,cleanPathLaunch:true,englishInstalledUi:true,globalHome:true,versionMetadata:true,reinstall:true,dataPreserved:true,personalDataUntouched:true,uninstall:true,registryClean:true,testRoot}));
 }finally{await uninstall();}

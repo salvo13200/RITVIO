@@ -23,13 +23,17 @@ import {registerStoryArtwork} from './story-artwork';
 import {registerHome} from './home';
 import {registerSituations} from './situations';
 export {playlistFilename} from '../../packages/domain/sharing';
+export {ritvioTrackLink,sharedTrackMessage} from '../../packages/domain/track-sharing';
+export {isSupportUrl} from '../../packages/domain/support';
 export async function createApi(options: { config?: Config; root?: string; packagedRuntime?: Parameters<typeof loadConfig>[1]; resolver?: ContentResolver; devOrigin?: string; serveClient?: boolean;identityProvider?:IdentityProvider;rateLimitPerMinute?:number;streamFetch?:typeof fetch;artworkFetch?:typeof fetch;lyricsOptions?:Parameters<typeof registerLyricsRoutes>[3];metadataOptions?:Parameters<typeof registerMetadata>[4] } = {}) {
   const config = options.config ?? loadConfig(options.root,options.packagedRuntime);
   const store = new Store(config.database);
   const resolver = options.resolver ?? new Resolver(config);
   if(!options.resolver)void resolver.installed();
   const catalog = new ResolverCatalog(config,store,resolver);
-  const app = Fastify({ logger:false, bodyLimit:4096, requestIdHeader:false,ajv:{customOptions:{removeAdditional:false}} });
+  // This loopback service belongs to the desktop process. During quit, stop
+  // renderer connections too, rather than waiting for an unfinished response.
+  const app = Fastify({ logger:false, forceCloseConnections:true, bodyLimit:4096, requestIdHeader:false,ajv:{customOptions:{removeAdditional:false}} });
   // Cancel owned network work before catalogue hooks wait for their pending reads.
   app.addHook('preClose',async()=>resolver.close?.());
   const originAllowed = (origin: string) => origin === options.devOrigin || /^http:\/\/127\.0\.0\.1:\d+$/.test(origin) && origin === app.listeningOrigin;

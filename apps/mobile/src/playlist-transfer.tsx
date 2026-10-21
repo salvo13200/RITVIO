@@ -1,4 +1,6 @@
 import { noticeText } from './messages';
+import {useTranslation} from '../../../packages/i18n/react';
+import {ImportGuide,ImportCompletion,type ImportCompletionData} from '../../../packages/first-use/ui';
 import { msg } from './messages';
 import { useEffect, useRef, useState } from 'react';
 import { Download, FileJson, Link, LoaderCircle, Share2 } from 'lucide-react';
@@ -7,12 +9,16 @@ import { Artwork, Empty, ScrollText } from './ui';
 import { importSelection, playlistLink } from '../../../packages/domain/playlist-import';
 import { playlistFilename } from '../../../packages/domain/sharing';
 import type { MobileImportPreview, MobileImportResult, MobileLibrary, MobilePlaylist } from '../../../packages/domain/mobile';
-export function ImportPlaylistPanel({ library, complete, close, refresh }: {
+export function ImportPlaylistPanel({ library, complete, close, refresh, openPlaylist }: {
     library: MobileLibrary;
     complete: (value: MobileImportResult) => void;
     close: () => void;
     refresh: () => Promise<void>;
+    openPlaylist: (id: string) => void;
 }) {
+    const {t}=useTranslation('common');
+    const content=useRef<HTMLDivElement>(null);
+    const [outcome,setOutcome]=useState<{value:MobileImportResult;report:ImportCompletionData}|null>(null);
     const [mode, setMode] = useState<'link' | 'file'>('link'), [url, setUrl] = useState(''), [preview, setPreview] = useState<MobileImportPreview | null>(null), [loading, setLoading] = useState(false), [saving, setSaving] = useState(false), [error, setError] = useState('');
     const [selected, setSelected] = useState<Set<number>>(new Set()), [skip, setSkip] = useState(true), [target, setTarget] = useState(''), [name, setName] = useState(''), [shown, setShown] = useState(60);
     const mounted = useRef(true), requestId = useRef<string | null>(null), committing = useRef(false);
@@ -24,11 +30,20 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
                 void nativePlayback.cancelPlaylistImport({ requestId: requestId.current }).catch(() => { });
         };
     }, []);
+    useEffect(() => {
+        if (!preview && !outcome) return;
+        const scroller=content.current?.closest<HTMLElement>('.sheet-content');
+        scroller?.scrollTo({top:0,behavior:'instant'});
+        const heading=outcome ? content.current?.querySelector<HTMLElement>('.import-completion h3') : content.current?.closest('dialog')?.querySelector<HTMLElement>('.sheet-heading h2');
+        heading?.focus({preventScroll:true});
+    }, [preview?.requestId,!!outcome]);
     function reset() {
         if (requestId.current)
             void nativePlayback.cancelPlaylistImport({ requestId: requestId.current }).catch(() => { });
         requestId.current = null;
         setPreview(null);
+        setOutcome(null);
+        setLoading(false);
         setError('');
         setShown(60);
     }
@@ -58,11 +73,11 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
             setShown(60);
         }
         catch (e) {
-            if (mounted.current)
+            if (mounted.current && requestId.current === id)
                 setError(e instanceof Error ? e.message : msg("Playlist non leggibile. Controlla il file o il link."));
         }
         finally {
-            if (mounted.current)
+            if (mounted.current && requestId.current === id)
                 setLoading(false);
         }
     }
@@ -70,7 +85,7 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
     const summary = preview ? importSelection(preview.entries, [...selected], skip, existing) : { tracks: [], skipped: 0 };
     const tooMany = existing.length + summary.tracks.length > 1000, full = !target && library.playlists.length >= 100;
     async function commit() {
-        if (!preview || committing.current)
+        if (!preview || committing.current || loading || tooMany || full || !summary.tracks.length || (!target && !name.trim()))
             return;
         committing.current = true;
         setSaving(true);
@@ -79,7 +94,7 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
             const result = await nativePlayback.commitPlaylistImport({ requestId: preview.requestId, numbers: [...selected], skipDuplicates: skip, name: name.trim(), targetId: target || null, targetRevision: destination?.revision ?? (target ? 1 : null) });
             complete(result);
             if (mounted.current)
-                close();
+                setOutcome({value:result,report:{name:result.library.playlists.find(p=>p.id===result.playlistId)?.name??name,added:result.added,duplicates:result.skippedDuplicates,unavailable:preview.entries.filter(e=>!e.track).length,excluded:preview.entries.filter(e=>e.track&&!selected.has(e.number)).length,partial:preview.partial||preview.truncated}});
         }
         catch (e) {
             if (mounted.current) {
@@ -93,10 +108,11 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
                 setSaving(false);
         }
     }
-    return <div className="import-panel">
-  {!preview ? <><p className="intro">{msg("Porta qui una playlist pubblica di YouTube oppure un file esportato da RITVIO per PC.")}</p><div className="transfer-modes" aria-label={msg("Origine della playlist")}><button className="tonal" aria-pressed={mode === 'link'} disabled={loading} onClick={() => { setMode('link'); setError(''); }}><Link size={20}/>{msg("Link YouTube")}</button><button className="tonal" aria-pressed={mode === 'file'} disabled={loading} onClick={() => { setMode('file'); setError(''); }}><FileJson size={20}/>{msg("File RITVIO")}</button></div>
+    return <div className="import-panel" ref={content}>
+  {outcome ? <ImportCompletion report={outcome.report} onOpen={() => openPlaylist(outcome.value.playlistId)} onDone={close} onAnother={() => {setTarget(outcome.value.playlistId);reset();}}/> : <>
+  {!preview ? <><ImportGuide/><div className="transfer-modes" aria-label={msg("Origine della playlist")}><button className="tonal" aria-pressed={mode === 'link'} disabled={loading} onClick={() => { setMode('link'); setError(''); }}><Link size={20}/>{msg("Link YouTube")}</button><button className="tonal" aria-pressed={mode === 'file'} disabled={loading} onClick={() => { setMode('file'); setError(''); }}><FileJson size={20}/>{msg("File RITVIO")}</button></div>
    {mode === 'link' ? <form className="playlist-form" onSubmit={e => { e.preventDefault(); void read(); }}><label>{msg("Link della playlist")}<input type="url" required maxLength={2048} placeholder={msg("Link della playlist")} value={url} disabled={loading} onChange={e => setUrl(e.target.value)}/></label><button className="primary" disabled={loading || !url.trim()}>{loading ? <LoaderCircle className="spin" size={20}/> : <Download size={20}/>} {loading ? msg("Leggo la playlist\u2026") : msg("Mostra anteprima")}</button></form> : <><p className="source-date">{msg("File .ritvio.json, versione 1, fino a 4 MB. Nessun file audio.")}</p><button className="primary transfer-file" disabled={loading} onClick={() => void read()}>{loading ? <LoaderCircle className="spin" size={20}/> : <FileJson size={20}/>} {loading ? msg("Leggo il file\u2026") : msg("Scegli file playlist")}</button></>}
-   {loading && <p role="status" className="source-date">{msg("La riproduzione continua. Puoi chiudere per annullare la lettura.")}</p>}</> : <>
+   {loading && <><p role="status" className="source-date">{msg("La riproduzione continua. Puoi chiudere per annullare la lettura.")}</p><button className="text-action" onClick={close}>{t('transfer.cancelRead')}</button></>}</> : <>
    <div className="sheet-track"><Artwork src={preview.cover ?? preview.artwork ?? preview.entries.find(e => e.track)?.track?.thumbnail}/><span><strong>{preview.title}</strong><small>{preview.provider === 'file' ? msg("File RITVIO") : msg('Raccolta importata')}{preview.cached ? ' · '+msg('Copia salvata') : ''}</small></span></div>
    <p className="import-count">{preview.entries.filter(e => e.track).length}{" " + msg("disponibili \u00B7") + " "}{preview.entries.filter(e => !e.track).length}{" " + msg("non disponibili")}</p>
    {(preview.partial || preview.truncated) && <p className="import-warning">{preview.truncated ? msg("Anteprima limitata ai primi 1.000 elementi. ") : ''}{preview.reportedCount === null ? msg("Il catalogo non comunica il totale: la copia potrebbe essere incompleta.") : msg("Il catalogo indica {p0} elementi; quelli mancanti non saranno importati.", { p0: preview.reportedCount })}</p>}
@@ -104,7 +120,7 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
    <div className="playlist-form"><label>{msg("Destinazione")}<select value={target} disabled={saving} onChange={e => setTarget(e.target.value)}><option value="">{msg("Nuova playlist")}</option>{library.playlists.map(p => <option key={p.id} value={p.id}>{p.name}{" " + msg("\u00B7") + " "}{p.items.length}{" " + msg("brani")}</option>)}</select></label>{!target && <label>{msg("Nome della playlist")}<input required maxLength={100} value={name} disabled={saving} onChange={e => setName(e.target.value)}/></label>}</div>
    <label className="import-option"><input type="checkbox" checked={skip} disabled={saving} onChange={e => setSkip(e.target.checked)}/><span>{msg("Salta i duplicati")}<small>{msg("Confronto per ID del video, anche nella destinazione.")}</small></span></label>
    <div className="import-selection"><span>{selected.size}{" " + msg("selezionati")}</span><button disabled={saving} className="text-action" onClick={() => setSelected(new Set(preview.entries.filter(e => e.track).map(e => e.number)))}>{msg("Seleziona tutti")}</button><button disabled={saving} className="text-action" onClick={() => setSelected(new Set())}>{msg("Nessuno")}</button></div>
-   <div className="import-entries">{preview.entries.slice(0, shown).map(entry => <label className={`import-entry${entry.track ? '' : ' is-unavailable'}`} key={entry.number}><input type="checkbox" aria-label={msg("Seleziona {p0}", { p0: entry.title })} checked={selected.has(entry.number)} disabled={!entry.track || saving} onChange={() => setSelected(previous => {
+   <p className="source-date">{t('transfer.selectedHint')}</p><div className="import-entries">{preview.entries.slice(0, shown).map(entry => <label className={`import-entry${entry.track ? '' : ' is-unavailable'}`} key={entry.number}><input type="checkbox" aria-label={msg("Seleziona {p0}", { p0: entry.title })} checked={selected.has(entry.number)} disabled={!entry.track || saving} onChange={() => setSelected(previous => {
                     const next = new Set(previous);
                     if (next.has(entry.number))
                         next.delete(entry.number);
@@ -118,6 +134,7 @@ export function ImportPlaylistPanel({ library, complete, close, refresh }: {
    <p className="source-date">{msg("Copia locale, senza sincronizzazione. Brani mancanti esclusi; le tue altre playlist restano salvate. La lettura non prepara n\u00E9 scarica l\u2019audio.")}</p>
   </>}
   {error && <p className="inline-error" role="alert">{noticeText(error)}</p>}
+  </>}
  </div>;
 }
 export function ExportPlaylistPanel({ playlist }: {
