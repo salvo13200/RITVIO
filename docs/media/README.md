@@ -1,6 +1,6 @@
 # RITVIO presentation assets
 
-The additional A1–A6 source views and silent UI recording are inventoried separately in `adoption.json`; see the [new-source walkthrough](../ADOPTION.md). They use the same English/synthetic-data/browser evidence rules and are not a new published package. `scripts/prepare-adoption.py` preserves screenshot pixels, strips image metadata and retains the original gallery/banner.
+The current-release flows and silent UI recording are inventoried separately in `adoption.json`; see the [walkthrough](../ADOPTION.md). They follow the same English/synthetic-data/browser evidence rules. `scripts/prepare-adoption.py` preserves screenshot pixels, strips image metadata and retains the original gallery/banner.
 
 - `logo.svg` is an unchanged copy of the code-authored RITVIO waveform icon from `build-resources/icon.svg`.
 - `banner.webp` is synthetic brand artwork generated for this repository presentation using the existing icon as the only reference. It contains no generated app screenshot, external photograph or stock image. The wordmark and tagline are in English.

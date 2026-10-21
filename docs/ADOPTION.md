@@ -1,8 +1,8 @@
-# New-source walkthrough
+# A look at the current release
 
 [Complete gallery](SCREENSHOTS.md) · [Feature guide](FEATURES.md) · [Quality status](QUALITY_STATUS.md)
 
-These English captures show the local A1–A6 source additions being prepared for the combined release. They do **not** describe a new published APK or EXE. The published previews remain Android 1.3.1 and Windows 0.7.5 until the final candidate is verified and released.
+These English captures show Windows 1.0.0 and Android 1.4.0 interface flows. The [stable packages](https://salvo13200.github.io/RITVIO/) have separate installed-package acceptance recorded in [Quality status](QUALITY_STATUS.md); screenshots are illustrative browser captures, not native-device evidence.
 
 All views render the actual React application in Edge, using isolated synthetic data. Names, artwork, playlists, timings, import contents and verses are demonstration material. The artwork is existing documented project artwork; the verses are original. Native responses in the Android browser are fixtures. These are neither generated UI mockups nor proof of device, audio, background, clipboard or Gallery behavior. No personal profile or live catalogue was used.
 
@@ -34,7 +34,7 @@ Choose a reproducible problem, interface feedback or a feature idea. Read the re
 <p><a href="media/desktop-updates.webp"><img src="media/desktop-updates.webp" width="900" alt="Windows update settings with a manual check and optional startup and preview preferences"></a></p>
 <p><a href="media/desktop-song-reference.webp"><img src="media/desktop-song-reference.webp" width="900" alt="Demonstration song reference with a source link and official Android and Windows downloads"></a></p>
 
-The song reference is captured on a local static preview. Public Pages deployment and copied-link verification must happen before applications generating these links are released. Social previews remain generic RITVIO previews; direct app opening is separate future work.
+The song reference uses the [public download page](https://salvo13200.github.io/RITVIO/), verified at desktop and phone widths during publication. The illustrative screenshot comes from a local build of that page. Social previews remain generic RITVIO previews; direct app opening is separate future work.
 
 ## Reproduce the materials
 
@@ -50,4 +50,4 @@ pnpm check:docs
 pnpm release:check
 ```
 
-The preparation step needs Pillow, like the existing gallery preparation tool. FFmpeg above is Playwright's optional recording dependency in its development cache; it is not an app dependency or a system-wide toolchain. Raw PNG/video output stays in ignored `test-results/adoption/`. The eight WebP conversions preserve decoded screenshot pixels and omit textual metadata/EXIF. `media/adoption.json` records origins, scope, sizes and checksums. The original approved gallery and banner are preserved. Capture media locally; publish the matching source and final candidate together, after acceptance.
+The preparation step needs Pillow, like the existing gallery preparation tool. FFmpeg above is Playwright's optional recording dependency in its development cache; it is not an app dependency or a system-wide toolchain. Raw PNG/video output stays in ignored `test-results/adoption/`. The eight WebP conversions preserve decoded screenshot pixels and omit textual metadata/EXIF. `media/adoption.json` records origins, scope, sizes and checksums. The original approved gallery and banner are preserved. Refresh these media from the corresponding source when a visible feature or version changes.

@@ -1,7 +1,11 @@
 {
   "schema": 1,
   "language": "en",
-  "status": "Unpublished local source additions; public APK/EXE baselines are unchanged.",
+  "status": "English interface captures; see release notes for published-package evidence.",
+  "versions": {
+    "windows": "1.0.0",
+    "android": "1.4.0"
+  },
   "origin": "Actual React UI in Edge; synthetic fixture catalogue, lyrics and native responses; silent, not native/audio evidence.",
   "encoding": "Metadata-free lossless WebP; screenshot pixels unchanged.",
   "files": [
@@ -10,8 +14,8 @@
       "feature": "Review a report before copying or opening GitHub",
       "width": 1440,
       "height": 940,
-      "bytes": 47844,
-      "sha256": "eeb666622a0680a51e1b4a07686b05d2a38547f05259df72197d611dc1a1f96b",
+      "bytes": 47684,
+      "sha256": "3a3eb2538c7c350093c2fdd13505ad619be99a3a0c0b4bbe113a41d134daed84",
       "kind": "browser-source-capture"
     },
     {
@@ -19,8 +23,8 @@
       "feature": "Android help with optional playback timings",
       "width": 393,
       "height": 852,
-      "bytes": 23830,
-      "sha256": "cd0b08cdda223b4bc328d119911ed655f76810def993432bdb62caf75269185e",
+      "bytes": 24168,
+      "sha256": "2c04a799e9acc750aa38b1a89b46db32eceaac5e76777086a16db8f5dff9e874",
       "kind": "browser-source-capture"
     },
     {
@@ -28,8 +32,8 @@
       "feature": "Direct access to help from Android Settings",
       "width": 393,
       "height": 852,
-      "bytes": 24604,
-      "sha256": "5bc543dbd718d66dee667483e47e657e84ee1e45b5865fd762496a564015eb19",
+      "bytes": 24704,
+      "sha256": "3999ef490c423123df6a5a074b2624c3a90c7a6ea24bf98205220c1b9f6adb6e",
       "kind": "browser-source-capture"
     },
     {
@@ -37,8 +41,8 @@
       "feature": "Opt-in update checks and platform-specific downloads",
       "width": 1440,
       "height": 940,
-      "bytes": 52290,
-      "sha256": "baefa0f7d47e7150dd8dfaf90c432cc4045c5b0cdee53f24d688857b897e3aa4",
+      "bytes": 52336,
+      "sha256": "197eadffdbb7dd14f7ec42be21477e1ca8117e94a5f2a6293567eb5013cf516b",
       "kind": "browser-source-capture"
     },
     {
@@ -46,8 +50,8 @@
       "feature": "A clear first listening step on Windows",
       "width": 1440,
       "height": 940,
-      "bytes": 205888,
-      "sha256": "10d3569af75b28849a463ed1003bbf6256849298f475e0ddfc431821b817491f",
+      "bytes": 211234,
+      "sha256": "5c011222f885dd873b63f0b8731a658a6bcc78b21ab31daa60bc0dfe49fae3c7",
       "kind": "browser-source-capture"
     },
     {
@@ -55,8 +59,8 @@
       "feature": "Search or import from an empty Android profile",
       "width": 393,
       "height": 852,
-      "bytes": 84126,
-      "sha256": "7660a151a39cabe90ce14fef6300a8b57cf7dd422254409d81eb9a1996388a46",
+      "bytes": 84280,
+      "sha256": "4ca8deddaaca2e0beff0522be9ebbc2de0e92e7254fedc57332fb642889b6278",
       "kind": "browser-source-capture"
     },
     {
@@ -73,15 +77,15 @@
       "feature": "A shared song reference with official app downloads",
       "width": 1440,
       "height": 940,
-      "bytes": 41530,
-      "sha256": "ba428302803c58cc4889dcf9e814413e9081981657a15a8e161b9afcd8d2a399",
+      "bytes": 41556,
+      "sha256": "e61e9020e3a2282c93656b5d322f9bde60a8324ac7f313d137ef9b136cca1c0f",
       "kind": "browser-source-capture"
     }
   ],
   "video": {
     "file": "adoption-demo.webm",
-    "bytes": 880261,
-    "sha256": "9d566cc8d1aa4593ae421e4b91f8040684fe24b4b01cc7584f56608b1ce9e839",
+    "bytes": 999714,
+    "sha256": "d7643e8d4f5da0f7f5ed74a13afb61f606ac25512b1247816085948cb9101c47",
     "kind": "silent-browser-ui-recording",
     "scope": "Search, fixture playback UI, lyrics, selection and card preview. Not native or audio evidence."
   }

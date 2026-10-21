@@ -4,7 +4,7 @@ Use the exact source commit/tag and binary checksums. Record platform, toolchain
 
 ## Current baseline
 
-Completed Windows 0.7.5 / Android 1.3.0 checks, source-only maintenance results, remaining coverage and next priorities are consolidated in [Quality status](QUALITY_STATUS.md). Consult that record before scheduling another test. The boxes below are a reusable checklist for the **next exact candidate**, so blank boxes do not mean that published releases have never been checked.
+Completed Windows 1.0.0 / Android 1.4.0 checks, source-only maintenance results, remaining coverage and next priorities are consolidated in [Quality status](QUALITY_STATUS.md). Consult that record before scheduling another test. The boxes below are a reusable checklist for the **next exact candidate**, so blank boxes do not mean that published releases have never been checked.
 
 Repeat a scenario when its implementation, runtime/package or relevant environment changes, or a new report calls its result into question. Documentation/test-helper changes alone do not require rebuilding an APK/EXE or repeating a generic endurance run. Use the [repeat-check rules](QUALITY_STATUS.md#when-to-repeat-a-check) to select the affected checks.
 
@@ -35,7 +35,7 @@ Repeat a scenario when its implementation, runtime/package or relevant environme
 
 - [ ] Build source and tag correspond; source archives available alongside EXE/APK.
 - [ ] RELEASE-MANIFEST.json and SHA256SUMS generated from final assets, no stale binaries.
-- [ ] Draft release notes state known limits and actual checks. Mark prerelease if native gates are open.
+- [ ] Draft release notes state known limits and actual checks. Use prerelease for a candidate with unresolved release-blocking gates; document non-blocking coverage limits explicitly.
 - [ ] Downloaded files match hashes; install/update tested from those downloads. Only then publish the reviewed draft.
 
 Fill this template for a future candidate without overwriting the dated evidence in [Quality status](QUALITY_STATUS.md). Keep automated, controlled-native and maintainer-reported outcomes distinct; leave unverified checks open and state their limits in the release notes.

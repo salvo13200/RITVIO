@@ -1,44 +1,29 @@
 # Quality status and next priorities
 
-Baseline reviewed on **20 October 2026**, with Android 1.3.1 publication preparation on **21 October 2026**. This is the current evidence record; the blank [release checklist](RELEASE_CHECKLIST.md) is a reusable template for a future candidate. Read [release notes](RELEASE_NOTES.md) for each published version and [Testing](TESTING.md) for detailed methods.
+Current stable delivery: **Windows 1.0.0 / Android 1.4.0 (code 22)**, 21 October 2026. See [release notes](RELEASE_NOTES.md), [downloads](https://salvo13200.github.io/RITVIO/) and each release manifest for exact source and binary hashes. Previous preview records remain historical evidence.
 
-## Published packages and local source
+## Stable delivery verification
 
-### Combined local candidates, 21 October 2026
+- **252 core tests, 73 Android JVM tests and 14 focused update/Help/playback browser cases** passed locally. Required PR #18 CI passed before merge. Browser/JVM/physical checks are distinct.
+- The exact Windows packages passed isolated 0.7.5 → 1.0.0 update, reinstall/uninstall, preserved database/personal-profile fingerprints, clean-PATH startup, ZIP/runtime integrity, native Help/copy/restart and real-provider playback/seek.
+- A **303.99-second live-provider Windows run with a hidden window** passed 60 samples without paused/error state. Peak buffered audio was 8,697,832 bytes within 16 MiB. This is not OS suspend or speaker-output certification; small event-timing samples are not universal latency guarantees.
+- The Android APK retains the official certificate and application ID, increases code 21 → 22, and passes signature and all 20 native-library 16 KB ELF/ZIP checks. Instrumentation compilation is not instrumented-device execution.
+- The maintainer reported that the exact Android 1.4.0 candidate worked on Motorola edge 60 neo / Android 16 for update/retained library, locked-screen skip/seek, Gallery saving and Help/version context. This is human acceptance, not ADB, TalkBack or a new Bluetooth/call-interruption test. APK SHA-256: `29a828bab0ad62628f60aefbcac4cad3f928bb945d4faafae7d06837216930fd`.
+- Locked installation and clean exported-source desktop/API, mobile-web and site builds passed; independently rebuilt web/API assets matched package inputs. The merged source matches executable build inputs, with line-ending normalization and only a Pages workflow plus declaration indentation outside runtime. The release manifests retain the accepted build-source archive hash; native-APK bit reproducibility is not claimed.
+- Pages/reference fallback, matching issue forms, stable release metadata and anonymous full package downloads/hashes were verified during publication. The published snapshot drives README download tables and the static page. Older apps lacking the update feature cannot automatically discover this delivery; use the download page.
 
-The adoption work prepares Windows **1.0.0** and Android **1.4.0**, version code **22**, for one combined delivery. These version numbers do not mean that new releases have been published or accepted as stable. Public downloads in the table below remain unchanged. Real-phone acceptance, remote CI and deployment of the song-reference page and matching issue forms are separate publication gates.
+The live page check exposed a mobile-only hidden invalid-link notice. Its existing visible-note style now keeps the recovery message readable without changing app binaries; the reference-page regression covers both desktop and phone widths. Ten targeted site/reference scenarios passed after correction. Presentation media were refreshed in English with the current versions and retain their synthetic-data/browser disclosures.
 
-The source suite passes **252 cases**, including a new listening-server shutdown regression. An unfinished renderer HTTP request previously kept `app.close()` waiting; the desktop loopback service now closes active connections during shutdown, after the existing cancellation hooks run. This affects exit only, not normal playback or request limits. The test first reproduced the wait with an actual local HTTP socket, then passed after the correction. Earlier native candidate outcomes must not be treated as evidence for replacement binary hashes.
+| Platform | Stable release | Source |
+| --- | --- | --- |
+| Windows | [1.0.0](https://github.com/salvo13200/RITVIO/releases/tag/windows-v1.0.0) | `4425477cebaa37b5e0a2ca1d16d09963559865d8` |
+| Android | [1.4.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.4.0), code 22 | Same corresponding source; official signing identity retained. |
 
-Android's signed local APK retains the official certificate, application ID and supported architectures, increases version code from 21 to 22, and passes **73 JVM tests** and all **20 native-library 16 KB ELF/ZIP checks**. Instrumentation APK compilation is not an instrumented-device run. No phone was attached during these automated checks. Preserve the previous phone evidence for unchanged behavior and record the new candidate's actual acceptance separately.
+Windows packages remain unsigned. Catalogue/lyrics and provider limits are external dependencies. Native accessibility, broader devices, Bluetooth reconnect and genuine OS suspend remain limited coverage. These are disclosed limits; no known reproducible severe defect is being carried into this delivery. There is no telemetry or automatic upload of listening/report data.
 
-On **21 October 2026**, the maintainer reported that the exact signed Android 1.4.0 candidate worked on an Android 16 phone after the requested update/retained-library, locked-screen track-change/seek, Gallery card saving and Help/version checks. This is human-reported device acceptance, not ADB, instrumentation, TalkBack or a new Bluetooth/call-interruption test. The APK SHA-256 is `29a828bab0ad62628f60aefbcac4cad3f928bb945d4faafae7d06837216930fd`.
+## Historical checks and implementation record
 
-The rebuilt Windows candidate passed isolated 0.7.5-to-1.0.0 installation/update, same-version reinstall and uninstall, with database preservation, clean registry cleanup and unchanged personal-profile fingerprints. The extracted ZIP passed CRC/runtime/notices checks; its desktop modules and bundles match build inputs. Native Help/report copying, URL guards, update preferences, song-reference copying and saved-library/player restart checks also passed on an isolated profile. A separate self-extracting EXE run verified live provider MP4 playback, preparation, pause/resume and seek. Its small event-timing sample is not a speaker-output measurement or a general speed promise.
-
-A locked offline installation of the exported source in a separate temporary directory passed desktop/API, Android-web and static-page builds, architecture and documentation checks. All 845 source files matched the archive manifest/workspace; independently rebuilt desktop, API, site and mobile web outputs matched the candidate inputs, including all APK web assets. This verifies corresponding source and controlled web-build equivalence; it does not claim bit-reproducible native APKs or a completed GitHub CI run. Four update and ten Help/playback browser cases passed with the candidate versions.
-
-The final extracted Windows candidate also passed **303.99 seconds of live-provider listening with its window hidden**. Sixty samples showed continuing playback without a paused/error state; buffered audio peaked at 8,697,832 bytes within the existing 16 MiB bound. This scoped run does not represent actual OS suspend or speaker-output measurement. Repository publication, required remote CI, Pages/reference-link deployment and public-download verification remain open.
-
-A6 source preparation adds inspectable, voluntary help/report controls and separate English presentation material. Timings are included only after opting in and are filtered before display/copy; form URLs contain version/platform context only. Browser fixtures and native unit/compile checks have separate evidence boundaries. The new-source guide and silent browser walkthrough disclose their synthetic catalogue/native responses and do not replace installed-package acceptance. No release, push, deployment or announcement is implied.
-
-The A5 sharing increment is local source work, outside the published packages below. Song references use the prepared static-page URL with bounded title/artist text in its fragment. Desktop copying and Android share arguments are covered by browser fixtures; the native builder and bridge compile are checked separately. No current APK/EXE is rebuilt or relabelled. Pages deployment, real recipient-app sharing and exact installed-package acceptance remain final-candidate checks. The PNG renderer and approved selection/preview composition are preserved.
-
-| Platform | Published public preview | Corresponding source commit | Evidence boundary |
-| --- | --- | --- | --- |
-| Windows | [0.7.5](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5) | `66d94bf7af3371dcc3a0c3fae6458821e7aa1f22` | Build 39403307392 and the exact downloaded packages; later local controls use its unchanged extracted runtime. |
-| Android | [1.3.1](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.1), version code 21 | See the release manifest for the exact build/archive commit. | Local full Gradle build, 65 JVM tests, official signature and 16 KB checks; exact APK approved for publication. Earlier phone smoke evidence remains separately scoped. |
-
-The GitHub release records were checked on the review date: both previews include corresponding app/upstream source archives, a release manifest and checksums. Reference asset SHA-256 values:
-
-| Asset | SHA-256 |
-| --- | --- |
-| Windows extract-once ZIP | `d01a9378653bd592711c7bd244caf559f3e8c37d3b746e2ffc912320c9e095a7` |
-| Android APK | `9bf31e16cee37a9d9675bf5906bdbdce31ae9b4bcb96c0a7ba822bb49a8a406e` |
-
-Use each release's manifest and `SHA256SUMS` for the other assets. This review checked current release metadata; earlier release runs performed the package download/hash/install checks. Those checks were not repeated for this documentation change.
-
-Local maintenance initially added test tools and documentation. The Android 1.3.1 readability pass also changes the Android web interface, as recorded below. The latest full core suite, through test-tool commit `bfefbbd`, passed **229 core tests** before this consolidation. Those results are source-maintenance evidence, not a new APK/EXE or a fresh GitHub CI run. Windows and Android keep separate versions. Publication and merging remain maintainer decisions.
+The following sections retain the dates/scopes of previous previews and source stages. Statements about unpublished work or pending final acceptance describe those earlier stages; the stable-delivery evidence above supersedes their publication status. They are not additional counts for the same tests.
 
 ## Completed checks and their scope
 
@@ -77,7 +62,7 @@ This is **browser fixture evidence**, using root text resizing as a stress test,
 | Native accessibility: screen reader, large fonts and system insets | Browser checks do not certify TalkBack, Windows screen readers or every installed-app layout. | A focused usability pass, recording exact version/platform and actual findings. |
 | Original hour-long navigation memory increase | Observer contribution was demonstrated in a shorter playback-only comparison. Finite-source tests did not reproduce progressive change-related growth; all UI/native-cache contributions have not been isolated. | If extended normal use reproduces sustained growth, capture that workload and compare equivalent conditions. |
 
-These are coverage gaps, not evidence that the current app is broken. Keep previews labelled as previews; do not turn an unverified scenario into a claimed pass or a confirmed defect.
+These are coverage gaps, not evidence that the current app is broken. Preserve historical preview labels and do not turn an unverified scenario into a claimed pass or a confirmed defect.
 
 ## Work order
 
