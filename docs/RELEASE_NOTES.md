@@ -2,16 +2,16 @@
 
 Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
 
-## Android 1.3.1 — local candidate, not published
+## Android 1.3.1 — 21 October 2026 (public preview)
 
-Version code 21. This Android-only maintenance candidate incorporates the approved readability changes into a complete Gradle build. Windows remains a separate release at 0.7.5. The existing Android 1.3.0 download stays available until an explicit publication decision.
+[Android 1.3.1 APK, corresponding sources and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.1). Version code 21 retains the official signing certificate. This Android-only maintenance release incorporates the approved readability changes into a complete Gradle build. Windows remains a separate release at 0.7.5; previous Android releases stay available.
 
 - Keep lyric selection usable with enlarged text and short/landscape windows: metadata and verses can scroll together while the preview action stays separate. Returning from preview restores the excerpt, reading position and endpoint focus.
 - Give the current-track activity marker a valid accessible role/name.
 - Make the story preview scroll region keyboard-focusable, with a translated name and visible focus indication.
 - Preserve the non-scrolling player layout and existing playback engine.
 
-Before packaging, five focused browser scenarios passed across 100/150/200% root text and portrait/short/landscape viewports, including 25 automated accessibility scans. The affected existing mobile touch/lyrics/sharing suite passed 16 cases; three desktop keyboard/modal/reduced-motion cases passed. These are browser results, not native accessibility certification. The maintainer approved the preceding web-only 1.3.0 candidate; no specific TalkBack/system-inset result is inferred from that approval. Use the packaged candidate's manifest for its final compilation, JVM, signature, version and alignment results.
+Before packaging, five focused browser scenarios passed across 100/150/200% root text and portrait/short/landscape viewports, including 25 automated accessibility scans. The affected existing mobile touch/lyrics/sharing suite passed 16 cases; three desktop keyboard/modal/reduced-motion cases passed. These are browser results, not native accessibility certification. The maintainer approved the full 1.3.1 candidate for publication. Its Gradle build and 65 JVM tests passed; official signature/version, all 20 libraries at 16 KB, official zipalign, packaged web assets and downloaded APK checksum were verified. No individual TalkBack/system-inset result is inferred from publication approval. The release manifest records exact source commits, hashes and evidence boundaries.
 
 The Windows Android setup uses basic HTTP parsing so that Windows PowerShell 5.1 can download SDK metadata without an interactive browser/security prompt. No new runtime dependency or playback change is introduced.
 
