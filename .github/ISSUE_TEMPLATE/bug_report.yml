@@ -8,7 +8,18 @@ body:
     id: version
     attributes:
       label: RITVIO version
-      placeholder: Windows 0.7.2 portable / Android 1.0.4
+      description: Copy the exact app or release version. For Windows, also specify installer, portable ZIP or self-extracting EXE.
+      placeholder: Exact version and package type
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Android
+        - Windows
+        - Both Android and Windows
     validations:
       required: true
   - type: input
@@ -26,7 +37,17 @@ body:
   - type: textarea
     id: evidence
     attributes:
-      label: Sanitised logs or screenshots
+      label: Optional diagnostics or screenshots
+      description: For playback problems, copied playback diagnostics are useful. Remove signed stream URLs, tokens, personal paths and private data; do not upload your library database.
+  - type: dropdown
+    id: frequency
+    attributes:
+      label: How often does it happen?
+      options:
+        - Every time
+        - Sometimes
+        - Only once so far
+        - Not sure
   - type: checkboxes
     id: checks
     attributes:

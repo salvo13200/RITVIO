@@ -7,6 +7,9 @@ import {createHash} from 'node:crypto';
 import path from 'node:path';
 import net from 'node:net';
 import {runNativeSoak} from './packaged-performance.mjs';
+import {runNativeMediaControl} from './packaged-media-control.mjs';
+import {runNativeSwitchControl} from './packaged-switch-control.mjs';
+import {createNativeResourceProbe} from './native-resource-probe.mjs';
 import {runNativeLatency} from './packaged-latency.mjs';
 import {runNativeRequestStress} from './packaged-request-stress.mjs';
 import {runNativeRadio} from './packaged-radio.mjs';
@@ -16,10 +19,27 @@ import {runNativeStorySharing} from './packaged-story-sharing.mjs';
 import {runNativeStoryAudio} from './packaged-story-audio.mjs';
 import {runNativeHome} from './packaged-home.mjs';
 const root=process.cwd();
-const performanceOnly=process.argv.includes('--performance');
+const switchControlIndex=process.argv.indexOf('--switch-control');
+const switchControlOnly=switchControlIndex>=0;
+const switchCodec=switchControlOnly?process.argv[switchControlIndex+1]:undefined;
+const switchCyclesIndex=process.argv.indexOf('--switch-cycles');
+const switchCycles=switchCyclesIndex<0?30:Number(process.argv[switchCyclesIndex+1]);
+if(switchControlOnly&&(!['pcm','opus'].includes(switchCodec)||!Number.isInteger(switchCycles)||switchCycles<2||switchCycles>60))throw Error('--switch-control requires pcm or opus; --switch-cycles must be 2–60');
+if(switchCyclesIndex>=0&&!switchControlOnly)throw Error('--switch-cycles requires --switch-control');
+if(switchControlOnly&&['--media-control','--performance','--soak','--latency','--quality','--radio','--home','--story-sharing','--story-audio','--autoplay','--request-stress','--library-restyle'].some(flag=>process.argv.includes(flag)))throw Error('--switch-control must run separately');
+const mediaControlIndex=process.argv.indexOf('--media-control');
+const mediaControlOnly=mediaControlIndex>=0;
+const mediaControlMode=mediaControlOnly?process.argv[mediaControlIndex+1]:undefined;
+const mediaControlSecondsIndex=process.argv.indexOf('--control-seconds');
+const mediaControlSeconds=mediaControlSecondsIndex<0?600:Number(process.argv[mediaControlSecondsIndex+1]);
+if(mediaControlOnly&&(!['intercepted','http-connected','http-detached'].includes(mediaControlMode)||!Number.isInteger(mediaControlSeconds)||mediaControlSeconds<60||mediaControlSeconds>3600))throw Error('--media-control requires intercepted, http-connected or http-detached; --control-seconds must be 60–3600');
+if(mediaControlSecondsIndex>=0&&!mediaControlOnly)throw Error('--control-seconds requires --media-control');
+if(mediaControlOnly&&['--performance','--soak','--soak-seconds','--resource-samples','--retained-heap','--latency','--request-stress','--radio','--autoplay','--library-restyle','--story-sharing','--story-audio','--quality','--home','--search-layout','--library-sharing','--catalog','--player-controls','--listening-preferences','--lyrics-controls','--readability','--accessibility','--motion-controls'].some(flag=>process.argv.includes(flag)))throw Error('--media-control must run separately from other probe modes');
+const performanceOnly=process.argv.includes('--performance')||mediaControlOnly||switchControlOnly;
 const soakSecondsIndex=process.argv.indexOf('--soak-seconds');
 const soakSeconds=soakSecondsIndex<0?60:Number(process.argv[soakSecondsIndex+1]);
 if(soakSecondsIndex>=0&&(!performanceOnly||!process.argv.includes('--soak')||!Number.isInteger(soakSeconds)||soakSeconds<60||soakSeconds>7200))throw Error('--soak-seconds requires --performance --soak and an integer from 60 to 7200');
+if(process.argv.includes('--resource-samples')&&(!performanceOnly||!process.argv.includes('--soak')))throw Error('--resource-samples requires --performance --soak');
 const latencyOnly=process.argv.includes('--latency');
 const requestStressOnly=process.argv.includes('--request-stress');
 const radioOnly=process.argv.includes('--radio');
@@ -55,21 +75,28 @@ const legacyDb=new DatabaseSync(path.join(profile,'cache/mvp.sqlite'));
 legacyDb.exec('CREATE TABLE tracks(id TEXT PRIMARY KEY,data TEXT NOT NULL,expires INTEGER NOT NULL);CREATE TABLE search_cache(key TEXT PRIMARY KEY,data TEXT NOT NULL,fetched INTEGER NOT NULL,expires INTEGER NOT NULL);');
 const hash=createHash('sha256').update('youtube:jNQXAC9IVRw').digest('hex');
 const legacyTrack={id:`${hash.slice(0,8)}-${hash.slice(8,12)}-5${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`,videoId:'jNQXAC9IVRw',title:'Me at the zoo',artist:'jawed',duration:19,thumbnail:'https://i.ytimg.com/vi/jNQXAC9IVRw/mqdefault.jpg',canonicalUrl:'https://www.youtube.com/watch?v=jNQXAC9IVRw'};
+if(switchControlOnly)legacyTrack.duration=24;
 if(readabilityOnly||motionOnly){legacyTrack.title='Titolo personale di prova molto lungo — versione dal vivo con ospiti e finale esteso';legacyTrack.artist='Artista dimostrativo e collettivo delle città sospese';}
 if(motionOnly){legacyTrack.album={id:'MPREb_native_motion',name:'Album dimostrativo'};legacyTrack.artists=[{id:'UC_native_motion',name:legacyTrack.artist}];}
 legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(legacyTrack.id,JSON.stringify(legacyTrack),Date.now()+86400000);
+const switchTracks=switchControlOnly?Array.from({length:500},(_,i)=>{
+  if(i===0)return {...legacyTrack,queueId:'native-switch-0'};
+  const digest=createHash('sha256').update('native-switch-'+i).digest('hex'),id=`${digest.slice(0,8)}-${digest.slice(8,12)}-5${digest.slice(13,16)}-a${digest.slice(17,20)}-${digest.slice(20,32)}`;
+  const track={...legacyTrack,id,videoId:'nsw'+String(i).padStart(8,'0'),title:'Original controlled item '+i,artist:'Original test oscillators',queueId:'native-switch-'+i};
+  legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(id,JSON.stringify(track),Date.now()+86400000);return track;
+}):undefined;
 let latencyNext;
 if(latencyOnly||storyAudioOnly||qualityOnly){const idHash=createHash('sha256').update('youtube:aqz-KE-bpKQ').digest('hex');latencyNext={...legacyTrack,id:`${idHash.slice(0,8)}-${idHash.slice(8,12)}-5${idHash.slice(13,16)}-a${idHash.slice(17,20)}-${idHash.slice(20,32)}`,videoId:'aqz-KE-bpKQ',title:'Big Buck Bunny',artist:'Blender',duration:596,thumbnail:'https://i.ytimg.com/vi/aqz-KE-bpKQ/mqdefault.jpg',canonicalUrl:'https://www.youtube.com/watch?v=aqz-KE-bpKQ',queueId:'latency-next'};legacyDb.prepare('INSERT INTO tracks VALUES(?,?,?)').run(latencyNext.id,JSON.stringify(latencyNext),Date.now()+86400000);}
 legacyDb.close();
 // A long first video prevents natural end-of-track during the sharing workflow.
 if((storyAudioOnly||latencyOnly)&&latencyNext){const short={...legacyTrack};Object.assign(legacyTrack,latencyNext);latencyNext={...short,queueId:'latency-next'};}
-await writeFile(path.join(profile,'player-state.json'),JSON.stringify({version:1,state:{queue:performanceOnly?Array.from({length:500},(_,i)=>({...legacyTrack,queueId:'native-perf-'+i})):[{...legacyTrack,queueId:'legacy-queue-item'},...latencyNext?[latencyNext]:[]],index:0,recent:[legacyTrack],position:latencyOnly&&!process.argv.includes('--restore-eight')?0:8,volume:0.7,muted:false,shuffle:false,repeat:'off',theme:'dark'}}));
+await writeFile(path.join(profile,'player-state.json'),JSON.stringify({version:1,state:{queue:switchTracks??(performanceOnly?Array.from({length:500},(_,i)=>({...legacyTrack,queueId:'native-perf-'+i})):[{...legacyTrack,queueId:'legacy-queue-item'},...latencyNext?[latencyNext]:[]]),index:0,recent:[legacyTrack],position:latencyOnly&&!process.argv.includes('--restore-eight')?0:8,volume:0.7,muted:false,shuffle:false,repeat:'off',theme:'dark'}}));
 const env=Object.fromEntries(Object.entries(process.env).filter(([key])=>!(/^(PYTHON|YOUTUBE_|RITVIO_|ELECTRON_|NODE_)/i.test(key))));
 env.PATH=path.join(process.env.SystemRoot,'System32');
 env.TEMP=temporary;env.TMP=temporary;
 env.RITVIO_TEST_HIDDEN='true';env.RITVIO_TEST_USER_DATA=profile;
 env.RITVIO_TEST_FILE_DIR=path.join(profile,'exports');
-let child,browser,page;
+let child,browser,page,debuggingEndpoint;
 let launchStarted;
 async function capture(filename){
   // Do not force-disable animations when capturing a hidden Electron window:
@@ -98,9 +125,10 @@ async function launch(){
     if(child.exitCode!==null)throw Error(`Il launcher si è chiuso con codice ${child.exitCode}`);
     try{return(await fetch(`http://127.0.0.1:${port}/json/version`,{signal:AbortSignal.timeout(1000)})).ok;}catch{return false;}
   },{timeout:90000,intervals:[500,1000,2000]}).toBe(true);
-  browser=await chromium.connectOverCDP(`http://127.0.0.1:${port}`);
+  debuggingEndpoint=`http://127.0.0.1:${port}`;
+  browser=await chromium.connectOverCDP(debuggingEndpoint);
   await expect.poll(()=>browser.contexts()[0]?.pages().length??0,{timeout:30000}).toBeGreaterThan(0);
-  const page=browser.contexts()[0].pages()[0];await page.waitForLoadState('domcontentloaded');return page;
+  const page=browser.contexts()[0].pages()[0];page.on('crash',()=>console.error('Packaged renderer crashed'));await page.waitForLoadState('domcontentloaded');return page;
 }
 async function close(){
   if(browser){const session=await browser.newBrowserCDPSession();await bounded(session.send('Browser.close').catch(()=>{}));await bounded(browser.close().catch(()=>{}));browser=undefined;}
@@ -157,6 +185,17 @@ try {
   else if(radioOnly){await runNativeRadio({page,version,profile,capture});}
   else if(requestStressOnly){await runNativeRequestStress({page,version,profile,mediaId:legacyTrack.id,expectLocalLimit:process.argv.includes('--expect-local-limit')});}
   else if(latencyOnly){await runNativeLatency({page,version,profile,nextTitle:latencyNext.title,initialPosition:process.argv.includes('--restore-eight')?8:0});}
+  else if(switchControlOnly){
+    const result=await runNativeSwitchControl({page,profile,codec:switchCodec,cycles:switchCycles,close,launch:async()=>{page=await launch();return page;},getNative:()=>({rootPid:child.pid,endpoint:debuggingEndpoint}),
+      disconnect:async()=>{await browser.close();browser=undefined;expect(child.exitCode).toBe(null);},reconnect:async()=>{browser=await chromium.connectOverCDP(debuggingEndpoint);page=browser.contexts()[0].pages()[0];return {page,browser};}});
+    console.log(JSON.stringify({scope:'native-switch-complete',codec:switchCodec,profile,...result}));
+  }
+  else if(mediaControlOnly){
+    const result=await runNativeMediaControl({page,browser,rootPid:child.pid,profile,mode:mediaControlMode,seconds:mediaControlSeconds,
+      disconnect:async()=>{await browser.close();browser=undefined;expect(child.exitCode,'Disconnecting CDP must leave the native app alive').toBe(null);},
+      reconnect:async()=>{browser=await chromium.connectOverCDP(debuggingEndpoint);page=browser.contexts()[0].pages()[0];return {page,browser};}});
+    console.log(JSON.stringify({scope:'native-media-control-complete',profile,mode:mediaControlMode,elapsedSeconds:result.elapsedSeconds,audioAdvancedSeconds:result.audioAdvancedSeconds,report:path.join(profile,'media-control.json')}));
+  }
   else if(performanceOnly){
     const cdp=await page.context().newCDPSession(page);await cdp.send('Performance.enable');
     const samples=[];
@@ -169,7 +208,12 @@ try {
     let retainedMetrics;
     if(process.argv.includes('--retained-heap')){await cdp.send('HeapProfiler.collectGarbage');retainedMetrics=Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.filter(m=>['JSHeapUsedSize','JSHeapTotalSize','Nodes'].includes(m.name)).map(m=>[m.name,m.value]));}
     const resources=await page.evaluate(()=>performance.getEntriesByType('resource').filter(entry=>entry.name.includes('/assets/')&&entry.name.endsWith('.js')).map(entry=>({url:entry.name,bytes:entry.decodedBodySize,duration:entry.duration})));
-    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch:async()=>{page=await launch();return page;},profile,seconds:soakSeconds}):undefined;
+    const newResourceProbe=async()=>{
+      const rendererCdp=await page.context().newCDPSession(page);await rendererCdp.send('Performance.enable');
+      return createNativeResourceProbe({cdp:rendererCdp,browserCdp:await browser.newBrowserCDPSession(),rootPid:child.pid});
+    };
+    const resourceProbe=process.argv.includes('--resource-samples')?await newResourceProbe():undefined;
+    const soak=process.argv.includes('--soak')?await runNativeSoak({page,close,launch:async()=>{page=await launch();return page;},profile,seconds:soakSeconds,resourceProbe,restartResourceProbe:resourceProbe?newResourceProbe:undefined,retainedHeap:process.argv.includes('--retained-heap')}):undefined;
     const frameTimes=await page.evaluate(()=>new Promise(resolve=>{const samples=[];let last;const fallback=setTimeout(()=>resolve({count:samples.length,unavailable:'Hidden window did not deliver 90 frames within 8 seconds; cannot infer visible FPS'}),8000);const tick=now=>{if(last!==undefined)samples.push(now-last);last=now;if(samples.length<90)requestAnimationFrame(tick);else{clearTimeout(fallback);samples.sort((a,b)=>a-b);resolve({count:samples.length,medianMs:samples[45],p95Ms:samples[85],maxMs:samples.at(-1),scope:'Hidden-window rAF intervals while idle; not motion FPS or an interactive animation benchmark'});}};requestAnimationFrame(tick);}));
     const record={version,frameTimes,scope:'packaged-performance',conditions:'One isolated hidden Windows portable launch, clean PATH; startup includes launcher extraction, no startup-speed or FPS guarantee; 3 warm UI transitions per page, 500 stored queue items, 61 initially rendered with load-more; CDP renderer metrics before soak, not whole-process RAM; retainedMetrics only when explicit GC requested',startupToVisibleMs,samples,metrics,retainedMetrics,resources,profile,soak};
     await mkdir(path.join(root,'test-results/native'),{recursive:true});await writeFile(path.join(root,`test-results/native/NATIVE-${version}${retainedMetrics?'-retained':''}.json`),JSON.stringify(record,null,2));console.log(JSON.stringify(record));
@@ -582,7 +626,8 @@ try {
   console.log(JSON.stringify({portableExe:exe,cleanPath:env.PATH,embeddedResolvers:true,legacyUpgrade:true,singleInstance:true,streamReuseOnResume:true,liveSearch:true,liveAudio:true,musicTitle,seek:true,restartRestoresPausedPosition:true,persistentCache:true,localLibraryPersists:true,profilePersists:true,listeningHistory:true,playlistExportToDisk:true,playlistImport:true,copyTrackLink:true,rendererIsolated:true,screenshot:path.join(profile,'portable-library.png')}));
   }
 }catch(error){
-  if(page&&!page.isClosed()){await page.screenshot({path:path.join(profile,'failure.png'),timeout:3000}).catch(()=>{});console.error((await page.locator('body').innerText()).slice(-1500));}
+  console.error('Original packaged-probe failure:',error);
+  if(page&&!page.isClosed()){await page.screenshot({path:path.join(profile,'failure.png'),timeout:3000}).catch(()=>{});const body=await page.locator('body').innerText({timeout:1500}).catch(()=>null);if(body)console.error(body.slice(-1500));}
   throw error;
 }finally {
   try{await close();}catch{if(child?.pid)spawn('taskkill',['/PID',String(child.pid),'/T','/F'],{windowsHide:true,stdio:'ignore'});}

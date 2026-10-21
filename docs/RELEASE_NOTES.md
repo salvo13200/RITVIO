@@ -1,6 +1,21 @@
 # Release notes
 
-## Windows 0.7.5 — 20 October 2026 (preview prepared for publication)
+Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
+
+## Android 1.3.1 — 21 October 2026 (public preview)
+
+[Android 1.3.1 APK, corresponding sources and checksums](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.1). Version code 21 retains the official signing certificate. This Android-only maintenance release incorporates the approved readability changes into a complete Gradle build. Windows remains a separate release at 0.7.5; previous Android releases stay available.
+
+- Keep lyric selection usable with enlarged text and short/landscape windows: metadata and verses can scroll together while the preview action stays separate. Returning from preview restores the excerpt, reading position and endpoint focus.
+- Give the current-track activity marker a valid accessible role/name.
+- Make the story preview scroll region keyboard-focusable, with a translated name and visible focus indication.
+- Preserve the non-scrolling player layout and existing playback engine.
+
+Before packaging, five focused browser scenarios passed across 100/150/200% root text and portrait/short/landscape viewports, including 25 automated accessibility scans. The affected existing mobile touch/lyrics/sharing suite passed 16 cases; three desktop keyboard/modal/reduced-motion cases passed. These are browser results, not native accessibility certification. The maintainer approved the full 1.3.1 candidate for publication. Its Gradle build and 65 JVM tests passed; official signature/version, all 20 libraries at 16 KB, official zipalign, packaged web assets and downloaded APK checksum were verified. No individual TalkBack/system-inset result is inferred from publication approval. The release manifest records exact source commits, hashes and evidence boundaries.
+
+The Windows Android setup uses basic HTTP parsing so that Windows PowerShell 5.1 can download SDK metadata without an interactive browser/security prompt. No new runtime dependency or playback change is introduced.
+
+## Windows 0.7.5 — 20 October 2026 (public preview)
 
 [Windows 0.7.5 downloads, corresponding source and checksums](https://github.com/salvo13200/RITVIO/releases/tag/windows-v0.7.5). This Windows-only release adds an extract-once portable ZIP alongside the installer and self-extracting EXE. Android remains [1.3.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.3.0); previous releases remain available.
 
@@ -11,7 +26,7 @@
 
 The Windows build passed 217 core tests, 25 desktop browser/player tests and isolated installer install/reinstall/update/uninstall checks. [Build 39403307392](https://github.com/salvo13200/RITVIO/actions/runs/39403307392) produced the binaries from `f53af2f3860de40b75bd51ff644ac330205fa16f`; the merged source commit `66d94bf7af3371dcc3a0c3fae6458821e7aa1f22` has exactly the same Git tree. All three downloaded package checksums and the ZIP's CRC/runtime inventory passed. Its extracted executable passed three fresh-profile launches, real-provider playback/next/pause/resume/seek and track/four-line/ten-line PNG exports with the real cover proxy. Closing lyric selection without exporting preserved live playback and the following track. Startup personal-data fingerprints stayed unchanged. The release manifest records exact hashes, test scope and timing conditions.
 
-Windows EXEs are not Authenticode-signed. Broad accessibility/device coverage, an hour-long native listening trial and real OS suspend/resume remain open. Network/provider delays, lyrics availability and rate limits remain possible. Startup probes use hidden native windows and fresh profiles with OS/security caches retained; they are not cold-boot, visible-paint or speaker-output benchmarks.
+Windows EXEs are not Authenticode-signed. Broad accessibility/device coverage, an hour-long native listening trial with a real provider and real OS suspend/resume remain open. Network/provider delays, lyrics availability and rate limits remain possible. Startup probes use hidden native windows and fresh profiles with OS/security caches retained; they are not cold-boot, visible-paint or speaker-output benchmarks. Later controlled generated-PCM endurance results are recorded separately in [Testing](TESTING.md#native-resource-sampling); they do not replace those real-provider/device gates or change the published binaries.
 
 ## Android 1.3.0 — 19 October 2026 (public preview)
 

@@ -2,6 +2,8 @@
 
 RITVIO is published at [salvo13200/RITVIO](https://github.com/salvo13200/RITVIO). Use a branch and pull request for updates; the initial-repository instructions below are retained for a fresh fork. Build workflows do **not** publish a release automatically, merge pull requests or request write permissions.
 
+Before planning a candidate, consult [Quality status](QUALITY_STATUS.md) for checks already completed and the [release checklist](RELEASE_CHECKLIST.md) for the new candidate. Choose follow-up checks from the affected code/package paths; do not repeat an unrelated native soak just to publish documentation or test-tool maintenance.
+
 ## 1. Create the repository from the clean export
 
 Run `pnpm release:source` in the development workspace. `release/public-source-export.json` records the new clean directory; `release/RITVIO-public-source.zip` contains that directory as `RITVIO/`. Publish **that source tree**, not the entire development workspace. The export uses an allowlist and automated credential/path checks; review the selected content too. Excluded files must not be added later with a blanket upload of the old workspace.

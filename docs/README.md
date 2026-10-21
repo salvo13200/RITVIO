@@ -18,6 +18,7 @@
 | [Build from source](BUILDING.md) | Toolchains, development commands and Windows/Android packaging. |
 | [Architecture](ARCHITECTURE.md) | Desktop local API, native Android playback and shared packages. |
 | [Testing](TESTING.md) | Clean-checkout checks, browser configurations and native-test boundaries. |
+| [Quality status](QUALITY_STATUS.md) | Completed evidence, remaining coverage, next priorities and when to repeat checks. |
 | [API reference](API.md) / [OpenAPI](openapi.json) | Desktop local service; historical unimplemented proposals are explicitly marked. |
 | [Contributing](../CONTRIBUTING.md) | Scope, pull requests, issues and maintenance expectations. |
 | [Security](../SECURITY.md) | How to report vulnerabilities privately. |

@@ -1,5 +1,7 @@
 # Testing from a clean checkout
 
+For the consolidated Windows 0.7.5 / Android 1.3.0 baseline and rules that avoid repeating unchanged scenarios, start with [Quality status](QUALITY_STATUS.md). This guide retains the detailed methods and historical results.
+
 Use Node 24+, pnpm 11.25.0 and Python 3.13 on Windows as described in [BUILDING.md](BUILDING.md). No private design folders, existing user profile, cloud account or generated mockup is required for the source/browser checks.
 
 ```powershell
@@ -31,6 +33,17 @@ Use `Get-ChildItem tests/config` to select other existing suites. Run one suite 
 `scripts/optimize-artwork.py` is a one-time lossless conversion utility requiring Pillow (`python -m pip install Pillow`). Normal builds/checks do not require it. Its pixel hashes and conversion sizes are recorded in `third-party/artwork.json`.
 
 ## Platform and live checks
+
+### Focused readability and accessibility
+
+```powershell
+pnpm exec playwright test --config tests/config/playwright.mobile-accessibility.config.ts
+pnpm test:accessibility --grep "skip link|modal traps|reduced motion"
+```
+
+The mobile suite follows Search, Player, Queue, lyric selection and Preview at 360×740 with 100/150/200% root text, 360×640 at 200%, and 740×360 at 150%. It checks automated accessibility, player containment and control dimensions, keyboard queue actions, contiguous verse selection, preview focus and reading-position restoration without transport commands. Synthetic text/catalogue fixtures are used. Root font resizing is a layout stress test; it does not reproduce WebView `setTextZoom` exactly or certify TalkBack, system insets or native text scaling. The existing listening-tools configuration includes these cases in browser CI. Screenshots and measured layouts are written under ignored `test-results/mobile-readability/`.
+
+On the installed Android candidate, separately check actual enlarged system text, TalkBack traversal and focus on modal Back, portrait/landscape, and Search with the software keyboard open. Only claim these as device passes after observing them. Do not repeat native playback endurance for these web-only accessibility changes unless an actual regression calls for it.
 
 Browser tests use controlled catalogue/audio fixtures. Passing them does not establish native audio focus, background playback, Gallery export or real-provider availability. Use a phone for those checks. Android unit/instrumentation builds require the separate SDK/JDK toolchain; instrumentation tests must actually run on a device before reporting a native pass.
 
@@ -111,6 +124,97 @@ node tests/packaged-desktop.mjs --performance --soak --soak-seconds 600 --exe-ve
 The separate `--latency` probe waits for its initial live seek to finish with sufficient media readiness before measuring pause/resume. Reading the assigned `currentTime` alone cannot establish that a seek has completed; otherwise the subsequent resume measurement can include the pending seek.
 
 The controlled fault interrupts both descriptor resolution and prepared media delivery, so a cached descriptor cannot bypass it. A navigation checkpoint in the isolated profile (`soak-navigation.json`) records only that phase, with retry/restart still pending; it must not be reported as a complete pass if later assertions fail. `soak-complete.json` is written only after those assertions succeed. Relaunch also updates the caller's page before further renderer checks, rather than querying the closed window.
+
+#### Native resource sampling
+
+To observe memory/process counters throughout that same controlled session, extract the complete official Windows ZIP under `.packaging/zip-check/` and run:
+
+```powershell
+node tests/packaged-desktop.mjs --performance --soak --soak-seconds 600 --resource-samples --retained-heap --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+pnpm exec tsx --test tests/native-resource-probe.test.ts
+```
+
+`--resource-samples` requires `--performance --soak`. It samples after a warm-up navigation cycle, approximately every 30 seconds after a cycle completes, before the fault check, after recovery, and after 30 seconds paused. A fresh probe samples the restarted app with the same Now playing panel open; it has a separate root identity/timeline, so CPU intervals never span the old/new processes. It records renderer heap, document/node/listener counts, and Windows private bytes, working sets, handles, threads and CPU counters for descendants of the isolated test root, including observed resolver children. It excludes the test harness and unrelated apps. Chromium process roles identify main/renderer/GPU where available; unsupported or absent roles are explicitly unclassified. Process creation identities guard against PID reuse. A missing root/counter fails the probe instead of reporting zero usage. No process command lines, song identifiers, stream URLs or environment variables enter these samples; no diagnostics are uploaded automatically.
+
+Private bytes represent committed private memory. Summed working sets can double-count shared pages. CPU percentages are core-equivalent over matching observed process lifetimes, may exceed 100%, and omit short-lived processes between observations. `--retained-heap` explicitly requests garbage collection at the navigation baseline/end and restarted snapshot, in addition to the existing initial renderer check. Periodic, recovery and paused-idle samples do not force collection. Endpoint GC can change the measurements; neither a lower endpoint nor a high periodic peak proves absence/presence of a leak. Retained DOM/heap and native memory must be assessed separately, with workload and sampling cost recorded.
+
+`soak-resources.json` and `soak-restart-resources.json` are partial checkpoints and keep `sessionComplete: false`. Only the final `soak-complete.json` and top-level native report establish that failure recovery and paused restart also passed. The final report separates immutable `navigationResources`, original-session `resources` (including recovery/pause), and `restartedResources`. Reports taken before a later sample retain their original entries and summary. A short run does not close the hour-long, real-provider, OS suspend/resume, physical-phone or accessibility acceptance gates.
+
+Use `--soak-seconds 3600` for the hour-long controlled session. The generated PCM grows with the duration; the fixture serves finite byte ranges of at most 256 KiB per debugger fulfillment and records actual response counts/sizes. This avoids serializing the entire hour-long WAV in one debugger message. Large non-range requests are rejected explicitly. `tests/native-tone.test.ts` verifies complete byte reconstruction, WAV sizes, terminal/suffix ranges and bounds; the native probe still has to demonstrate actual continued decoding across responses. Compare trends within that run rather than treating its absolute memory level as directly comparable to the previous unbounded-body fixture. Paused restart has no loaded audio decoder and is a separate workload, not a like-for-like active-playback baseline.
+
+The packaged-probe error handler logs the original failure before attempting a screenshot or bounded body-text diagnostics, so a second diagnostic timeout cannot replace the cause. Early attempts that failed before the measured phase are not successful endurance evidence.
+
+On 20 October 2026, the published Windows 0.7.5 ZIP (`d01a9378653bd592711c7bd244caf559f3e8c37d3b746e2ffc912320c9e095a7`) passed this probe: 42 navigation cycles over 607.8 seconds, with media position advancing 607 seconds, controlled media-failure recovery and a paused restart preserving all 500 entries, index 1 and position 5 seconds. Test machine: Windows 11 Home 10.0.26200, Ryzen 5 5500U, 12 logical processors, 5.8 GiB usable RAM. Other desktop workload was not isolated; the core suite also ran during part of the session. The executable/ASAR payload hashes stayed unchanged; all observed original-session processes exited. All 222 core tests, TypeScript, documentation and public-source checks passed.
+
+Sixteen resource samples recorded private bytes at 521.6 → 574.6 MiB (peak 656.8), and summed working sets at 643.8 → 444.0 MiB. Endpoint-collected renderer heap was 6.9 → 7.9 MiB; DOM nodes 819 → 814 and listeners 352 → 348. Process count fell from seven to five. The residual private-memory increase remains unclassified and needs a longer/repeated investigation; renderer counters returning to baseline do not establish native-memory stability. Hidden-window frame collection was insufficient for an FPS conclusion. No application runtime change or new binary is implied by these test-tool additions.
+
+The subsequent hour-long controlled run on the same machine and published ZIP completed **3616.9 seconds / 130 cycles**, with media position advancing 3617 seconds. Recovery from the controlled media error, 30 seconds paused, and a paused restart preserving all 500 items/index 1/position 5 passed. All observed original/restarted processes exited; executable/ASAR and recorded harness hashes matched. The 59,520,044-byte original PCM used 241 partial responses, at most 262,144 bytes each, with no invalid requests. The core suite ran after this measured session: **225/225 passed**, as did TypeScript, documentation, public-source and whitespace checks. Early attempts that stalled before the measured phase are excluded; the bounded-response fixture and original-error logging address those probe limitations without changing the app.
+
+| Phase | Total private MiB | Main | Renderer | GPU | Renderer heap MiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Warm baseline, explicit GC | 446.0 | 96.4 | 78.4 | 202.5 | 7.4 |
+| Navigation end, explicit GC | 641.6 | 99.2 | 244.6 | 274.1 | 8.0 |
+| Recovery playing, no forced GC | 578.4 | 100.8 | 259.2 | 194.8 | 11.0 |
+| Paused 30 seconds, no forced GC | 479.7 | 91.8 | 247.9 | 116.3 | 10.5 |
+| New process paused, explicit GC | 397.7 | 104.8 | 55.9 | 178.3 | 5.8 |
+
+This establishes the controlled functional run, **not a resolved memory issue**. At the navigation GC endpoints, nodes were 819 → 814 and listeners 348 → 348; main private memory stayed close to baseline, but renderer private memory increased substantially beyond its measured JS heap and remained elevated after recovery/pause. At that stage, native media allocations, process caches and debugger preservation had not been separated. [CDP documents network-payload buffers](https://chromedevtools.github.io/devtools-protocol/tot/Network/#method-enable); that is a measurement limitation, not proof they caused all the growth. No product optimisation is claimed from these observations.
+
+The fixture uses mono 8 kHz/16-bit generated PCM, 500 occurrences of one reference item with 61 initially rendered rows, and missing lyrics. It is not broad catalogue/codec coverage. The hidden-window frame check was insufficient for a visible-FPS conclusion. Real-provider hour-long listening, real OS suspend/resume, physical-phone and broad accessibility acceptance remain separate; a fresh paused process has no loaded audio decoder and has different helper lifetimes, so its lower total is not a like-for-like playback measurement.
+
+#### Media transport and observer controls
+
+To separate media response interception from a connected debugger, run these three **separate fresh-profile** controls against the same extracted Windows ZIP:
+
+```powershell
+node tests/packaged-desktop.mjs --media-control intercepted --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --media-control http-connected --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --media-control http-detached --control-seconds 600 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+```
+
+All arms use the same generated PCM, finite 256 KiB ranges, hidden native window, 500 repeated queue references and idle Now playing view. `intercepted` fulfills media through Playwright; `http-connected` serves identical bytes from an ephemeral loopback HTTP server while Playwright stays connected. `http-detached` uses that server and disconnects Playwright/CDP after starting playback. During all three measured intervals, only Windows process counters are polled, approximately every 30 seconds; connected arms receive no periodic heap/DOM queries. Renderer roles come from the initial CDP process map and are attached only to matching PID/creation identities. New helper process lifetimes are unclassified; replacement of the single identified renderer fails this comparison.
+
+The initial HTML response keeps its original document body and app origin. **In these test profiles only**, its CSP `media-src` adds the exact ephemeral loopback fixture origin; no production CSP, executable or ASAR is changed. Other CSP directives remain intact. Small playback descriptors are intercepted during setup. For the detached arm all routes are removed before disconnecting, so media delivery no longer depends on the automation connection. Playwright's CDP connection close disconnects its transport; the harness separately verifies the native app remains alive. The debugger port remains enabled on loopback, so this is not a completely debug-disabled launch.
+
+`media-control.json` is checkpointed in the isolated profile with `complete: false` until the measured interval ends, reconnection succeeds where needed, playback position advances with elapsed time, the transport bounds pass and playback pauses. The final OS memory sample precedes reconnection; endpoint heap/DOM/GC observations are instrumented and reported separately. PCM/server and native processes are closed on completion or failure. Reports contain process counters rather than command lines or app tokens.
+
+This is a **playback-only causal control**, not a repeat of the hour-long UI-navigation workload. Do not treat its lower memory level as a production optimisation or a passed long-term real-provider gate. Compare trends within each arm, allow for startup/native-cache settling, and repeat ambiguous results. The deterministic arm order, single session per arm, hidden window and other desktop activity limit causal confidence. `tests/native-media-fixture.test.ts` checks that real HTTP and intercepted ranges return identical bounded bytes.
+
+On 20 October 2026, all three 600-second playback controls passed on the same published 0.7.5 runtime and machine above. They used 63 OS samples across the measured intervals and identical 11,520,044-byte WAV resources, 44 finite responses per arm, with no invalid requests. The renderer identity stayed unchanged in every sample. All observed processes exited, and executable/ASAR hashes matched before and after. Core tests ran outside these three measured intervals. The final 226/226 core tests, TypeScript, documentation and public-source checks passed; a subsequent 60-second disconnected preflight also passed after adding stricter identity/CSP assertions and error cleanup.
+
+| Control | Media advanced | Renderer OS private MiB, first → last | Renderer private MiB, GC endpoints | Renderer heap MiB, GC endpoints |
+| --- | ---: | ---: | ---: | ---: |
+| Intercepted, connected | 600 s | 82.9 → 108.3 | 82.9 → 101.4 | 5.85 → 6.16 |
+| HTTP, connected | 601 s | 82.5 → 106.0 | 82.5 → 100.4 | 5.85 → 6.16 |
+| HTTP, disconnected | 601 s | 81.9 → 85.9 | 81.9 → 84.5 | 5.85 → 6.92 |
+
+Serving media over HTTP alone did not eliminate the increase. Disconnecting the observer reduced the increase in this single playback-only comparison; the responsible debugger subsystem was not isolated. This supports a measurement contribution, **not** an explanation of all prior hour-long UI-navigation growth or a product fix. Do not hide residual growth by using only the first/last snapshots: after initial settling, descriptive renderer-private slopes from minute 2 onward were approximately 3.01 / 2.89 / 1.44 MiB/minute respectively. Those are single-run regressions, not replicated statistical estimates. PCM/native-media allocations and caches still need classification with realistic codecs, repeated track changes and an equivalent navigation control. Reconnection itself can affect the disconnected arm's final heap/listener observation. No production leak is confirmed or declared resolved, and no application binary changed.
+
+#### Repeated track changes with PCM and Opus
+
+```powershell
+node tests/packaged-desktop.mjs --switch-control pcm --switch-cycles 30 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+node tests/packaged-desktop.mjs --switch-control opus --switch-cycles 30 --exe-version 0.7.5 --unpacked-exe .packaging/zip-check/RITVIO.exe
+```
+
+These controls use 500 distinct synthetic queue entries and a 24-second original stereo signal: PCM at 48 kHz/16-bit, or WebM/Opus recorded inside Electron with a requested 128 kbit/s target. The Opus signal comes only from two oscillators connected to a recording destination, never a microphone or external recording. Actual decoded duration, channel count and sample rate are checked. The recording process is closed, then a fresh app process performs the measurement; no encoder tool, additional dependency, API key or paid service is required. See the [MediaStream Recording specification](https://www.w3.org/TR/mediastream-recording/) and [Web Audio recording destinations](https://www.w3.org/TR/webaudio-1.0/#MediaStreamAudioDestinationNode).
+
+After setup, Playwright disconnects. A small raw CDP client controls the real transport buttons and sends keyboard seek events; it refuses every `Network.*` command. `Fetch` intercepts only the small playback descriptors. All actual media bytes travel through a loopback HTTP fixture with finite 256 KiB ranges and a distinct URL per queue item. The test document alone adds that fixture origin to CSP; production CSP and binaries remain unchanged. The client remains attached, so this is not a debugger-free test. It samples renderer/OS counters without network-response collection.
+
+Two warm-up changes precede the baseline. Each measured cycle changes to the next item, checks that the selected title and actual audio resource match, and requires at least four seconds of actual media-time advancement during a six-second dwell. Every third cycle also seeks to five seconds using the real slider's keyboard behavior and waits for media readiness and seeking completion. Baseline/end and the 20-second paused tail explicitly collect renderer GC; periodic samples do not. A stable single renderer identity is required. `switch-control.json` remains incomplete until all cycles, decoder-error checks, paused positioning and transport bounds pass. The isolated profile's saved queue/index/position can then be checked after the harness exits.
+
+This crosses the frontend descriptor cache's 30-item limit in the default run, counting warm-up and current entries. It does not exercise the real resolver, production stream proxy/RAM prefix cache, WAN latency, unsupported codecs, audible output or broad music content. All entries reuse one original signal per format with distinct URLs. Local timings are not internet startup/seek guarantees; one short comparison cannot prove absence of leaks. Recording/fixture issues that fail before completion are excluded from successful evidence.
+
+On 20 October 2026, both 30-cycle controls passed against the unchanged published 0.7.5 runtime. Each measured switching phase lasted approximately 191 seconds, in addition to setup, warm-up and a 20-second paused tail. Both profiles preserved all 500 entries, index 32 and position 5 seconds after process exit. All observed measured processes exited and runtime/harness hashes matched. The 229 core tests and TypeScript passed before the measured sessions.
+
+| Format | Measured changes / playing seeks | Renderer private MiB, GC baseline → end → paused | JS heap MiB, GC baseline → end |
+| --- | ---: | ---: | ---: |
+| PCM 48 kHz stereo | 30 / 10 | 84.0 → 74.2 → 70.8 | 6.60 → 6.75 |
+| WebM/Opus 48 kHz stereo | 30 / 10 | 80.3 → 68.8 → 65.9 | 6.61 → 6.76 |
+
+There were 33 distinct media URLs per arm, zero invalid range requests, no media interception, and no decoder errors during the verified changes. PCM served 149,206,356 prepared body bytes through 582 responses; Opus served 12,697,212 through 66 responses. The waveform/Opus files were 4,608,044 / 384,764 bytes respectively; Opus decoded to 23.88 seconds. DOM nodes were 818 → 829 and listeners 355 → 355 at switching GC endpoints in both arms. This short workload did not reproduce a progressive source-count-related renderer increase; retained JS heap rose about 0.15 MiB. It neither proves absence of leaks nor isolates all prior hour-long navigation growth.
+
+Local median/p95 change readiness was approximately 231/238 ms for PCM and 232/237 ms for Opus. The two-key seek verification measured approximately 124/125 ms and 124/142 ms respectively. Those include control/polling overhead, use local synthetic media, and are not guarantees for WAN or provider latency. Playback seek assertions use the new `seeked` event near the requested target, rather than demanding that the still-playing current time remain fixed. Early preflight document/selector/assertion failures are excluded from completed evidence.
 
 ### Windows startup comparison
 

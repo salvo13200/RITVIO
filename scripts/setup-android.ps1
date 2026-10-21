@@ -17,7 +17,7 @@ $env:JAVA_HOME = $jdkRoot
 $sdk = Join-Path $tools 'sdk'
 $androidCli = Join-Path $sdk 'cmdline-tools\latest\bin\android.exe'
 if (-not (Test-Path -LiteralPath $androidCli)) {
-    [xml]$repository = (Invoke-WebRequest 'https://dl.google.com/android/repository/repository2-3.xml').Content
+    [xml]$repository = (Invoke-WebRequest -UseBasicParsing 'https://dl.google.com/android/repository/repository2-3.xml').Content
     $package = $repository.'sdk-repository'.remotePackage | Where-Object path -eq 'cmdline-tools;latest'
     $archive = ($package.archives.archive | Where-Object 'host-os' -eq 'windows').complete
     $zip = Join-Path $tools 'commandlinetools.zip'

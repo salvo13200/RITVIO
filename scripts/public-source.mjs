@@ -6,12 +6,12 @@ import {fileURLToPath} from 'node:url';
 import {imageMetadataIssue} from './check-assets.mjs';
 import showcase from './showcase-files.json' with {type:'json'};
 
-const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md']);
+const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','QUALITY_STATUS.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md']);
 const publicMedia=new Set(['README.md','manifest.json','logo.svg','banner.webp',...showcase.views.map(view=>`${view.name}.webp`)]);
 const rootFiles=new Set(['LICENSE','README.md','README.en.md','README.it.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','THIRD_PARTY_NOTICES.md','.gitignore','.gitattributes','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements-resolver.txt','tsconfig.json','vite.config.ts']);
 export function isPublicSource(file){
   const name=file.replaceAll('\\','/'),parts=name.split('/');
-  if(parts.some(p=>['..','.git','.local','.packaging','.agents','.impeccable','.venv','node_modules','data','release','dist','web-dist','build','.gradle','.idea','__pycache__','test-results','playwright-report','capacitor-cordova-android-plugins'].includes(p)))return false;
+  if(parts.some(p=>['..','.git','.local','.packaging','.agents','.impeccable','.venv','node_modules','data','release','dist','web-dist','build','.gradle','.kotlin','.idea','__pycache__','test-results','playwright-report','capacitor-cordova-android-plugins'].includes(p)))return false;
   if(/\.(jks|keystore|apk|aab|exe|sqlite(?:-shm|-wal)?|log|pyc|hprof)$/i.test(name)||parts.includes('local.properties')||parts.includes('credentials.json'))return false;
   if(parts.length===1)return rootFiles.has(name)||/^playwright\.[\w.-]+\.ts$/.test(name);
   if(parts[0]==='docs')return (parts.length===2&&publicDocs.has(parts[1]))||(parts.length===3&&parts[1]==='media'&&publicMedia.has(parts[2]));

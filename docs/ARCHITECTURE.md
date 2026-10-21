@@ -7,7 +7,7 @@ RITVIO has local profiles and libraries. No online registration, password databa
 - **Shared code:** `packages/` contains types, i18n and reusable playback/library logic. English and Italian are shipped; other languages are planned.
 - **External services:** unofficial catalogue/stream resolvers, LRCLIB lyrics and optional iTunes metadata. Availability and rights are provider-dependent. Attribution is in Settings and the third-party notices.
 
-`docs/openapi.json` is a generated desktop contract. Operations with `x-implemented: false` are historical proposals and are not available endpoints; they are not requirements for launching the app. `docs/API.md` separates current local behaviour from the historical register. Regenerate the contract using `node scripts/api-contract.mjs`; check its references using `pnpm check:architecture`.
+`docs/openapi.json` is a generated desktop contract. Operations with `x-implemented: false` are historical proposals and are not available endpoints; they are not requirements for launching the app. The [API guide](API.md) links current local behaviour to the shipped route implementations and identifies historical proposals. Regenerate the contract using `node scripts/api-contract.mjs`; check its references using `pnpm check:architecture`.
 
 The only references to the previous project name needed by runtime code are read-side compatibility: migrating an old Windows profile and importing old version-1 playlist files. New profiles, exports, app identity and links use RITVIO. Removing those readers could strand existing personal libraries; no migration is performed by tests against a real user profile.
 

@@ -1,115 +1,69 @@
-# API RITVIO — player e libreria locale
+# RITVIO desktop API
 
-Aggiornamento 0.7.0: gli endpoint delle situazioni usano il token locale esistente: `GET /v1/situations`, `GET /v1/situations/:id`, `GET /v1/situations/:id/playlists/:playlistId`. Identificatori ammessi: focus, travel, energy, relax, workout, party. Risposte con data, stale, refreshing, error, updatedAt e retryAt; cache SQLite con backoff. Solo playlist presenti nella categoria possono essere risolte. I file importati accettano il formato precedente e ritvio-playlist; le esportazioni usano solo ritvio-playlist. Bridge desktop `window.ritvio`, canali IPC `ritvio:*`; il mini-player non accede a token, file o configurazione.
+This guide describes the local desktop service and links to runtime implementations shipped in the public source. It replaces the historical endpoint register, whose private phase notes are not part of a clean checkout. See [Architecture](ARCHITECTURE.md), [Quality status](QUALITY_STATUS.md) and [Testing](TESTING.md) for platform ownership and evidence.
 
-Le quantità e le fasi del registro seguente sono storiche.
+## Scope and authentication
 
-Base /v1 su 127.0.0.1, porta libera assegnata da Electron. **51 operazioni implementate** nella versione 0.6.10; OpenAPI generato da scripts/api-contract.mjs (71 percorsi, 92 operazioni dichiarate, 110 schemi). Account online, collaborazione e operazioni successive sono marcati x-implemented: false. L’equalizzatore usa un endpoint di streaming locale in memoria; preferenze, shuffle ed esclusioni restano nello stato del player.
+Electron starts Fastify on `127.0.0.1` with a dynamically assigned port. Routes use the `/v1` prefix. This is an app-owned local service, not a hosted public API or an online account system. Android uses its native bridge and Media3 service; the desktop HTTP service is not the Android playback backend.
 
-| Metodo e percorso | Comportamento |
+- `GET /v1/health` is a local process-health check.
+- Other ordinary routes require the local session's `Authorization: Bearer ...` token. A supplied Origin must also be allowed.
+- `GET /v1/stream/{ticket}` uses an expiring opaque ticket issued by authenticated playback, rather than a Bearer header on the audio element. The ticket is a temporary playback capability and must not be shared.
+- Library ownership comes from the server-side identity provider, not a caller-supplied owner field. The default identity is local; online login and collaboration are not implemented.
+
+Authentication, origin checks, registration and errors are implemented in [server.ts](../apps/api/server.ts). Native desktop configuration and file operations use the restricted [preload bridge](../apps/desktop/preload.cjs), not arbitrary renderer filesystem access.
+
+## Search and playback
+
+| Method and path | Behavior |
 | --- | --- |
-| GET /health | Stato processo, nessun segreto; pubblico locale. |
-| GET /runtime | catalogProvider=youtube-music, playbackProvider=youtube, resolverInstalled booleano. |
-| GET /search | q 3–200 caratteri, type=track e provider=youtube opzionali, cursore firmato. Resolver YouTube Music, cache, massimo 20 brani/pagina e 100/query. |
-| GET /media/{mediaId} | Metadati presenti nella cache o nella libreria permanente, oppure MEDIA_NOT_FOUND. |
-| POST /links/resolve | Body {videoId}, esattamente 11 caratteri consentiti. Resolver YouTube per metadati e stream; risposta Media. |
-| POST /media/{mediaId}/playback | Resolver YouTube, descrittore con percorso locale /v1/stream/{ticket}, expiresAt e capacità equalizer=true. fresh=true rinnova il flusso. |
-| GET /stream/{ticket} | Streaming in memoria: ticket opaco obbligatorio, Range singolo, status 200/206/416. Nessun salvataggio audio. |
+| `GET /v1/runtime` | Reports catalogue/playback providers and embedded resolver availability. |
+| `GET /v1/search` | Track search with validated parameters, cached results and signed pagination cursors. |
+| `GET /v1/media/{mediaId}` | Returns known media metadata or `MEDIA_NOT_FOUND`. |
+| `POST /v1/links/resolve` | Resolves a validated video ID into catalogue metadata. |
+| `POST /v1/media/{mediaId}/playback` | Returns an expiring descriptor with a local stream ticket. `fresh=true` refreshes resolution; `prepare=true` requests speculative preparation. |
+| `GET /v1/stream/{ticket}` | Relays validated media bytes with byte ranges and bounded RAM buffering; this does not add offline audio downloads. |
+| `GET /v1/playback/diagnostics` | Local resolver/buffer diagnostics without signed upstream URLs or track titles. |
 
-Tutte tranne health e stream richiedono Bearer della sessione locale; stream richiede un ticket temporaneo emesso da playback autenticato. Ogni origine fornita deve essere autorizzata. Non sono account utente. Non c’è dipendenza dalla Data API né chiave del provider. Il frontend non riceve percorsi Python, segreti o URL Googlevideo. Il ticket è una capacità temporanea del player, non va condiviso.
+The current runtime uses unofficial catalogue/stream resolvers and requires no YouTube Data API key. Metadata and descriptors are separate: descriptors and signed upstream URLs are not library records. Track IDs and queue-entry IDs are also separate, allowing intentional duplicate queue entries.
 
-Media: UUID stabile sul video ID, titolo, artista, durata, copertina, URL canonico e licenza non verificata nulla. artists e album opzionali contengono identificativi e nomi YouTube Music quando disponibili. Un brano e un elemento della coda hanno identità distinte, per ammettere duplicati. Playback: mode=youtube-audio-resolver, accessMethod=unofficial-extraction, provider=youtube, videoId, percorso url locale con ticket, expiresAt e capacità (background/seek/volume/equalizer veri sul desktop, offline falso). Il client risolve il percorso rispetto alla base URL del servizio locale. Il descrittore e gli URL upstream non sono persistiti.
+See [catalog.ts](../apps/api/catalog.ts), [resolver.ts](../apps/api/resolver.ts), [audio-stream.ts](../apps/api/audio-stream.ts) and [audio-range-buffer.ts](../apps/api/audio-range-buffer.ts) for the implementations. Provider availability and rate limits remain external dependencies.
 
-Cache ricerca sei ore, risultati degradati fino a 30 giorni in caso di timeout/servizio occupato/errore provider, cache.hit/cache.degraded con date UTC. I cursori sono ri-firmati dopo il riavvio e validati su query/offset. Limite API locale 90 richieste/minuto; non è la quota YouTube Data API. Errori sanitizzati in italiano: INVALID_REQUEST, UNAUTHORIZED, INVALID_ORIGIN, INVALID_CURSOR, MEDIA_NOT_FOUND, RESOLVER_MISSING, RESOLVER_BUSY, RESOLVER_TIMEOUT, RESOLVER_FAILED, RESOLVER_OUTPUT, TRACK_UNAVAILABLE, NO_AUDIO_STREAM. Nessun errore grezzo, token o URL audio nei log del servizio.
+## Library and feature routes
 
-## Libreria implementata
+Use the linked route modules for exact schemas, responses and current limits. All these links are included in the public source export.
 
-| Metodo e percorso | Body / risposta |
+| Area | Runtime implementation |
 | --- | --- |
-| GET /me/library | Profilo, preferiti, riepiloghi playlist, risorse seguite e ultimi 100 ascolti. |
-| PATCH /me/profile | {displayName, avatar}, risposta Profile; avatar data URI immagine oppure null. |
-| PUT /me/likes/{mediaId} | {liked: boolean}, risposta {ok:true}. |
-| POST /me/history | {mediaId,eventId}, registra un ascolto idempotentemente; {ok:true}. |
-| DELETE /me/history | Cancella la cronologia del profilo; {ok:true}. |
-| PUT /me/follows | {kind: artist/album,resourceId,mediaId,followed:boolean}; risorsa validata sui metadati. |
-| DELETE /me/follows/{kind}/{id} | Rimuove una risorsa seguita; {ok:true}. |
-| POST /me/playlists | {name}, risposta playlist completa, 201. |
-| POST /me/playlists/from-queue | {name,mediaIds}: 1–1000 UUID, ordine e duplicati conservati. Nuova playlist privata in transazione, 201; riferimenti assenti impediscono creazioni parziali. |
-| GET /me/playlists/{id} | Playlist completa con elementi {id,track}. |
-| PATCH /me/playlists/{id} | {name,description,visibility,cover}, risposta playlist completa. |
-| DELETE /me/playlists/{id} | Cancella playlist ed elementi; {ok:true}. |
-| POST /me/playlists/{id}/items | {mediaId}, aggiunge un elemento distinto; risposta playlist completa. |
-| DELETE /me/playlists/{id}/items/{itemId} | Rimuove un elemento; risposta playlist completa. |
-| PUT /me/playlists/{id}/order | {itemIds:[...]}, permutazione completa; risposta playlist completa. |
+| Local profile, likes, history, playlist CRUD, ordering and queue-to-playlist creation | [library-routes.ts](../apps/api/library-routes.ts), [library-store.ts](../apps/api/library-store.ts) and [identity.ts](../apps/api/identity.ts). |
+| Playlist-file export/import | [sharing.ts](../apps/api/sharing.ts). Files carry playlist metadata, not audio, session tokens or personal listening history. |
+| Provider playlist import with preview | [playlist-import.ts](../apps/api/playlist-import.ts), separate from playlist-file import. |
+| Artist/album search, details, releases, following and artist-scoped search | [catalog-pages.ts](../apps/api/catalog-pages.ts). |
+| Lyrics lookup, version selection and personal text/LRC import | [lyrics.ts](../apps/api/lyrics.ts); availability and content-rights limits are described in [Features](FEATURES.md). |
+| Measured listening sessions, checkpoints, privacy and retention | [activity.ts](../apps/api/activity.ts). |
+| Optional iTunes metadata, confirmed associations and personal genres | [metadata.ts](../apps/api/metadata.ts). Metadata matching does not supply playback audio. |
+| Local taste settings, feedback, mixes and explicit discovery | [taste.ts](../apps/api/taste.ts). |
+| Home collections, cached editions and refresh | [home.ts](../apps/api/home.ts). |
+| Mood/activity catalogue and category playlists | [situations.ts](../apps/api/situations.ts). |
+| Validated cover delivery for share-image rendering | [story-artwork.ts](../apps/api/story-artwork.ts). Image rendering/export is separate from playback. |
 
-Modifiche alle playlist esistenti richiedono `If-Match: "revision"`: 428 se manca, 409 se obsoleta. Richieste con campi non previsti sono rifiutate. Nome 1–100 caratteri non vuoti, descrizione fino a 1.000, copertina/avatar PNG/JPEG/WebP base64 fino a 196.608 caratteri; richieste oltre il limite del body ricevono 413. Le liste di elementi sono limitate a 1.000. Tutte le identità sono ricavate da IdentityProvider sul server, mai da un owner nel body o nella query.
+Existing playlist mutations use `If-Match` revision checks. Missing/stale revisions must not silently overwrite another edit. Schemas and stores enforce body sizes, item limits and identities. Imported files do not grant another profile's access or accept arbitrary playback URLs. A stored visibility field does not imply a publicly hosted playlist page.
 
-`library_profiles` distingue identità locale/online, ma solo il profilo locale è collegato in questa versione. Non è ancora presente un login online. Visibilità pubblica è salvata per la futura condivisione; nessuna playlist è esposta pubblicamente. Fasi successive: account online, importazione da playlist YouTube, social, condivisione online e collaborazione. I dettagli storici su Audius/IFrame e quote Data API non descrivono il runtime corrente. Vedi [FASE-3.md](FASE-3.md) per limiti e futura migrazione.
+## Errors and request budgets
 
-## Scambio di playlist implementato nella Fase 4
+Errors use `{error: {code, message, requestId, retryAt?}}`. Branch on stable error codes; messages are user-facing, not machine identifiers. Retry timing may accompany transient or rate-limit failures. Ordinary errors do not expose raw provider exceptions, credentials or signed upstream URLs.
 
-| Metodo e percorso | Comportamento |
-| --- | --- |
-| GET /me/playlists/{id}/export | File JSON format=ritvio-playlist, version=1, exportedAt UTC; playlist con nome, descrizione, copertina e tracks. Solo proprietario. |
-| POST /me/playlists/import | Body nel formato del file, fino a 4 MiB e 1.000 brani; risposta playlist completa, 201. Nuova identità e visibilità privata, importazione atomica. |
+The API distinguishes essential transport operations, local work and provider work. Limits/exemptions are defined in [request-budget.ts](../apps/api/request-budget.ts) and applied in [server.ts](../apps/api/server.ts); they are not YouTube Data API quota units. Recovery and preparation must preserve backoff and the user's pause/current-track intent.
 
-Ogni brano del file ha solo videoId, title, artist e duration. UUID, copertina remota e URL canonico vengono ricostruiti dal server, senza accettare URL audio o immagini remote dal file. I metadati già presenti nella libreria non sono sovrascritti da un'importazione. Il file non contiene owner, token, email, foto del profilo, cronologia, URL audio o musica.
+## Generated OpenAPI and historical proposals
 
-Copia dei link YouTube e salvataggio del file desktop usano IPC limitato: renderer attendibile e identificatori validati. Il dialogo Salva sceglie la destinazione e il file viene scritto tramite un temporaneo nella stessa cartella. Non è un download audio e non viene avviato automaticamente alcun invio a terzi. [Dettagli Fase 4](FASE-4.md).
+[openapi.json](openapi.json) is generated by [api-contract.mjs](../scripts/api-contract.mjs). Operations marked `x-implemented: false` are historical proposals, including online-account/social routes; they are not available features or setup requirements. For an implemented route's current validation and limits, consult its runtime module above. No fixed historical endpoint count is used as a current coverage claim.
 
+Regenerate and validate the contract when changing it:
 
-## Testi implementati nella 0.6.3
+```powershell
+node scripts/api-contract.mjs
+pnpm check:architecture
+```
 
-Tutti i percorsi richiedono Bearer e identità del profilo attivo. Il mediaId viene risolto nel catalogo o nella libreria; non si accettano URL esterni né owner inviati dal client.
-
-| Metodo e percorso | Comportamento |
-| --- | --- |
-| GET /me/lyrics/{mediaId} | Scelta personale, oppure LRCLIB con cache; status ready/instrumental/missing, document, cacheHit, savedChoice. fresh=true rinnova la ricerca automatica rispettando throttling e cooldown. |
-| GET /me/lyrics/{mediaId}/search?title=…&artist=… | Fino a 20 candidati con metadati; scelta esplicita della versione. |
-| POST /me/lyrics/{mediaId}/select | Body {providerId}; recupera un ID LRCLIB valido e conserva l’associazione personale. |
-| PUT /me/lyrics/{mediaId} | Body {text,format:txt/lrc,fileName}; UTF-8, 200 KB e massimo 5.000 righe sincronizzate. |
-| DELETE /me/lyrics/{mediaId} | Rimuove scelta/importazione del solo profilo attivo. Nessuna modifica al brano. |
-
-Cache automatica 7 giorni, risultati mancanti 6 ore, massimo 1.000 record; scelte/importazioni personali massimo 1.000 per profilo, conservate fino alla rimozione. SQLite usa tabelle additive lyrics_cache e lyrics_overrides; identità personale separata per futuri account online. Corrispondenza automatica conservativa su titolo/artista e durata ±2 secondi; versioni ambigue richiedono scelta.
-
-Richieste LRCLIB seriali, 300 ms tra richieste, massimo 8 pendenti, timeout complessivo per richiesta 10 secondi, risposta limitata a 2 MB, redirect rifiutati e endpoint fissato nel server. Retry-After numerico o HTTP-date rispettato globalmente, fino a 24 ore; errori non salvati come testo mancante. Richieste concorrenti dello stesso brano condividono il recupero. Nessuna cronologia, ID profilo, token o URL audio viene inviata alla fonte; vengono inviati i metadati del brano cercato.
-
-Errori in italiano: LYRICS_UNAVAILABLE, LYRICS_INVALID_RESPONSE, LYRICS_RATE_LIMIT con retryAt, LYRICS_BUSY, LYRICS_NOT_FOUND, LYRICS_LIMIT, LYRICS_TOO_LARGE, INVALID_LRC e INVALID_LYRICS. La risposta include provider e licenseVerified=false per LRCLIB; non è una certificazione dei diritti sui testi. [Istruzioni, fonti e limiti](BONUS-TESTI-0.6.3.md).
-
-## Catalogo album/artisti — 0.6.4
-
-GET `/catalog/search?q=…&kind=artist|album`, GET `/catalog/:kind/:id`, GET `/catalog/artist/:id/releases/:section` (`albums|singles`) e PUT `/me/catalog/:kind/:id` con `{followed:boolean}`. Le tre letture restituiscono `{data,cache}`; seguito `{ok:true}`. Tutte richiedono sessione Bearer e origine consentita. Identificativi 1–160 caratteri alfanumerici, underscore o trattino; nessun URL/owner/parametro interno del provider dal client.
-
-Cache SQLite `catalog_pages` globale di metadati: ricerche 6 ore, dettagli/pubblicazioni 24 ore, massimo 500 risposte; coalescing e fallback degradato fino a 30 giorni su 429/5xx. Tracce disponibili registrate nella cache media anche su hit. Seguiti derivati dal server e isolati per identità, con tetto esistente 5000. Nessuna modifica allo streaming o ai dati delle playlist.
-
-Modelli condivisi `packages/domain/catalog.ts`: CatalogResource, AlbumDetail (entries con track null per unavailable, reportedCount e incomplete), ArtistDetail, CatalogSearch e ArtistReleases. Ricerca risorse massimo 20, pubblicazioni aggiuntive massimo 100 e album massimo 1000 voci; truncated/incomplete espliciti. Artwork solo HTTPS da host YouTube/googleusercontent consentiti, descrizioni testo. Errori source sanitizzati RESOLVER_* e CATALOG_INVALID/CATALOG_UNSUPPORTED. [Dettagli e prove](BONUS-CATALOGO-0.6.4.md).
-
-## Ascolti misurati 0.6.5
-
-Cinque operazioni locali protette: GET `/v1/me/listening`, POST `/v1/me/listening/checkpoints`, PUT `/v1/me/listening/settings`, PATCH `/v1/me/listening/:id`, DELETE `/v1/me/listening`. [Schema, privacy, migrazione e limiti](BONUS-ASCOLTI-0.6.5.md). La POST cronologia legacy rispetta l’ascolto privato; entrambe le DELETE invalidano i checkpoint della generazione precedente.
-
-## Metadati e generi 0.6.6
-
-Per `kind` artist/album/track, `/me/metadata/{kind}/{id}` legge stato, generi e proposte senza chiamare iTunes. POST `/search` accetta `query` opzionale e cerca esplicitamente con cache/rate limit. PUT `/selection` accetta un `providerId` della ricerca salvata per quel profilo/risorsa, DELETE rimuove associazione. PUT `/genres` sostituisce generi personali (max 20 di 60 caratteri), DELETE ripristina quelli della fonte selezionata. Nessuna assegnazione automatica, nessuna eredità dei generi fra livelli, nessun audio/asset iTunes. [Architettura, limiti e verifiche](BONUS-METADATI-0.6.6.md).
-
-## Ricerca per identità artista 0.6.7
-
-`GET /catalog/artist/{id}/search?q=&kind=track|album`: filtro esplicito per ID nei crediti, inclusi featuring e collaborazioni, massimo 100 righe verificate entro il limite della fonte. Query 0–200 caratteri; cache isolata per artista/tipo/query, sei ore e fallback datato solo della stessa ricerca. Brani nello schema LibraryTrack, album nello schema CatalogResource; discriminante data.kind, data.truncated e cache. Autenticazione/origine applicate come agli altri endpoint del catalogo. [Metodo e limiti](RICERCA-ARTISTA-0.6.7.md).
-
-## Priorità automatica 0.6.8
-
-`GET /search?q=&type=track&cursor=` conserva il contratto e aggiunge `priorityArtist` e `truncated` opzionali. La ricerca ordinaria ordina fino a 100 brani prima della paginazione di 20: identità nei crediti, titolo e ordine della fonte nei pareggi, nessun filtro automatico. Cache snapshot persistente `resolver-ranked-v1`, cursori firmati con query/offset/revisione; pagine della stessa revisione senza nuova ricerca. Un cursore riferito a una revisione sostituita viene rifiutato. `GET /catalog/search?kind=album&q=` ordina fino a 100 album prima del taglio a 20 e aggiunge `data.priorityArtist` opzionale, cache `search-v3`. Nessun nuovo endpoint, dato personale o chiave API. [Metodo, cache e limiti](RICERCA-PRIORITA-0.6.8.md).
-
-
-## Gusti e mix locali — 0.6.9
-
-| Metodo e percorso | Comportamento |
-| --- | --- |
-| GET /me/taste | Profilo su tutte le sessioni conservate, impostazioni, candidati e feedback. Nessuna richiesta a provider. |
-| PUT /me/taste/settings | days 30/90/180, genreLevel artist/track, discoveryPercent 25/50/75, allowRecent e variety. |
-| DELETE /me/taste | Reset della soglia temporale e dei derivati. Conserva ascolti, preferiti, playlist, metadati ed esclusioni. |
-| PUT /me/taste/feedback/{id} | value -1/0/+1 su un candidato del profilo. Zero annulla. |
-| POST /me/taste/mix | kind familiar/discovery/genre, genre richiesto per genere, exclusions, refresh opzionale. Fino a 20 brani, cache per giorno UTC. |
-| POST /me/taste/discover | Azione esplicita; massimo 3 query di artisti e 60 risultati per tentativo, attesa 60 secondi, cache per profilo di 200 candidati/30 giorni. |
-
-Tutti i dati derivati sono isolati per IdentityProvider. Candidati personali da preferiti, playlist, sessioni non escluse e feedback; nessuna scansione della libreria di altri utenti. I generi sono solo da metadata_choices confermati o personali; artisti e brani restano livelli separati. Body del mix fino a 8 MiB per le esclusioni persistite (massimo 5.000 brani e 5.000 artisti); il limite ordinario delle altre rotte resta 4 KiB. Le query online sono bloccate durante l’ascolto privato. Reset, cancellazione cronologia e cambi di privacy impediscono scritture tardive della scoperta.
+Do not regenerate or change the contract solely to reclassify an unfinished feature as implemented. Public documentation must work without private phase notes.
