@@ -52,4 +52,48 @@ class AudioSingleFlightTest {
             release.countDown();assertEquals("next",owner.get(2,TimeUnit.SECONDS))
         }finally{release.countDown();pool.shutdownNow()}
     }
+    @Test fun selectingAPreloadWhoseOwnerIsCancelledTakesOverWithoutInterruptingTheSelectedConsumer(){
+        val started=CountDownLatch(1);val calls=AtomicInteger();val pool=Executors.newSingleThreadExecutor()
+        val resolver=AudioSingleFlight<String,String>{id,background->
+            if(calls.incrementAndGet()==1){assertTrue(background);started.countDown();CountDownLatch(1).await()}
+            else assertFalse(background)
+            id
+        }
+        val owner=Thread{try{resolver.get("next",true)}catch(_:InterruptedException){}}
+        try{
+            owner.start();assertTrue(started.await(3,TimeUnit.SECONDS))
+            val selected=pool.submit<String>{val result=resolver.get("next");assertFalse(Thread.currentThread().isInterrupted);result}
+            await{resolver.joined.get()==1L};owner.interrupt();owner.join(2000)
+            assertFalse(owner.isAlive);assertEquals("next",selected.get(2,TimeUnit.SECONDS))
+            assertEquals(2,calls.get());assertEquals(0,resolver.pending())
+        }finally{owner.interrupt();owner.join(2000);pool.shutdownNow()}
+    }
+    @Test fun foregroundConsumersShareTheReplacementAfterAnInterruptedResolverIOException(){
+        val started=CountDownLatch(1);val replacement=CountDownLatch(1);val release=CountDownLatch(1)
+        val calls=AtomicInteger();val pool=Executors.newFixedThreadPool(2)
+        val resolver=AudioSingleFlight<String,String>{id,background->
+            if(calls.incrementAndGet()==1){
+                assertTrue(background);started.countDown()
+                try{CountDownLatch(1).await()}catch(error:InterruptedException){Thread.currentThread().interrupt();throw java.io.IOException("cancelled",error)}
+            }else{assertFalse(background);replacement.countDown();check(release.await(5,TimeUnit.SECONDS))}
+            id
+        }
+        val owner=Thread{try{resolver.get("next",true)}catch(_:Exception){}}
+        try{
+            owner.start();assertTrue(started.await(3,TimeUnit.SECONDS))
+            val selected=List(2){pool.submit<String>{val value=resolver.get("next");assertFalse(Thread.currentThread().isInterrupted);value}}
+            await{resolver.joined.get()==2L};owner.interrupt();assertTrue(replacement.await(3,TimeUnit.SECONDS));await{resolver.joined.get()>=3L}
+            release.countDown();selected.forEach{assertEquals("next",it.get(2,TimeUnit.SECONDS))};assertEquals(2,calls.get())
+        }finally{release.countDown();owner.interrupt();owner.join(2000);pool.shutdownNow()}
+    }
+    @Test fun aSharedProviderFailureDoesNotTriggerAnAutomaticReplacement(){
+        val started=CountDownLatch(1);val release=CountDownLatch(1);val calls=AtomicInteger();val pool=Executors.newFixedThreadPool(2)
+        val resolver=AudioSingleFlight<String,String>{_,_->calls.incrementAndGet();started.countDown();check(release.await(5,TimeUnit.SECONDS));throw java.io.IOException("429 provider limit")}
+        try{
+            val owner=pool.submit<String>{resolver.get("next",true)};assertTrue(started.await(3,TimeUnit.SECONDS))
+            val selected=pool.submit<String>{resolver.get("next")};await{resolver.joined.get()==1L};release.countDown()
+            for(result in listOf(owner,selected))assertThrows(java.util.concurrent.ExecutionException::class.java){result.get(2,TimeUnit.SECONDS)}
+            assertEquals(1,calls.get());assertEquals(0,resolver.pending())
+        }finally{release.countDown();pool.shutdownNow()}
+    }
 }

@@ -7,6 +7,7 @@ const {validateStoryPng,storyFilename}=require('./story-export.cjs');
 const {migrateLegacyProfile}=require('./legacy-profile.cjs');
 const {cleanSnapshot,cleanCommand}=require('./mini-player.cjs');
 const {createLanguagePreferences}=require('./language.cjs');
+const {createUpdateAccess}=require('./updates.cjs');
 const {nativeText:translateNative}=require('./native-text.cjs');
 let nativeLanguageState;
 const nativeText=source=>translateNative(source,nativeLanguageState??{preference:'system',systemLanguages:app.getPreferredSystemLanguages()});
@@ -57,6 +58,11 @@ async function start() {
   const trustedMini=event=>event.sender===mini?.webContents&&new URL(event.senderFrame.url).origin===frontend;
   const language=createLanguagePreferences(app.getPath('userData'),{systemLanguages:()=>app.getPreferredSystemLanguages(),hasExistingProfile:hasExistingLanguageProfile,onChange:value=>{nativeLanguageState=value;for(const target of [window,mini])if(target&&!target.isDestroyed())target.webContents.send('ritvio:language-state',value);}});
   nativeLanguageState=await language.read().catch(()=>undefined);
+  const updates=createUpdateAccess(app.getPath('userData'),app.getVersion(),{openExternal:url=>shell.openExternal(url)});
+  ipcMain.handle('ritvio:updates-read',event=>{if(!trusted(event))throw Error('Untrusted renderer');return updates.read();});
+  ipcMain.handle('ritvio:updates-write',(event,value)=>{if(!trusted(event))throw Error('Untrusted renderer');return updates.write(value);});
+  ipcMain.handle('ritvio:updates-fetch',(event,etag)=>{if(!trusted(event))throw Error('Untrusted renderer');return updates.fetch(etag);});
+  ipcMain.handle('ritvio:updates-open',(event,url)=>{if(!trusted(event))throw Error('Untrusted renderer');return updates.open(url);});
   ipcMain.handle('ritvio:language-read',event=>{if(!trusted(event)&&!trustedMini(event))throw Error('Untrusted renderer');return language.read();});
   ipcMain.handle('ritvio:language-write',(event,value)=>{if(!trusted(event)&&!trustedMini(event))throw Error('Untrusted renderer');return language.write(value);});
   const restore=()=>{if(!window||window.isDestroyed())return;if(window.isMinimized())window.restore();if(process.env.RITVIO_TEST_HIDDEN!=='true'){window.show();window.focus();}};
@@ -92,9 +98,17 @@ async function start() {
     if(!trusted(event)||!Number.isSafeInteger(id)||id<1)throw Error('Invalid lyrics source');
     return shell.openExternal(`https://lrclib.net/api/get/${id}`);
   });
-  ipcMain.handle('ritvio:copy-track-link',(event,videoId)=>{
-    if(!trusted(event)||typeof videoId!=='string'||!/^[A-Za-z0-9_-]{11}$/.test(videoId))throw Error('Invalid video');
-    clipboard.writeText(`https://www.youtube.com/watch?v=${videoId}`);
+  ipcMain.handle('ritvio:copy-track-link',(event,track,withText=false)=>{
+    if(!trusted(event)||!track||typeof track.videoId!=='string'||!/^[A-Za-z0-9_-]{11}$/.test(track.videoId)||typeof withText!=='boolean')throw Error('Invalid video');
+    clipboard.writeText(withText?backend.sharedTrackMessage(track,nativeText('Condiviso con RITVIO')):backend.ritvioTrackLink(track));
+  });
+  ipcMain.handle('ritvio:support-open',(event,url)=>{
+    if(!trusted(event)||!backend.isSupportUrl(url))throw Error('Invalid help link');
+    return shell.openExternal(url);
+  });
+  ipcMain.handle('ritvio:support-copy',(event,text)=>{
+    if(!trusted(event)||typeof text!=='string'||text.length>6000)throw Error('Invalid report');
+    clipboard.writeText(text);
   });
   ipcMain.handle('ritvio:export-playlist',async(event,id)=>{
     if(!trusted(event)||typeof id!=='string'||!/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(id))throw Error('Invalid playlist');

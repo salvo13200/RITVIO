@@ -1,0 +1,24 @@
+name: Interface feedback
+description: Share a readability, accessibility or visual preference
+body:
+  - type: markdown
+    attributes:
+      value: Use Bug report for something broken or a reproducible failure. Use Feature request for a new capability. Screenshots are optional; remove private information first.
+  - type: textarea
+    id: context
+    attributes:
+      label: App context
+      description: Platform and app version, if opened from Settings.
+  - type: input
+    id: area
+    attributes:
+      label: Which screen or control?
+    validations:
+      required: true
+  - type: textarea
+    id: feedback
+    attributes:
+      label: What is difficult and what would help?
+      description: Describe the task, reading or accessibility problem. Personal preferences are welcome; distinguish them from something that fails.
+    validations:
+      required: true

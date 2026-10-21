@@ -28,6 +28,13 @@ import java.util.concurrent.TimeUnit
 
 @CapacitorPlugin(name="RitvioPlayback")
 class RitvioPlaybackPlugin:Plugin(){
+    private val updateWorker=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(1))
+    private val updateNetworkWorker=ThreadPoolExecutor(1,1,0,TimeUnit.MILLISECONDS,ArrayBlockingQueue<Runnable>(1))
+    private fun updateTask(call:PluginCall,network:Boolean=false,action:()->Unit){try{(if(network)updateNetworkWorker else updateWorker).execute{try{action()}catch(_:Exception){call.reject("UPDATE_FAILED","UPDATE_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject("UPDATE_BUSY","UPDATE_BUSY")}}
+    @PluginMethod fun updatesRead(call:PluginCall){updateTask(call){call.resolve(UpdateAccess(context).read())}}
+    @PluginMethod fun updatesWrite(call:PluginCall){updateTask(call){UpdateAccess(context).write(call.getString("value")?:"");call.resolve()}}
+    @PluginMethod fun updatesFetch(call:PluginCall){updateTask(call,true){call.resolve(UpdateAccess(context).fetch(call.getString("etag")))}}
+    @PluginMethod fun updatesOpen(call:PluginCall){activity.runOnUiThread{try{UpdateAccess(context).open(call.getString("url")?:"");call.resolve()}catch(_:Exception){call.reject("UPDATE_OPEN_FAILED","UPDATE_OPEN_FAILED")}}}
     @PluginMethod fun languageRead(call:PluginCall){activity.runOnUiThread{try{call.resolve(JSObject(LanguagePreferences.snapshot(context).toString()))}catch(_:Exception){call.reject(NativeText.text(context,"Preferenza lingua non disponibile."),"LANGUAGE_READ_FAILED")}}}
     @PluginMethod fun languageWrite(call:PluginCall){activity.runOnUiThread{try{val state=JSObject(LanguagePreferences.write(activity,call.getString("preference")?:"").toString());notifyListeners("language",state);call.resolve(state)}catch(error:Exception){call.reject(NativeText.text(context,"Impossibile cambiare la lingua. Riprova."),if(error.message=="LANGUAGE_NOT_READY")"LANGUAGE_NOT_READY" else "LANGUAGE_WRITE_FAILED")}}}
     private fun publishLanguage(){runCatching{notifyListeners("language",JSObject(LanguagePreferences.snapshot(context).toString()))}}
@@ -59,6 +66,17 @@ class RitvioPlaybackPlugin:Plugin(){
         controller.addListener({try{controller.get();val service=PlaybackService.instance?:error("No service");action(service)}catch(_:Exception){call.reject(NativeText.text(context,"Il player non è disponibile. Riapri l’app."),"PLAYER_UNAVAILABLE")}},ContextCompat.getMainExecutor(context))
     }
     @PluginMethod fun snapshot(call:PluginCall){service(call){call.resolve(JSObject(it.snapshot().toString()))}}
+    @PluginMethod fun readPlaybackDiagnostics(call:PluginCall){service(call){call.resolve(JSObject(it.playbackDiagnostics().toString()))}}
+    @PluginMethod fun supportCopy(call:PluginCall){
+        try{val text=call.getString("text")?:throw IllegalArgumentException();require(text.length<=6000)
+            val clipboard=context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(ClipData.newPlainText("RITVIO report",text));call.resolve()
+        }catch(_:Exception){call.reject("Could not copy the report.","SUPPORT_COPY_FAILED")}
+    }
+    @PluginMethod fun supportOpen(call:PluginCall){
+        val url=call.getString("url")?:"";if(!SupportLinks.allowed(url)){call.reject("Invalid help link.","SUPPORT_INVALID_URL");return}
+        activity.runOnUiThread{try{activity.startActivity(Intent(Intent.ACTION_VIEW,android.net.Uri.parse(url)));call.resolve()}catch(_:Exception){call.reject("Could not open the help form.","SUPPORT_OPEN_FAILED")}}
+    }
     @PluginMethod fun copyPlaybackDiagnostics(call:PluginCall){service(call){service->try{
         val clipboard=context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
         clipboard.setPrimaryClip(ClipData.newPlainText("RITVIO playback diagnostics",service.playbackDiagnostics().toString(2)))
@@ -152,7 +170,13 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun storyArtwork(call:PluginCall){storyTask(call){call.resolve(JSObject().put("dataUrl",stories().artwork(call.getString("videoId")?:"",call.getString("thumbnail"))))}}
     @PluginMethod fun exportStory(call:PluginCall){storyTask(call){
         require(storyFile==null)
-        val id=call.getString("videoId")?:"";val filename=StoryRules.filename(id);val file=stories().prepare(id,call.getString("base64")?:"")
+        val id=call.getString("videoId")?:""
+        val caption=if(call.getBoolean("save",false)==true)null else {
+            val track=TrackData.parse(call.getObject("track")?:throw IllegalArgumentException())
+            require(track.videoId==id)
+            TrackShare.message(track.videoId,track.title,track.artist,NativeText.text(context,"Condiviso con RITVIO"))
+        }
+        val filename=StoryRules.filename(id);val file=stories().prepare(id,call.getString("base64")?:"")
         if(call.getBoolean("save",false)==true&&Build.VERSION.SDK_INT>=Build.VERSION_CODES.Q){
             try{
                 val gallery=StoryGallery(context)
@@ -165,7 +189,7 @@ class RitvioPlaybackPlugin:Plugin(){
             activity.runOnUiThread{try{startActivityForResult(call,Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("image/png").putExtra(Intent.EXTRA_TITLE,filename),"storySaved")}catch(_:Exception){storyFile=null;file.delete();call.reject(NativeText.text(context,"Salvataggio non disponibile. Riprova."),"STORY_SAVE_FAILED")}}
         }else activity.runOnUiThread{try{
             val uri=FileProvider.getUriForFile(context,context.packageName+".fileprovider",file,filename)
-            val intent=Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM,uri).putExtra(Intent.EXTRA_TITLE,filename).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val intent=Intent(Intent.ACTION_SEND).setType("image/png").putExtra(Intent.EXTRA_STREAM,uri).putExtra(Intent.EXTRA_TEXT,caption).putExtra(Intent.EXTRA_TITLE,filename).addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             intent.clipData=ClipData.newRawUri(filename,uri);activity.startActivity(Intent.createChooser(intent,NativeText.text(context,"Condividi immagine")));call.resolve(JSObject().put("status","opened"))
         }catch(_:Exception){file.delete();call.reject(NativeText.text(context,"Nessuna app disponibile per condividere l’immagine."),"STORY_SHARE_FAILED")}}
     }}
@@ -176,7 +200,7 @@ class RitvioPlaybackPlugin:Plugin(){
         storyTask(call){try{require(file!=null&&file.canonicalFile.parentFile==stories().directory().canonicalFile&&uri.scheme=="content");context.contentResolver.openOutputStream(uri,"w")?.use{output->file.inputStream().use{it.copyTo(output)}}?:throw IllegalArgumentException();call.resolve(JSObject().put("status","saved").put("destination","document"))}finally{file?.delete()}}
     }
     @PluginMethod fun share(call:PluginCall){
-        try{val track=TrackData.parse(call.getObject("track")?:throw IllegalArgumentException());val intent=android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT,"${track.title} — ${track.artist}\nhttps://www.youtube.com/watch?v=${track.videoId}\n${NativeText.text(context,"Condiviso con RITVIO")}");activity.runOnUiThread{try{activity.startActivity(android.content.Intent.createChooser(intent,NativeText.text(context,"Condividi brano")));call.resolve()}catch(_:Exception){call.reject(NativeText.text(context,"Nessuna app di condivisione disponibile."),"SHARE_FAILED")}}}catch(_:Exception){call.reject(NativeText.text(context,"Brano non valido."),"INVALID_TRACK")}
+        try{val track=TrackData.parse(call.getObject("track")?:throw IllegalArgumentException());val intent=android.content.Intent(android.content.Intent.ACTION_SEND).setType("text/plain").putExtra(android.content.Intent.EXTRA_TEXT,TrackShare.message(track.videoId,track.title,track.artist,NativeText.text(context,"Condiviso con RITVIO")));activity.runOnUiThread{try{activity.startActivity(android.content.Intent.createChooser(intent,NativeText.text(context,"Condividi brano")));call.resolve()}catch(_:Exception){call.reject(NativeText.text(context,"Nessuna app di condivisione disponibile."),"SHARE_FAILED")}}}catch(_:Exception){call.reject(NativeText.text(context,"Brano non valido."),"INVALID_TRACK")}
     }
     private fun libraryTask(call:PluginCall,errorMessage:String="Impossibile aggiornare la libreria. Controlla i dati e riprova.",action:()->org.json.JSONObject){try{libraryWorker.execute{try{call.resolve(JSObject(action().toString()))}catch(_:OutOfMemoryError){call.reject(NativeText.text(context,errorMessage),"LIBRARY_MEMORY")}catch(_:Exception){call.reject(NativeText.text(context,errorMessage),"LIBRARY_FAILED")}}}catch(_:java.util.concurrent.RejectedExecutionException){call.reject(NativeText.text(context,"Attendi il salvataggio in corso."),"LIBRARY_BUSY")}}
     @PluginMethod fun search(call:PluginCall){
@@ -188,5 +212,5 @@ class RitvioPlaybackPlugin:Plugin(){
     @PluginMethod fun command(call:PluginCall){service(call){service->try{service.command(call.getString("type")?:"",call.data.opt("value"));call.resolve(JSObject(service.snapshot().toString()))}catch(error:Exception){if(error.message=="QUEUE_CHANGED")call.reject(NativeText.text(context,"La coda è cambiata. Riprova sulla posizione aggiornata."),"QUEUE_CHANGED")else call.reject(NativeText.text(context,"Comando non valido."),"INVALID_COMMAND")}}}
     override fun handleOnPause(){visible=false;handler.removeCallbacks(updates)}
     override fun handleOnResume(){visible=true;handler.removeCallbacks(updates);handler.post(updates);publishLanguage()}
-    override fun handleOnDestroy(){destroyed=true;visible=false;handler.removeCallbacks(updates);transfers.close();storyWorker.shutdownNow();transferWorker.shutdownNow();searches.shutdownNow();catalogWorker.shutdownNow();libraryWorker.shutdownNow();if(controller.isDone&&!controller.isCancelled)runCatching{controller.get().removeListener(playbackEvents)};MediaController.releaseFuture(controller)}
+    override fun handleOnDestroy(){destroyed=true;visible=false;handler.removeCallbacks(updates);transfers.close();updateWorker.shutdownNow();updateNetworkWorker.shutdownNow();storyWorker.shutdownNow();transferWorker.shutdownNow();searches.shutdownNow();catalogWorker.shutdownNow();libraryWorker.shutdownNow();if(controller.isDone&&!controller.isCancelled)runCatching{controller.get().removeListener(playbackEvents)};MediaController.releaseFuture(controller)}
 }

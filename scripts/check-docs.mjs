@@ -4,6 +4,7 @@ import path from 'node:path';
 import {isPublicSource} from './public-source.mjs';
 import {imageMetadataIssue} from './check-assets.mjs';
 import showcase from './showcase-files.json' with {type:'json'};
+import adoptionMedia from './adoption-media.json' with {type:'json'};
 
 const root=path.resolve(import.meta.dirname,'..');
 const documentation=(await readdir(path.join(root,'docs'))).filter(name=>name.endsWith('.md')&&isPublicSource(`docs/${name}`)).sort();
@@ -45,5 +46,20 @@ for(const record of inventory.files){
 }
 if(expected.size)problems.push('Missing presentation image files');
 if(bytes>6_000_000)problems.push('Presentation media exceed the 6 MB budget');
+const adoption=JSON.parse(await readFile(path.join(root,'docs/media/adoption.json'),'utf8'));
+const adoptionGuide=await readFile(path.join(root,'docs/ADOPTION.md'),'utf8'),adoptionNames=new Set(adoptionMedia.views.map(view=>view.name+'.webp'));
+if(adoption.schema!==1||adoption.language!=='en'||adoption.files.length!==adoptionNames.size)problems.push('Invalid adoption capture inventory');
+let adoptionBytes=0;
+for(const record of adoption.files){
+ if(!adoptionNames.delete(record.file)||!adoptionGuide.includes(`media/${record.file}`)){problems.push('Missing or duplicate adoption view');continue;}
+ const data=await readFile(path.join(root,'docs/media',record.file));adoptionBytes+=data.length;
+ if(imageMetadataIssue(data)||record.bytes!==data.length||createHash('sha256').update(data).digest('hex')!==record.sha256)problems.push('Invalid adoption capture: '+record.file);
+}
+if(adoptionNames.size||adoptionBytes>1_000_000)problems.push('Adoption screenshots missing or exceed 1 MB');
+if(adoption.video?.file!=='adoption-demo.webm')problems.push('Invalid adoption recording path');
+else{
+ const video=await readFile(path.join(root,'docs/media/adoption-demo.webm'));
+ if(video.subarray(0,4).toString('hex')!=='1a45dfa3'||video.length>5_000_000||adoption.video.bytes!==video.length||createHash('sha256').update(video).digest('hex')!==adoption.video.sha256)problems.push('Invalid adoption recording');
+}
 if(problems.length)throw Error(problems.join('\n'));
-console.log(JSON.stringify({documents:files.length,localLinks:links,images:inventory.files.length,imageBytes:bytes,language:'en',metadata:'absent'}));
+console.log(JSON.stringify({documents:files.length,localLinks:links,images:inventory.files.length+adoption.files.length,imageBytes:bytes+adoptionBytes,videoBytes:adoption.video.bytes,language:'en',metadata:'absent'}));

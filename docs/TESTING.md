@@ -1,8 +1,61 @@
 # Testing from a clean checkout
 
+## Help and local presentation preparation
+
+`pnpm exec tsx --test tests/resolver-shutdown.test.ts` includes a real loopback HTTP connection held open during shutdown. It distinguishes listening-server exit from injection-only tests: quitting must stop renderer connections without waiting for an unfinished response, while existing resolver cancellation and cache-integrity checks still pass.
+
+On a clean Windows test host, `pnpm exec node tests/installer-lifecycle.mjs --from-version 0.7.5` additionally installs that earlier checksum-verified installer into the isolated directory before updating to the current package. Keep the previous installer and its SHA-256 sidecar in `release/`. The normal command without this option checks fresh install and same-version reinstall. Both modes refuse a pre-existing RITVIO installation or open app and never use the personal library as test data.
+
+`pnpm exec tsx --test tests/support.test.ts tests/public-source.test.ts` checks the form URL allowlist, context-only parameters, bounded/safe report construction, deep/cyclic inputs and source/media selection policy. Android `SupportLinksTest` checks the corresponding native URL guard, and `:app:testReleaseUnitTest` compiles the changed native bridge.
+
+`pnpm exec playwright test --config tests/config/playwright.support.config.ts --grep-invert 'capture:'` checks the actual Windows and Android-browser Settings against isolated hosts. It covers category selection, report inspection, opt-in reads, clipboard/open failures, retries, late responses after opt-out/unmount, keyboard focus, enlarged text, narrow width, reduced motion and automated accessibility scans. Existing mobile latency/snapshot cases are retained. No real issue is submitted. Browser native calls remain fixtures; verify actual external browser/clipboard behavior on the final installed candidates.
+
+The opt-in presentation capture and metadata-free preparation commands are in [the new-source walkthrough](ADOPTION.md). Routine CI neither installs the recording tool nor rewrites public media. Capture data is synthetic; the silent UI video is not an audio, native-device or performance test. The mobile Vite watcher excludes generated native Android directories, avoiding development-server file-watcher races during Gradle work.
+
 For the consolidated Windows 0.7.5 / Android 1.3.0 baseline and rules that avoid repeating unchanged scenarios, start with [Quality status](QUALITY_STATUS.md). This guide retains the detailed methods and historical results.
 
 Use Node 24+, pnpm 11.25.0 and Python 3.13 on Windows as described in [BUILDING.md](BUILDING.md). No private design folders, existing user profile, cloud account or generated mockup is required for the source/browser checks.
+
+## Continuity and timing in the current source
+
+```powershell
+pnpm exec tsx --test tests/audio-buffer.test.ts tests/audio.test.ts tests/playback-preparation.test.ts tests/playback-api.test.ts
+pnpm test:playback
+pnpm exec playwright test --config tests/config/playwright.continuity.config.ts
+.\scripts\gradle-android.ps1 -Task @(':app:testReleaseUnitTest')
+```
+
+The buffer regressions cover overlapping, concurrently started origin reads followed by a backward seek. The previous implementation dropped untouched fragment bytes; the corrected buffer retains both sides of a replacement and keeps the existing total/per-stream/entry/fragment limits. Byte equality, expiry, representation changes and proxy transport are tested. In the controlled replay, the backward seek becomes a RAM hit, removing one otherwise necessary origin read; this is not a universal latency or bandwidth percentage.
+
+Android `AudioSingleFlightTest` covers a foreground listener joining a preload whose owner is interrupted, including the resolver's wrapped `IOException` case. The active listener may join/start one replacement without inheriting another thread's interrupt. Multiple listeners still share work; cancelling a listener cancels that listener, and ordinary provider/rate-limit failures do not receive this replacement. Existing foreground/speculative lanes, descriptor generations and service retry limits remain in force.
+
+The continuity browser suite records separate first-playback, prepared/unprepared change, pause/resume and buffered paused-seek observations in `test-results/continuity/timing-matrix.json`. Search time includes debounce, local API and development-route loading. One observation per phase uses original generated WAV audio and a local fixture API; it is neither native startup nor a real-provider speed benchmark. A second case gates the remainder of an 80-second generated recording beyond its prepared prefix and records a verified out-of-buffer seek in `unbuffered-seek.json`. It waits for media completion/readiness events rather than treating assignment to `currentTime` as completion. These reports contain no track names, IDs, signed URLs or tokens and are never uploaded by the app.
+
+The existing playback suite covers decoding partial responses, stale callbacks, pending/paused seeks, cancellation, finite retries, rate limits and rapid skipping. JVM tests and browser audio do not establish phone background, Bluetooth, OS suspend/resume, live-provider or speaker-output timings. The eventual combined candidate still needs the relevant installed-package acceptance; this local increment neither reinstalls an app nor publishes a package.
+
+## First listening and playlist transfer in the current source
+
+`pnpm exec playwright test --config tests/config/playwright.first-use.config.ts` checks the existing desktop and Android interfaces against isolated fixtures. It covers an empty profile reaching search, play and heart-save; returning libraries; discoverable link/file import; supported formats; unavailable rows, selection, source order and duplicate skipping; a readable save result; cancellation/Back, late responses, file-picker cancellation and failed-save recovery. The Android short-screen case includes 150% root text and reduced motion. Accessibility scans cover the changed guidance and import/result surfaces.
+
+The tests preserve and compare playback/queue state during transfer. They do not exercise the physical Android document picker, native background audio, a personal library or real catalogue availability. `tests/playlist-import.test.ts` separately covers the actual desktop API/store, owner and revision checks, cancellation, bounded previews, source ordering, atomic writes and same-job commit retries. Windows file imports retain their existing create-and-open flow; link imports and Android imports expose a result step. Exact installed-package acceptance is deferred to the final candidate; this source increment does not publish an APK or EXE.
+
+## Static download page
+
+### Song references and sharing (local source)
+
+Run `pnpm exec playwright test --config tests/config/playwright.sharing-discovery.config.ts`. It starts isolated desktop, Android-browser fixture, API and built-static-page servers. It covers existing track/lyric exports, ten contiguous rows, missing artwork/lyrics, long rows, cancelled/failed saves, Gallery confirmation and captured-track ownership; it adds public-link/text copying and Android bridge arguments without playback commands. Reference-page cases cover `/RITVIO/`, literal untrusted metadata, invalid/duplicate/unknown parameters, absent metadata, no automatic external requests, accessibility, 320 px with 150% root text, reduced motion and a JavaScript-disabled fallback. Screenshot output directories are created without private input prerequisites.
+
+`pnpm exec tsx --test tests/track-sharing.test.ts tests/story-sharing.test.ts tests/sharing.test.ts` checks the URL/message contract, bounded metadata, omitted private fields, selection rules, PNG validation and actual playlist APIs. Android `TrackShareTest` checks the corresponding native builder; `:app:testReleaseUnitTest` also compiles the changed bridge. Android browser export responses remain fixtures: they cannot establish receiving-app caption handling, real Gallery access or locked-screen continuity. Test those on the exact signed A7 candidate. These checks neither deploy Pages nor prove the future public URL is live.
+
+`pnpm test:site` builds and serves the actual static output, then checks desktop/mobile downloads, locally recommended platform, image links, keyboard gallery, both sharing examples, automated accessibility scans, 320px wrapping, enlarged text, reduced motion, installation disclosures and guarded release refresh. A JavaScript-disabled context verifies both downloads and image assets under `/RITVIO/`. External release responses are fixtures; the tests neither download real APK/EXE packages nor claim a deployment. The source-only CI configuration includes these cases.
+
+`pnpm downloads:check` verifies all three README tables against the validated public release snapshot without contacting GitHub. `download-catalog.test.ts` covers the per-platform catalog, stable/preview preference and invalid external links in the normal core suite. The snapshot itself is updated only after actual release publication; it is intentionally independent of unpublished local candidate versions.
+
+## Update discovery in the current source
+
+`pnpm exec playwright test --config tests/config/playwright.updates.config.ts` runs the actual desktop and mobile Settings with fixture release responses. It covers manual checks, platform-specific download actions, the preview channel, persisted startup preferences, notification dismissal, offline handling, light theme and enlarged text. Automated accessibility scans apply to the changed surfaces. These are browser fixtures, not evidence of the installed APK opening a physical phone's browser. The CI Browser regression job includes this suite.
+
+The normal core suite includes `updates.test.ts` (version ordering, untrusted release/cache data, channels, cache validators, coalescing, cooldown and storage failures) and `updates-host.test.ts` (isolated Windows persistence, fixed network endpoint, bounded responses and validated external actions). Android's `UpdateAccessTest` verifies the native URL boundary as part of the JVM suite. No test installs a fake release or uses a personal profile.
 
 ```powershell
 pnpm install --frozen-lockfile

@@ -11,14 +11,14 @@ test('scrubbing previews many positions but sends one seek only on release',asyn
 });
 
 test('copying playback diagnostics keeps playback untouched and is available in English',async({page})=>{
- await fixture(page,{language:'en'});await page.getByRole('button',{name:'Settings',exact:true}).click();await page.getByRole('button',{name:'Copy playback diagnostics'}).click();
- await expect(page.getByRole('status')).toHaveText('Playback diagnostics copied');
- const operations=await page.evaluate(()=>(window as any).__mobileOperations);expect(operations.filter((call:any)=>call.method==='copyPlaybackDiagnostics')).toHaveLength(1);expect(operations.filter((call:any)=>['command','playTracks'].includes(call.method))).toHaveLength(0);
+ await fixture(page,{language:'en'});await page.getByRole('button',{name:'Settings',exact:true}).click();const section=page.locator('.support-settings');await section.getByRole('checkbox',{name:/Include playback timings/}).check();await expect(section.getByRole('textbox')).toHaveValue(/bufferedAheadMs/);await section.getByRole('button',{name:'Copy report',exact:true}).click();
+ await expect(section.getByRole('status')).toHaveText('Report copied');
+ const operations=await page.evaluate(()=>(window as any).__mobileOperations);expect(operations.filter((call:any)=>call.method==='readPlaybackDiagnostics')).toHaveLength(1);expect(operations.filter((call:any)=>call.method==='supportCopy')).toHaveLength(1);expect(operations.filter((call:any)=>['command','playTracks'].includes(call.method))).toHaveLength(0);
  await mkdir('test-results/android-latency',{recursive:true});await page.screenshot({path:'test-results/android-latency/settings-en.png'});
 });
 
 test('a clipboard failure is actionable without stopping music',async({page})=>{
- await fixture(page);await page.evaluate(()=>{(window as any).__diagnosticsError=true;});await page.getByRole('button',{name:'Impostazioni',exact:true}).click();await page.getByRole('button',{name:'Copia diagnostica audio'}).click();await expect(page.getByRole('status')).toHaveText('Could not copy diagnostics');
+ await fixture(page);await page.evaluate(()=>{(window as any).__diagnosticsError=true;});await page.getByRole('button',{name:'Impostazioni',exact:true}).click();await page.getByRole('button',{name:'Copia segnalazione',exact:true}).click();await expect(page.locator('.support-settings').getByRole('alert')).toContainText('Non riesco a copiare');
  expect(await page.evaluate(()=>(window as any).__mobileOperations.filter((call:any)=>['command','playTracks'].includes(call.method)))).toHaveLength(0);
 });
 

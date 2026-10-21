@@ -9,6 +9,7 @@ export class AudioRangeBuffer {
   private bytes=0;private hits=0;private misses=0;
   constructor(private now=Date.now,readonly maxBytes=16*1024*1024,readonly perStreamBytes=8*1024*1024,private maxEntries=8){}
   private remove(entry:Entry,part:Part){entry.parts.delete(part.start);entry.bytes-=part.bytes.length;this.bytes-=part.bytes.length;this.lru.delete(part);}
+  private insert(entry:Entry,start:number,bytes:Buffer){const part={start,bytes};entry.parts.set(start,part);entry.bytes+=bytes.length;this.bytes+=bytes.length;this.lru.set(part,entry);}
   private discard(key:string,entry:Entry){for(const part of [...entry.parts.values()])this.remove(entry,part);this.entries.delete(key);}
   private prune(){for(const [key,entry] of this.entries)if(entry.expires<=this.now())this.discard(key,entry);}
   put(key:string,expires:number,type:string,total:number,start:number,bytes:Uint8Array){
@@ -24,8 +25,15 @@ export class AudioRangeBuffer {
     // Small owned copies avoid retaining a large network ArrayBuffer through a slice.
     for(let offset=0;offset<bytes.length;offset+=65536){
       const position=start+offset,copy=Buffer.from(bytes.subarray(offset,Math.min(bytes.length,offset+65536))),end=position+copy.length;
-      for(const part of [...entry.parts.values()])if(part.start<end&&part.start+part.bytes.length>position)this.remove(entry,part);
-      const part={start:position,bytes:copy};entry.parts.set(position,part);entry.bytes+=copy.length;this.bytes+=copy.length;this.lru.set(part,entry);
+      for(const part of [...entry.parts.values()])if(part.start<end&&part.start+part.bytes.length>position){
+        const oldEnd=part.start+part.bytes.length;
+        this.remove(entry,part);
+        // Concurrent reads and seeks need not align with network fragment boundaries.
+        // Retain both untouched sides, without keeping the replaced backing buffer alive.
+        if(part.start<position)this.insert(entry,part.start,Buffer.from(part.bytes.subarray(0,position-part.start)));
+        if(oldEnd>end)this.insert(entry,end,Buffer.from(part.bytes.subarray(end-part.start)));
+      }
+      this.insert(entry,position,copy);
       while(entry.bytes>this.perStreamBytes&&entry.parts.size)this.remove(entry,entry.parts.values().next().value!);
       while((this.bytes>this.maxBytes||this.lru.size>512)&&this.lru.size){const [old,owner]=this.lru.entries().next().value!;this.remove(owner,old);}
     }

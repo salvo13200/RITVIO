@@ -51,5 +51,7 @@ docs/*
 !docs/README.md
 !docs/FEATURES.md
 !docs/SCREENSHOTS.md
+!docs/ADOPTION.md
+!docs/COMMUNITY.md
 !docs/media/
 

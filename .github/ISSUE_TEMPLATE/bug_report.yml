@@ -4,6 +4,11 @@ body:
   - type: markdown
     attributes:
       value: Please remove account details, tokens, private playlist data and personal paths from logs. For vulnerabilities, read SECURITY.md.
+  - type: textarea
+    id: context
+    attributes:
+      label: App context
+      description: Filled by the app when available. It includes platform and version only; please verify it.
   - type: input
     id: version
     attributes:

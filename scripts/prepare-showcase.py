@@ -99,6 +99,8 @@ gallery += """## Capture and maintenance
 `pnpm exec tsx scripts/capture-showcase.ts` renders isolated fixtures without accessing your profile or live catalogue services. Raw PNGs stay in ignored `test-results/showcase/`. `scripts/prepare-showcase.py` creates metadata-free lossless WebP copies and this gallery from `scripts/showcase-files.json`. See [media origins and maintenance](media/README.md).
 
 The gallery shows the current source interface. Source/documentation updates do not replace previously published APK/EXE files; download versions are listed in [release notes](RELEASE_NOTES.md).
+
+See the separate [new-source walkthrough and silent demo](ADOPTION.md) for the additional adoption/help materials and their unpublished-source scope.
 """
 (ROOT / "docs/SCREENSHOTS.md").write_text(gallery, encoding="utf-8", newline="\n")
 print(json.dumps({"images": len(records), "bytes": sum(record["bytes"] for record in records), "pixelsUnchanged": True}))

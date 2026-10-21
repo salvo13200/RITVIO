@@ -1,3 +1,5 @@
+import {ImportGuide,ImportCompletion} from '../../../packages/first-use/ui';
+import {motionMode} from './ui-motion';
 import { noticeText } from './i18n';
 import { displayLocale } from '../../../packages/i18n/display';
 import { useEffect, useRef, useState, type RefObject } from 'react';
@@ -16,7 +18,7 @@ export function RemotePlaylistImport({ onImported, slot }: {
     const library = useLibrary();
     const [open, setOpen] = useState(false), [url, setUrl] = useState(''), [job, setJob] = useState<RemotePlaylistJob | null>(null), [error, setError] = useState(''), [starting, setStarting] = useState(false), [saving, setSaving] = useState(false);
     const [numbers, setNumbers] = useState<number[]>([]), [name, setName] = useState(''), [targetId, setTargetId] = useState(''), [target, setTarget] = useState<PersonalPlaylist | null>(null), [targetLoading, setTargetLoading] = useState(false), [skip, setSkip] = useState(false), [result, setResult] = useState<RemotePlaylistResult | null>(null);
-    const trigger = useRef<HTMLButtonElement>(null), heading = useRef<HTMLHeadingElement>(null), resultHeading = useRef<HTMLHeadingElement>(null), jobId = useRef<string | null>(null), generation = useRef(0), targetGeneration = useRef(0), prepared = useRef<string | null>(null), mounted = useRef(true);
+    const trigger = useRef<HTMLButtonElement>(null), heading = useRef<HTMLHeadingElement>(null), resultHeading = useRef<HTMLDivElement>(null), jobId = useRef<string | null>(null), generation = useRef(0), targetGeneration = useRef(0), prepared = useRef<string | null>(null), mounted = useRef(true);
     useEffect(() => {
         mounted.current = true;
         return () => {
@@ -30,13 +32,13 @@ export function RemotePlaylistImport({ onImported, slot }: {
     useEffect(() => {
         if (open) {
             heading.current?.focus({ preventScroll: true });
-            heading.current?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+            heading.current?.closest<HTMLElement>('.remote-import')?.scrollIntoView({ block: 'start', behavior: motionMode() === 'curated' ? 'smooth' : 'instant' });
         }
     }, [open]);
     useEffect(() => {
         if (result) {
-            resultHeading.current?.focus({ preventScroll: true });
-            resultHeading.current?.scrollIntoView({ block: 'start', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
+            resultHeading.current?.querySelector<HTMLElement>('h3')?.focus({ preventScroll: true });
+            heading.current?.closest<HTMLElement>('.remote-import')?.scrollIntoView({ block: 'start', behavior: motionMode() === 'curated' ? 'smooth' : 'instant' });
         }
     }, [result]);
     useEffect(() => {
@@ -109,9 +111,11 @@ export function RemotePlaylistImport({ onImported, slot }: {
         setTarget(null);
         setNumbers([]);
         prepared.current = null;
-        if (jobId.current)
-            await api.library.cancelImport(jobId.current).catch(() => { });
+        const previous=jobId.current;
         jobId.current = null;
+        if (previous)
+            await api.library.cancelImport(previous).catch(() => { });
+        if (!mounted.current || generation.current !== current) return;
         try {
             const next = await api.library.startImport(url, fresh);
             if (!mounted.current || generation.current !== current) {
@@ -162,7 +166,7 @@ export function RemotePlaylistImport({ onImported, slot }: {
     <button ref={trigger} type="button" className="secondary-button" disabled={library.busy} aria-expanded={open} aria-controls="remote-import" onClick={() => open ? close() : setOpen(true)}><Link2 size={17}/>{t('remote.open')}</button>
     {open && slot.current && createPortal(<section id="remote-import" className="remote-import" aria-labelledby="remote-import-title" aria-busy={starting || job?.state === 'loading' || saving}>
       <div className="remote-heading"><h2 ref={heading} id="remote-import-title" tabIndex={-1}>{t('remote.title')}</h2><button className="icon-button" type="button" disabled={saving} aria-label={t('remote.close')} onClick={close}><X size={20}/></button></div>
-      {!result && (preview ? <details className="remote-link-options"><summary>{t('remote.changeLink')}</summary>{linkForm}</details> : <><p className="remote-copy">{t('remote.intro')}</p>{linkForm}</>)}
+      {!result && (preview ? <details className="remote-link-options"><summary>{t('remote.changeLink')}</summary>{linkForm}</details> : <><ImportGuide file={false}/>{linkForm}</>)}
       {error && <p className="form-error" role="alert">{noticeText(error)}</p>}
       {(starting || job?.state === 'loading') && <div className="remote-loading" role="status"><LoaderCircle className="spin" size={22}/><div><strong>{job?.phase === 'youtube' ? t('remote.fallback') : t('remote.loading')}</strong><p>{t('remote.cancelSafe')}</p></div><button type="button" className="secondary-button" onClick={close}>{t('remote.cancelRead')}</button></div>}
       {job?.state === 'failed' && <div role="alert"><p className="form-error">{noticeText(job.error)}</p><button className="secondary-button" type="button" onClick={() => void start(true)}>{t('remote.retry')}</button></div>}
@@ -204,7 +208,7 @@ export function RemotePlaylistImport({ onImported, slot }: {
           <div className="remote-footer"><button type="submit" className="primary-button" disabled={busy || targetLoading || !!targetId && !target || !numbers.length || tooMany || !targetId && !name.trim()}>{saving ? <LoaderCircle className="spin" size={16}/> : <Check size={16}/>} {saving ? t('remote.saving') : targetId ? t('remote.append') : t('remote.create')}</button><button type="button" className="secondary-button" disabled={saving} onClick={close}>{t('remote.cancel')}</button><button type="button" className="text-button" disabled={busy} onClick={() => void start(true)}>{t('remote.refresh')}</button></div>
         </form>
       </>}
-      {result && <div className="remote-result" role="status"><Check size={24}/><h3 ref={resultHeading} tabIndex={-1}>{t('remote.saved', { name: result.playlist.name })}</h3><p>{t('remote.report', { added: result.added, duplicates: result.skippedDuplicates, unavailable: result.unavailable, excluded: result.excluded })}</p>{result.partial && <p>{t('remote.partialSaved')}</p>}<div className="remote-footer"><button type="button" className="primary-button" onClick={() => { const playlist = result.playlist; close(); onImported(playlist); }}>{t('remote.view')}</button><button type="button" className="secondary-button" onClick={close}>{t('remote.done')}</button></div></div>}
+      {result && <div className="remote-result" ref={resultHeading}><ImportCompletion report={{name:result.playlist.name,added:result.added,duplicates:result.skippedDuplicates,unavailable:result.unavailable,excluded:result.excluded,partial:result.partial}} onOpen={() => {const playlist=result.playlist;close();onImported(playlist);}} onDone={close}/></div>}
     </section>, slot.current)}
   </>;
 }

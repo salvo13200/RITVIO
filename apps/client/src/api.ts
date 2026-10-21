@@ -1,4 +1,5 @@
 import {t,noticeText} from './i18n';
+import type {UpdateBridge} from './updates';
 import type {MiniBridge} from '../../../packages/domain/mini';
 import type {LanguageBridge} from '../../../packages/i18n/bridge';
 import type {Situation, SituationKey,SituationPlaylist,SituationTracks,SituationResult} from '../../../packages/domain/situations';
@@ -13,7 +14,7 @@ import type {TasteSnapshot,TasteSettings,MixRequest,TasteMix,TasteFeedback} from
 import type {HomeIndex,HomeDetail,HomeResult,HomeCollectionId} from '../../../packages/domain/home';
 declare global {
   interface Window {
-    ritvio?: MiniBridge & Partial<LanguageBridge> & { configuration: () => Promise<ApiConfiguration>; onMediaKey: (callback: (key: string) => void) => () => void; openYouTube: (videoId: string) => Promise<void>; openLyricsSource:(id:number)=>Promise<void>; openMetadataSource:(kind:MetadataKind,id:number)=>Promise<void>; readPlayer: () => Promise<string|null>; writePlayer: (value: string) => Promise<void>; removePlayer: () => Promise<void>;copyTrackLink:(videoId:string)=>Promise<void>;exportPlaylist:(id:string)=>Promise<{saved:boolean}>;exportStory:(bytes:Uint8Array,title:string)=>Promise<{saved:boolean}> };
+    ritvio?: MiniBridge & Partial<UpdateBridge> & Partial<LanguageBridge> & { supportOpen?:(url:string)=>Promise<void>;supportCopy?:(text:string)=>Promise<void>;configuration: () => Promise<ApiConfiguration>; onMediaKey: (callback: (key: string) => void) => () => void; openYouTube: (videoId: string) => Promise<void>; openLyricsSource:(id:number)=>Promise<void>; openMetadataSource:(kind:MetadataKind,id:number)=>Promise<void>; readPlayer: () => Promise<string|null>; writePlayer: (value: string) => Promise<void>; removePlayer: () => Promise<void>;copyTrackLink:(track:{videoId:string;title?:string;artist?:string},withText?:boolean)=>Promise<void>;exportPlaylist:(id:string)=>Promise<{saved:boolean}>;exportStory:(bytes:Uint8Array,title:string)=>Promise<{saved:boolean}> };
     __RITVIO_TEST_CONFIG__?: ApiConfiguration;
   }
 }
@@ -38,6 +39,7 @@ function track(media: any): Track {
   return {id:media.id,videoId:media.externalId,title:media.title,artist:media.creatorName || 'YouTube',thumbnail:media.artworkUrl,duration:media.durationSeconds || 0,canonicalUrl:media.canonicalUrl,artists:media.artists,album:media.album};
 }
 export const api = {
+  playbackDiagnostics:()=>request<Record<string,unknown>>('/playback/diagnostics'),
   situations:{index:(signal?:AbortSignal)=>request<SituationResult<Situation[]>>('/situations',{signal}),playlists:(id:SituationKey,signal?:AbortSignal)=>request<SituationResult<SituationPlaylist[]>>(`/situations/${id}`,{signal}),tracks:(id:SituationKey,playlistId:string,signal?:AbortSignal)=>request<SituationResult<SituationTracks>>(`/situations/${id}/playlists/${playlistId}`,{signal})},
   home:{
     get:(signal?:AbortSignal)=>request<HomeResult<HomeIndex>>('/home',{signal}),

@@ -5,9 +5,10 @@ import {existsSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {DatabaseSync} from 'node:sqlite';
 import path from 'node:path';
+import http from 'node:http';
 import {Resolver} from '../apps/api/resolver';
 import {createApi} from '../apps/api/server';
-import {testConfig} from './fixtures';
+import {testConfig,FixtureResolver} from './fixtures';
 const python=path.resolve('.venv/Scripts/python.exe');
 async function setup(){
  const directory=await mkdtemp(path.join(tmpdir(),'ritvio-shutdown-'));
@@ -43,4 +44,21 @@ test('API shutdown aborts catalogue work before Home waits for it, without persi
   const database=new DatabaseSync(fixture.config.database);
   try{assert.equal((database.prepare('SELECT COUNT(*) AS count FROM home_cache WHERE failures>0 OR error IS NOT NULL').get() as {count:number}).count,0);}finally{database.close();}
  }finally{await resolver.close();await app.close();await fixture.cleanup();}
+});
+
+test('listening API shutdown does not wait for an unfinished renderer request',async()=>{
+ const fixture=await setup(),{app}=await createApi({config:fixture.config,resolver:new FixtureResolver(fixture.config,'')});
+ let started!:()=>void,release!:()=>void;const active=new Promise<void>(resolve=>{started=resolve;});
+ app.get('/v1/held-shutdown',async()=>{started();await new Promise<void>(resolve=>{release=resolve;});return {done:true};});
+ let request:http.ClientRequest|undefined,closing:Promise<void>|undefined,completed=false;
+ try{
+  const address=await app.listen({host:'127.0.0.1',port:0});
+  request=http.get(address+'/v1/held-shutdown',{headers:{authorization:'Bearer test-token-only'}});request.on('error',()=>{});await active;
+  closing=app.close().then(()=>{completed=true;});
+  let timer:ReturnType<typeof setTimeout>|undefined;
+  try{await Promise.race([closing,new Promise(resolve=>{timer=setTimeout(resolve,1500);})]);}finally{clearTimeout(timer);}
+  const closedWithoutWaiting=completed;
+  request.destroy();release();await closing;
+  assert(closedWithoutWaiting,'A renderer request must not keep the desktop process alive during quit');
+ }finally{request?.destroy();release?.();await closing;await app.close();await fixture.cleanup();}
 });

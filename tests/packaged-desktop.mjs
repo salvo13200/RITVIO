@@ -340,7 +340,7 @@ try {
     await page.getByRole('dialog').getByRole('button',{name:'Importa come nuova playlist',exact:true}).click();
     await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('.playlist-item')).toHaveCount(1);
     await page.locator('.playlist-item').getByRole('button',{name:'Opzioni di ascolto: Me at the zoo',exact:true}).click();
-    const menu=page.locator('.listening-options:popover-open');await menu.getByRole('button',{name:'Copia link YouTube: Me at the zoo',exact:true}).click();
+    const menu=page.locator('.listening-options:popover-open');await menu.getByRole('button',{name:'Copia link RITVIO: Me at the zoo',exact:true}).click();
     await expect(menu.getByRole('status')).toHaveText('Link copiato');await expect(menu).toBeVisible();
     console.log('Export/import e copia link nativi: conferma visibile nel menu.');
     await page.keyboard.press('Escape');await page.getByRole('button',{name:'Impostazioni',exact:true}).click();
@@ -608,7 +608,7 @@ try {
   await expect(page.getByRole('dialog')).not.toBeVisible();await expect(page.locator('.playlist-hero')).toContainText('Ricevuta da file');
   await expect(page.locator('.playlist-item')).toHaveCount(1);
   await page.locator('.playlist-item').getByRole('button',{name:`Opzioni di ascolto: ${musicTitle}`,exact:true}).click();
-  await page.locator('.listening-options:popover-open').getByRole('button',{name:`Copia link YouTube: ${musicTitle}`,exact:true}).click();
+  await page.locator('.listening-options:popover-open').getByRole('button',{name:`Copia link RITVIO: ${musicTitle}`,exact:true}).click();
   await expect(page.locator('.playlist-item').getByRole('status')).toContainText('Link copiato');
   const preview=await page.evaluate(async()=>{const config=await window.ritvio.configuration();return(await fetch(`${config.baseUrl}/v1/me/library`,{headers:{Authorization:`Bearer ${config.token}`}})).json();});
   expect(preview.playlists).toHaveLength(2);

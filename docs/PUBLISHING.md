@@ -1,8 +1,22 @@
 # Publish RITVIO on GitHub
 
+For the help increment, merge the matching `.github/ISSUE_TEMPLATE/` forms before releasing applications that link to them. On the exact candidate, verify Bug report, Interface feedback and Feature request with version/platform context, plus clipboard/report inspection. The final submit action belongs to the user on GitHub. Confirm the [new-source materials](ADOPTION.md) match the accepted candidate and keep their synthetic-data/browser disclosures. Prepared [community copy](COMMUNITY.md) is not an announcement; post only when authorized and link to the verified final packages. No update cadence, user count or retention claim follows from this preparation.
+
+Before shipping the song-sharing increment, deploy the built download page at the address configured in `packages/domain/track-sharing.ts` and Android `TrackShare.kt`, currently `https://salvo13200.github.io/RITVIO/`. Verify a copied `#track=…&title=…&artist=…` link without RITVIO installed: source link, official downloads, invalid-reference fallback and mobile layout. Fragment metadata is client-rendered; social crawlers receive generic RITVIO Open Graph tags rather than a dynamic song preview. A PNG has no clickable link. Check image-plus-caption and text-only shares on the signed Android candidate; receiving applications decide whether to retain captions. Deploy and verify the reference page before publishing applications that generate these links. All A1–A6 work remains local until the combined delivery is authorized.
+
 RITVIO is published at [salvo13200/RITVIO](https://github.com/salvo13200/RITVIO). Use a branch and pull request for updates; the initial-repository instructions below are retained for a fresh fork. Build workflows do **not** publish a release automatically, merge pull requests or request write permissions.
 
 Before planning a candidate, consult [Quality status](QUALITY_STATUS.md) for checks already completed and the [release checklist](RELEASE_CHECKLIST.md) for the new candidate. Choose follow-up checks from the affected code/package paths; do not repeat an unrelated native soak just to publish documentation or test-tool maintenance.
+
+## Download page and release links
+
+The current source includes a static English download page at `apps/site/`. During the adoption roadmap it remains local: building it does not activate GitHub Pages, create a hosted Site, push source, publish an app release or change the repository website field.
+
+`packages/releases/published.json` records verified, already-public package metadata. The page and the generated download tables in all three README files use this snapshot; the page's optional manual refresh uses the same official release-validation logic as the application update checker. Do not populate the snapshot with an unpublished candidate or relabel an old preview as stable.
+
+After the final authorised app publication, update the snapshot from the real release records, including version, preview status, package URLs, sizes and verification date. Run `pnpm downloads:sync`, review the README changes and `pnpm downloads:check`, then rebuild with `pnpm site:build`. The page follows each release's channel; the broader README/channel copy and screenshots still need the final stable-release review.
+
+`dist/site/` is the complete static output, including relative asset links and font/software licences. It supports both a root path and the GitHub Pages project path `/RITVIO/`; source previews can be inspected with `pnpm site:preview`. At the final publication, deploy only this directory using a reviewed Pages workflow or equivalent supported method. There is deliberately no automatic Pages deployment workflow in this increment. GitHub Pages access logging is separate from analytics added by the project; this page adds none.
 
 ## 1. Create the repository from the clean export
 
@@ -51,6 +65,8 @@ Create a protected environment named **release**, restrict it to `main`, and req
 The manually dispatched `Build release candidate` workflow builds Windows and Android sequentially, checks JVM tests and APK alignment, validates the known official certificate, creates source archives/hash manifest and uploads a seven-day workflow artifact. It removes temporary signing material in an always-run cleanup step. Artifacts contain an explicit file list, never `.local/` or credentials. It runs only from `main` and does not create public releases. Review workflow/code changes before allowing them access to the release environment.
 
 ## 5. Create a prerelease with corresponding source
+
+For a local combined candidate, keep `status: candidate` until acceptance and publication. `release-manifest.mjs` records `sourceCommit: null` when Git reports uncommitted changes, retains the base commit separately and identifies the exact source ZIP by SHA-256. The base commit alone does not describe those local binaries. Verify the source archive's file manifest against the build inputs before delivery. At final publication, compare the merged source tree to that verified archive and record the actual release commit; do not claim that the candidate was built from an unchanged earlier commit.
 
 For an Android-only update, use a separate versioned tag such as `android-v1.2.0`, attach the exact tested signed APK, corresponding RITVIO/upstream source archives, `SHA256SUMS` and `RELEASE-MANIFEST.json`. Link to the existing Windows release rather than attaching old Windows binaries to a new source tag. Keep earlier releases for rollback. Prepare a draft and finish the owner-controlled source merge before publication.
 

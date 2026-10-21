@@ -10,6 +10,8 @@ test('public export excludes private, generated and design-work files while reta
   for(const file of ['.github/FUNDING.yml','LICENSE','pnpm-lock.yaml','scripts/build-android.mjs','apps/mobile/android/gradle/wrapper/gradle-wrapper.jar','apps/client/src/App.tsx','third-party/inventory.json','docs/BUILDING.md','docs/QUALITY_STATUS.md','tests/fixtures/artwork/city.webp','docs/README.md','docs/SCREENSHOTS.md','docs/media/banner.webp','docs/media/share-card-lyrics.webp'])assert.equal(isPublicSource(file),true,file);
   assert.equal(isPublicSource('docs/media/private-screenshot.png'),false);
   assert.equal(isPublicSource('apps/mobile/android/.kotlin/sessions/compiler.salive'),false);
+  for(const file of ['docs/ADOPTION.md','docs/COMMUNITY.md','docs/media/adoption.json','docs/media/adoption-demo.webm','docs/media/mobile-support-entry.webp'])assert.equal(isPublicSource(file),true,file);
+  for(const file of ['docs/media/private-recording.webm','docs/media/private-support.webp','test-results/adoption/raw-video/session.webm'])assert.equal(isPublicSource(file),false,file);
 });
 
 test('public export rejects embedded image prompts and truncated binary containers',async()=>{
@@ -24,6 +26,8 @@ test('public export rejects embedded image prompts and truncated binary containe
     assert.equal(findings.length,1);assert.match(findings[0].reason,/embedded image metadata/);
     await writeFile(path.join(root,'apps/client/public/cover.webp'),Buffer.from('not an image'));
     assert.equal((await scanPublicSource(root,['apps/client/public/cover.webp'])).length,1);
+    await mkdir(path.join(root,'docs/media'),{recursive:true});await writeFile(path.join(root,'docs/media/adoption-demo.webm'),'<html>an error page is not a recording</html>');
+    assert.equal((await scanPublicSource(root,['docs/media/adoption-demo.webm'])).length,1);
   }finally{await rm(root,{recursive:true,force:true});}
 });
 test('source selection and credential scan operate on the exported set',async()=>{

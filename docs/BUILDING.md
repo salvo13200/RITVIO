@@ -2,6 +2,18 @@
 
 The download packages include their runtime. These requirements are for developers only. No API key, RITVIO account or paid build service is required. Windows is the supported packaging host for both platforms in the supplied scripts; Linux/macOS packaging is not claimed tested.
 
+## Local download page
+
+The static page reuses the existing Vite/TypeScript installation and approved English media; no new dependency, Android SDK, Python environment, backend or account is needed for this page. After the normal JavaScript dependency installation:
+
+```powershell
+pnpm downloads:check
+pnpm site:build
+pnpm site:preview
+```
+
+Open `http://127.0.0.1:5180/`; `http://127.0.0.1:5180/RITVIO/` checks the project-subpath layout with the same built files. Stop the preview with Ctrl+C. `pnpm site:dev` runs the editable Vite preview instead. The complete static output is `dist/site/`. These commands do not publish or register a website. See [publication and snapshot maintenance](PUBLISHING.md#download-page-and-release-links).
+
 ## Toolchain
 
 - Windows 10/11 x64, Git, Node.js 24 or later, **pnpm 11.25.0** (the packageManager field pins it).

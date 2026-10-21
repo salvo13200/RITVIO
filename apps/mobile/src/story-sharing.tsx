@@ -1,3 +1,4 @@
+import {useTranslation} from '../../../packages/i18n/react';
 import { noticeText } from './messages';
 import { msg } from './messages';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -17,6 +18,7 @@ export function StoryComposer({ track, preview, onPreview, onBack, onClose, init
     onClose: () => void;
     initialMode?: StoryMode;
 }) {
+    const {t}=useTranslation('common');
     const [mode, setMode] = useState<StoryMode>(initialMode), [art, setArt] = useState<'loading' | 'ready' | 'missing'>('loading'), [fallback, setFallback] = useState(false), [artRetry, setArtRetry] = useState(0);
     const [rows, setRows] = useState<string[] | null>(null), [lyricsBusy, setLyricsBusy] = useState(false), [lyricsError, setLyricsError] = useState(''), [lyricsRetry, setLyricsRetry] = useState(0);
     const [choice, setChoice] = useState<{
@@ -132,7 +134,7 @@ export function StoryComposer({ track, preview, onPreview, onBack, onClose, init
             const base64 = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(',')[1]); reader.onerror = () => reject(Error(msg("Immagine non leggibile."))); reader.readAsDataURL(blob); });
             if (!alive.current)
                 return;
-            const result = await nativePlayback.exportStory({ videoId: track.videoId, base64, save });
+            const result = await nativePlayback.exportStory({ videoId: track.videoId, track, base64, save });
             if (alive.current) {
                 if (result.status === 'saved')
                     setSaved({ id: ++savedId.current, text: result.destination === 'gallery' ? msg("Immagine salvata in Galleria \u00B7 {p0}.", { p0: result.album ?? 'RITVIO' }) : msg("Immagine salvata.") });
@@ -196,7 +198,7 @@ export function StoryComposer({ track, preview, onPreview, onBack, onClose, init
    {mode === 'lyrics' && excerpt.problem && painted === key && <p className="story-preview-overlay">{msg("Seleziona i versi per vedere la card.")}</p>}
    {paintError && <p className="story-preview-overlay" role="alert">{paintError}</p>}
   </div>
-  <p className="source-date">{msg("Immagine per le storie · 9:16")}</p>
+  <p className="source-date">{msg("Immagine per le storie · 9:16")}</p><p className="source-date">{t('share.captionHint')}</p>
   {art === 'missing' && <div className="story-art-missing"><p>{msg("Copertina non disponibile. Puoi riprovare oppure usare il simbolo di RITVIO.")}</p><div><button className="tonal" disabled={busy} onClick={() => setArtRetry(v => v + 1)}>{msg("Riprova copertina")}</button><button className="tonal" aria-pressed={fallback} disabled={busy} onClick={() => setFallback(true)}>{msg("Usa senza copertina")}</button></div></div>}
   {metadataTruncated && <p className="import-warning">{msg("Titolo o artista abbreviati nell\u2019immagine. Controlla l\u2019anteprima.")}</p>}
   </div><div className="story-mobile-actions"><button className="primary" disabled={!available} onClick={() => void send(false)}><Share2 size={21}/>{busy ? msg("Preparazione\u2026") : msg("Condividi immagine")}</button><div><button className="tonal" disabled={!available} onClick={() => void send(true)}><Download size={21}/>{msg("Salva immagine")}</button><button className="text-action" aria-label={msg("Condividi link")} disabled={busy} onClick={() => void link()}><Link size={22}/></button></div></div></>}

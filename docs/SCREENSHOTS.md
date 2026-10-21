@@ -1,5 +1,7 @@
 # Inside RITVIO
 
+See the separate [new-source walkthrough and silent demo](ADOPTION.md) for the local adoption/help improvements being prepared for the combined release. The published package baselines have not changed.
+
 [Back to RITVIO](../README.md) · [Feature guide](FEATURES.md) · [Downloads](https://github.com/salvo13200/RITVIO/releases/tag/public-preview-1)
 
 Actual React interfaces in English, with deterministic synthetic demo data and project-generated cover artwork. All tracks, artists, playlists, listening statistics and collection contents shown are illustrative. No personal profile, real listening history or external song lyric is included. The demo verses are original sample text.

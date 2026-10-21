@@ -1,3 +1,4 @@
+import {FirstListen} from '../../../packages/first-use/ui';
 import { noticeText } from './messages';
 import { msg, formatLocale } from './messages';
 import { useEffect, useState } from 'react';
@@ -54,13 +55,15 @@ export function ResourceCard({ item, onOpen }: {
     onOpen: () => void;
 }) { return <button className={`cover-card${item.kind === 'artist' ? ' artist-card' : ''}`} onClick={onOpen} aria-label={msg("Apri {p0}: {p1}", { p0: item.kind === 'artist' ? msg('artista') : msg('album'), p1: item.name })}><Artwork src={item.artwork} round={item.kind === 'artist'} large/><strong>{item.name}</strong><small>{item.kind === 'artist' ? msg("Artista") : item.artists?.map(a => a.name).join(', ') || 'Album'}</small></button>; }
 const collectionNames: Record<string, string> = { italy: "Hit Italia", releases: "Nuove uscite", global: "Hit globali", trending: "In tendenza" };
-export function HomePage({ openBrowse, library, current, play, more, openCollection, openLikes, openRecent, openSearch, openPlayer, playback, toggleCurrent }: Common & {
+export function HomePage({ openBrowse, library, current, play, more, openCollection, openLikes, openRecent, openSearch, openImport, libraryReady, openPlayer, playback, toggleCurrent }: Common & {
     openBrowse: (category: BrowseCategory) => void;
     library: MobileLibrary;
     openCollection: (item: MobileCollection) => void;
     openLikes: () => void;
     openRecent: () => void;
     openSearch: () => void;
+    openImport: () => void;
+    libraryReady: boolean;
     openPlayer: () => void;
     playback: MobilePlayback;
     toggleCurrent: () => void;
@@ -70,7 +73,7 @@ export function HomePage({ openBrowse, library, current, play, more, openCollect
     const recent = library.recent.filter(t => t.videoId !== resume?.videoId).slice(0, 2), collections = [...(data?.collections ?? [])].filter(item => item.id === 'global' || item.id === 'releases').sort((a, b) => ['global', 'releases'].indexOf(a.id) - ['global', 'releases'].indexOf(b.id));
     const progress = isCurrent && playback.duration > 0 ? Math.max(0, Math.min(1, playback.position / playback.duration)) : 0;
     return <section className="home-page home-listening" aria-label="Home"><h1>{resume ? msg("Il tuo ascolto continua") : msg("La tua musica, adesso.")}</h1>
-  {resume ? <div className="home-resume"><button className="resume-identity" aria-label={isCurrent ? msg("Apri ascolto: {p0}", { p0: resume.title }) : msg("Riprendi {p0}", { p0: resume.title })} onClick={() => isCurrent ? openPlayer() : play([resume], 0)}><Artwork src={resume.thumbnail} large/><span><strong><ScrollText>{resume.title}</ScrollText></strong><small><ScrollText>{resume.artist}</ScrollText></small></span></button><button className="resume-play" aria-label={isCurrent && playback.playing ? msg("Metti in pausa dalla Home") : msg("Riproduci dalla Home")} onClick={() => isCurrent ? toggleCurrent() : play([resume], 0)}>{isCurrent && playback.loading ? <LoaderCircle className="spin" size={25}/> : isCurrent && playback.playing ? <Pause size={25} fill="currentColor"/> : <Play size={25} fill="currentColor"/>}</button>{isCurrent && <div className="resume-progress" aria-hidden="true"><span style={{ transform: `scaleX(${progress})` }}/></div>}</div> : <div className="welcome-inline"><p>{msg("I tuoi ascolti compariranno qui.")}</p><button className="tonal" onClick={openSearch}>{msg("Trova un brano") + " "}<ArrowRight size={19}/></button></div>}
+  {resume ? <div className="home-resume"><button className="resume-identity" aria-label={isCurrent ? msg("Apri ascolto: {p0}", { p0: resume.title }) : msg("Riprendi {p0}", { p0: resume.title })} onClick={() => isCurrent ? openPlayer() : play([resume], 0)}><Artwork src={resume.thumbnail} large/><span><strong><ScrollText>{resume.title}</ScrollText></strong><small><ScrollText>{resume.artist}</ScrollText></small></span></button><button className="resume-play" aria-label={isCurrent && playback.playing ? msg("Metti in pausa dalla Home") : msg("Riproduci dalla Home")} onClick={() => isCurrent ? toggleCurrent() : play([resume], 0)}>{isCurrent && playback.loading ? <LoaderCircle className="spin" size={25}/> : isCurrent && playback.playing ? <Pause size={25} fill="currentColor"/> : <Play size={25} fill="currentColor"/>}</button>{isCurrent && <div className="resume-progress" aria-hidden="true"><span style={{ transform: `scaleX(${progress})` }}/></div>}</div> : libraryReady && !library.likes.length && !library.playlists.length && !library.follows.length ? <FirstListen onSearch={openSearch} onImport={openImport}/> : <div className="welcome-inline"><p>{msg("I tuoi ascolti compariranno qui.")}</p><button className="tonal" onClick={openSearch}>{msg("Trova un brano") + " "}<ArrowRight size={19}/></button></div>}
   {recent.length > 0 && <><div className="section-heading"><h2>{msg("Riprendi da qui")}</h2><button aria-label={msg("Mostra ascolti recenti")} onClick={openRecent}><ArrowRight size={22}/></button></div><div className="home-recent-list">{recent.map(track => <TrackRow key={track.videoId} track={track} onPlay={() => play([track], 0)} onMore={() => more(track)}/>)}</div></>}
   <div className="section-heading"><h2>{msg("Questa settimana")}</h2><button aria-label={msg("Ricarica raccolte")} onClick={retry} disabled={loading}><RefreshCw size={20} className={loading ? 'spin' : ''}/></button></div>
   {loading ? <div className="cover-skeletons" aria-label={msg("Caricamento raccolte")}><i /><i /></div> : error ? <div className="inline-error" role="alert"><p>{noticeText(error)}</p><button className="tonal" onClick={retry}>{msg("Riprova")}</button></div> : collections.length ? <><div className="cover-shelf home-shelf home-weekly-shelf">{collections.map(item => <button className="cover-card" key={item.id} onClick={() => openCollection(item)} aria-label={msg("Apri raccolta: {p0}", { p0: (collectionNames[item.id] ? msg(collectionNames[item.id]) : item.sourceTitle) })}><Artwork src={item.artwork} large/><strong>{(collectionNames[item.id] ? msg(collectionNames[item.id]) : item.sourceTitle)}</strong></button>)}</div><p className="source-date">{data?.stale ? msg("Edizione salvata \u00B7 ") : ''}{data?.fetchedAt ? msg("Catalogo del {p0}", { p0: new Date(data.fetchedAt).toLocaleDateString(formatLocale()) }) : ''}</p></> : <div className="welcome-inline"><p>{msg("Nessuna raccolta disponibile dal catalogo al momento.")}</p><button className="text-action" onClick={retry}>{msg("Riprova") + " "}<RefreshCw size={18}/></button></div>}
@@ -154,7 +157,10 @@ export function SearchPage({ openBrowse, query, setQuery, current, play, more, o
  </div>}
  </section>;
 }
-export function LibraryPage({ library, openResource, openPlaylist, openLikes, searching }: {
+export function LibraryPage({ library, openResource, openPlaylist, openLikes, searching, openSearch, openImport, libraryReady }: {
+    openSearch: () => void;
+    openImport: () => void;
+    libraryReady: boolean;
     library: MobileLibrary;
     openResource: (resource: MobileResource) => void;
     openPlaylist: (playlist: MobilePlaylist) => void;
@@ -182,6 +188,7 @@ export function LibraryPage({ library, openResource, openPlaylist, openLikes, se
         visible = visible.sort((a, b) => a.name.localeCompare(b.name, formatLocale()));
     return <section className="library-page" aria-label={msg("La tua libreria")}><h1>{msg("La tua libreria")}</h1>
  <p className="library-summary">{library.playlists.length}{" " + msg("playlist \u00B7") + " "}{library.follows.filter(item => item.kind === 'album').length}{" " + msg("album \u00B7") + " "}{artists.length} {artists.length === 1 ? msg("artista") : msg("artisti")}</p>
+ {libraryReady && !needle && filter === 'Tutti' && !library.likes.length && !library.playlists.length && !library.follows.length && <FirstListen library onSearch={openSearch} onImport={openImport}/>}
  {searching && <div className="search-field"><Search size={21}/><input autoFocus type="search" aria-label={msg("Filtra libreria")} placeholder={msg("Cerca nella tua libreria")} value={query} onChange={event => setQuery(event.target.value)}/>{query && <button aria-label={msg("Cancella filtro libreria")} onClick={() => setQuery('')}><X size={20}/></button>}</div>}
  <div className="filter-row" aria-label={msg("Categorie della libreria")}>{['Tutti', 'Playlist', 'Album', 'Artisti'].map(item => <button key={item} className="filter" aria-pressed={filter === item} onClick={() => setFilter(item)}>{msg(item)}</button>)}</div>
  <div className="library-toolbar"><button className="sort-control" aria-label={msg("Ordina: {p0}", { p0: sort === 'recent' ? msg("Recenti") : msg("Nome") })} onClick={() => setSort(sort === 'recent' ? 'name' : 'recent')}><ArrowDownWideNarrow size={19}/>{sort === 'recent' ? msg("Recenti") : msg("Nome")}</button><div><button aria-label={msg("Modalit\u00E0 griglia")} aria-pressed={view === 'grid'} onClick={() => changeView('grid')}><Grid2X2 size={22}/></button><button aria-label={msg("Modalit\u00E0 elenco")} aria-pressed={view === 'list'} onClick={() => changeView('list')}><List size={24}/></button></div></div>
