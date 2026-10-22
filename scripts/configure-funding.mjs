@@ -22,10 +22,17 @@ if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.ur
   const links=fundingLinks(values['--paypal'],values['--coffee']);
   const root=path.resolve(import.meta.dirname,'..');
   const readme=await readFile(path.join(root,'README.md'),'utf8');
+  let site=await readFile(path.join(root,'apps/site/index.html'),'utf8');
+  for(const provider of ['paypal','coffee']){
+    const pattern=new RegExp(`(data-funding="${provider}" href=")[^"]*(")`,'g');
+    if([...site.matchAll(pattern)].length!==1)throw Error(`Missing or duplicate website funding link: ${provider}`);
+    site=site.replace(pattern,(_,start,end)=>`${start}${links[provider]}${end}`);
+  }
   const body=`Donations are optional and do not unlock features.\n\n[Support via PayPal](${links.paypal}) · [Buy Me a Coffee](${links.coffee})\n\nPayments are handled by the provider; provider fees may apply.`;
   if(!readme.includes('<!-- funding:start -->')||!readme.includes('<!-- funding:end -->'))throw Error('README funding markers are missing.');
   await writeFile(path.join(root,'.github/FUNDING.yml'),`# Voluntary support for RITVIO development.\nbuy_me_a_coffee: ${JSON.stringify(links.username)}\ncustom: [${JSON.stringify(links.paypal)}]\n`);
   await writeFile(path.join(root,'README.md'),readme.replace(/<!-- funding:start -->[\s\S]*?<!-- funding:end -->/,`<!-- funding:start -->\n${body}\n<!-- funding:end -->`));
   await writeFile(path.join(root,'README.en.md'),await readFile(path.join(root,'README.md'),'utf8'));
-  console.log('GitHub funding links and README updated. Review both destinations before publishing.');
+  await writeFile(path.join(root,'apps/site/index.html'),site);
+  console.log('GitHub funding links, README and download page updated. Review both destinations before publishing.');
 }
