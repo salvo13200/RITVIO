@@ -7,7 +7,7 @@ const exec=promisify(execFile);
 
 // Query only numeric process relationships and resource counters. No command
 // lines, titles, environment variables or paths enter the resulting report.
-export async function readWindowsProcessTree(rootPid){
+export async function readWindowsProcessTree(rootPid,{execute=exec}={}){
   assert.equal(process.platform,'win32','Native process sampling requires Windows');
   assert(Number.isSafeInteger(rootPid)&&rootPid>0,'Invalid native root PID');
   const script=`
@@ -25,9 +25,12 @@ do {
     }
   }
 } while($added)
-$counters=@(foreach($row in $owned.Values){
+# Resolve all owned processes in one cmdlet call instead of starting a new
+# Get-Process pipeline for each descendant. Creation times still guard PID reuse.
+$processIds=[int[]]@($owned.Keys)
+$counters=@(foreach($p in @(Get-Process -Id $processIds -ErrorAction SilentlyContinue)){
+  $row=$owned[[int]$p.Id]
   try {
-    $p=Get-Process -Id $row.ProcessId -ErrorAction Stop
     # A PID can be reused between CIM enumeration and Get-Process. Require
     # the creation times to identify the same process before using its data.
     if([Math]::Abs(($p.StartTime.ToUniversalTime()-$row.CreationDate.ToUniversalTime()).TotalMilliseconds) -gt 1){continue}
@@ -43,9 +46,21 @@ $counters=@(foreach($row in $owned.Values){
   enumeratedCount=$owned.Count; processes=$counters
 } | ConvertTo-Json -Depth 4 -Compress
 `;
-  const executable=path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe');
-  const {stdout}=await exec(executable,['-NoLogo','-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,timeout:10000,maxBuffer:1024*1024});
-  return JSON.parse(stdout.replace(/^\uFEFF/,''));
+  const args=['-NoLogo','-NoProfile','-NonInteractive','-Command',script];
+  const options={windowsHide:true,timeout:10000,maxBuffer:1024*1024};
+  let result;
+  try{
+    // Hosted Windows CI already provides PowerShell 7. Prefer its host to the
+    // legacy Windows PowerShell cold start; keep the existing finite deadline.
+    result=await execute('pwsh.exe',args,options);
+  }catch(error){
+    // Older local PCs may only have Windows PowerShell. A timeout, permission
+    // failure or query error must fail, never trigger a concealed second try.
+    if(error.code!=='ENOENT')throw error;
+    const executable=path.join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe');
+    result=await execute(executable,args,options);
+  }
+  return validateProcessSnapshot(JSON.parse(result.stdout.replace(/^\uFEFF/,'')),rootPid);
 }
 
 export function validateProcessSnapshot(snapshot,rootPid,expectedStart){

@@ -5,7 +5,9 @@ export interface ProcessCounters {
 export interface ProcessSnapshot {
   rootPid:number; rootStartedAt:string; enumeratedCount:number; processes:ProcessCounters[];
 }
-export function readWindowsProcessTree(rootPid:number):Promise<ProcessSnapshot>;
+export function readWindowsProcessTree(rootPid:number,options?:{
+  execute?:(file:string,args:string[],options:{windowsHide:boolean;timeout:number;maxBuffer:number})=>Promise<{stdout:string}>;
+}):Promise<ProcessSnapshot>;
 export function validateProcessSnapshot(snapshot:ProcessSnapshot,rootPid:number,expectedStart?:string):ProcessSnapshot;
 export function cpuCorePercent(previous:{elapsedMs:number;processes:ProcessCounters[]},current:{elapsedMs:number;processes:ProcessCounters[]}):number;
 export function createNativeResourceProbe(options:{

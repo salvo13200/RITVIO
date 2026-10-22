@@ -41,10 +41,17 @@ jobs:
       - run: pnpm build
       - run: pnpm --dir apps/mobile build
       - run: pnpm site:build
-  browser:
-    name: Browser regression
+  browser-suites:
+    name: Browser suites (${{ matrix.suite }})
     runs-on: windows-latest
     timeout-minutes: 20
+    # Each group gets a fresh Windows VM to limit cross-suite browser/socket
+    # accumulation after an observed ERR_NO_BUFFER_SPACE in the previous job.
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        suite: [interface, updates-and-site, playback, sharing-and-support]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -56,29 +63,46 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install msedge
       - run: pnpm exec playwright test --list
-      - run: pnpm exec playwright test --config tests/config/playwright.localization.config.ts --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.home.config.ts --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.listening-tools.config.ts --grep-invert 'capture:' --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.updates.config.ts --trace retain-on-failure
-      - run: pnpm test:site --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.first-use.config.ts --trace retain-on-failure
-      - run: pnpm test:playback --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.continuity.config.ts --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.sharing-discovery.config.ts --trace retain-on-failure
-      - run: pnpm exec playwright test --config tests/config/playwright.support.config.ts --grep-invert 'capture:' --trace retain-on-failure
+      - if: matrix.suite == 'interface'
+        run: pnpm exec playwright test --config tests/config/playwright.localization.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'interface'
+        run: pnpm exec playwright test --config tests/config/playwright.home.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'interface'
+        run: pnpm exec playwright test --config tests/config/playwright.mobile-artwork.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'interface'
+        run: pnpm exec playwright test --config tests/config/playwright.listening-tools.config.ts --grep-invert 'capture:' --trace retain-on-failure
+      - if: matrix.suite == 'updates-and-site'
+        run: pnpm exec playwright test --config tests/config/playwright.updates.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'updates-and-site'
+        run: pnpm test:site --trace retain-on-failure
+      - if: matrix.suite == 'updates-and-site'
+        run: pnpm exec playwright test --config tests/config/playwright.first-use.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'playback'
+        run: pnpm test:playback --trace retain-on-failure
+      - if: matrix.suite == 'playback'
+        run: pnpm exec playwright test --config tests/config/playwright.continuity.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'sharing-and-support'
+        run: pnpm exec playwright test --config tests/config/playwright.sharing-discovery.config.ts --trace retain-on-failure
+      - if: matrix.suite == 'sharing-and-support'
+        run: pnpm exec playwright test --config tests/config/playwright.support.config.ts --grep-invert 'capture:' --trace retain-on-failure
       - name: Upload browser failure diagnostics
         if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
-          name: RITVIO-browser-failure-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            test-results/playwright/
-            test-results/updates/
-            test-results/site/
-            test-results/first-use/
-            test-results/continuity/
-            test-results/sharing-discovery/
-            test-results/support/
+          name: RITVIO-browser-failure-${{ matrix.suite }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: test-results/
           if-no-files-found: ignore
           retention-days: 7
+  browser:
+    # Keep the required check name unchanged. It is green only if every matrix
+    # group passed; failed/cancelled/skipped groups must not permit a merge.
+    name: Browser regression
+    needs: browser-suites
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require all browser suites to pass
+        env:
+          BROWSER_SUITE_RESULT: ${{ needs.browser-suites.result }}
+        run: test "$BROWSER_SUITE_RESULT" = success

@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
+import path from 'node:path';
 import {cpuCorePercent,createNativeResourceProbe,readWindowsProcessTree,validateProcessSnapshot,type ProcessCounters} from './native-resource-probe.mjs';
 
 const processCounters=(pid:number,startedAt:string,cpuMs=0):ProcessCounters=>({pid,startedAt,cpuMs,privateBytes:100,workingSetBytes:150,handles:10,threads:2});
@@ -53,6 +54,31 @@ test('incomplete renderer metrics fail instead of reporting misleading zero memo
   const probe=createNativeResourceProbe({rootPid:11,readTree:async()=>snapshot(),cdp:{async send(method:string){return method==='Performance.getMetrics'?{metrics:[]}:{documents:1,nodes:2,jsEventListeners:3};}}});
   await assert.rejects(probe.sample('baseline'),/Missing renderer metric/);
   assert.equal(probe.report().summary.sampleCount,0);
+});
+
+test('Windows sampling prefers PowerShell 7 and falls back only when that executable is absent',{skip:process.platform!=='win32'},async()=>{
+  const calls:string[]=[];
+  const result=await readWindowsProcessTree(11,{execute:async(file,_args,options)=>{
+    calls.push(file);assert.equal(options.timeout,10000);assert.equal(options.windowsHide,true);
+    if(file==='pwsh.exe')throw Object.assign(Error('Not installed'),{code:'ENOENT'});
+    return {stdout:'\uFEFF'+JSON.stringify(snapshot())};
+  }});
+  assert.deepEqual(calls,['pwsh.exe',path.join(process.env.SystemRoot!,'System32/WindowsPowerShell/v1.0/powershell.exe')]);
+  assert.equal(result.rootPid,11);
+  calls.length=0;
+  await readWindowsProcessTree(11,{execute:async file=>{calls.push(file);return {stdout:JSON.stringify(snapshot())};}});
+  assert.deepEqual(calls,['pwsh.exe']);
+});
+
+test('Windows sampling propagates timeouts and rejects incomplete output without a fallback or retry',{skip:process.platform!=='win32'},async()=>{
+  for(const failure of [Object.assign(Error('Deadline'),{killed:true,signal:'SIGTERM'}),Object.assign(Error('Denied'),{code:'EACCES'})]){
+    let attempts=0;
+    await assert.rejects(readWindowsProcessTree(11,{execute:async()=>{attempts++;throw failure;}}),error=>error===failure);
+    assert.equal(attempts,1);
+  }
+  await assert.rejects(readWindowsProcessTree(11,{execute:async()=>({stdout:'{"rootPid":11'})}),SyntaxError);
+  await assert.rejects(readWindowsProcessTree(11,{execute:async()=>({stdout:JSON.stringify({...snapshot(),processes:[]})})}));
+  await assert.rejects(readWindowsProcessTree(99,{execute:async()=>({stdout:JSON.stringify(snapshot())})}));
 });
 
 test('Windows sampling includes an owned descendant and excludes a live sibling process',{skip:process.platform!=='win32',timeout:20000},async()=>{
