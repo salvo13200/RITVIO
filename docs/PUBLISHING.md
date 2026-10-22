@@ -46,7 +46,7 @@ After CI has run once, also import `.github/main-checks-ruleset.json`. It requir
 
 Enable Issues, private vulnerability reporting and secret scanning/push protection where available. In Actions settings use read-only default token permissions, disable Actions creating/approving pull requests and require approval for external contributors' workflows. The supplied PR workflow uses `pull_request`, not `pull_request_target`, with no signing secrets.
 
-## 3. Funding on GitHub only
+## 3. Funding on GitHub and the download page
 
 Once you have your own public profile links:
 
@@ -54,7 +54,9 @@ Once you have your own public profile links:
 pnpm funding:configure --paypal 'https://paypal.me/YOUR_PROFILE' --coffee 'https://buymeacoffee.com/YOUR_PROFILE'
 ```
 
-The command validates provider domains, writes `.github/FUNDING.yml` and updates the README's support section. It does not create payment accounts, process payments or add buttons inside the app. PayPal uses GitHub's custom funding link; Buy Me a Coffee uses its native key. The official repository already has both recipients configured; forks must replace them with their own verified profiles or leave the funding file empty. Enable **Sponsorships** in GitHub Settings → General → Features after merging the file. Review both recipient pages. Donations are optional, without feature unlocks; provider fees may apply.
+The command validates provider domains, writes `.github/FUNDING.yml` and updates the support links in both English READMEs and `apps/site/index.html`. The download page's **Support RITVIO** section offers PayPal and Buy Me a Coffee as ordinary external links, without embedded payment scripts; its header and footer link to the section. It works without JavaScript. Rebuild and deploy the site after changing recipients.
+
+The command does not create payment accounts, process payments or add buttons inside either app. PayPal uses GitHub's custom funding link; Buy Me a Coffee uses its native key. The official repository already has both recipients configured; forks must replace all support links with their own verified profiles or remove the funding file and website support section. Enable **Sponsorships** in GitHub Settings → General → Features after merging the file. Review both recipient pages. Donations are optional, without feature unlocks; provider fees may apply.
 
 ## 4. Builds and signing
 
