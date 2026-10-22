@@ -8,6 +8,8 @@ Windows 1.0.0 / Android 1.4.0 acceptance, source correspondence, remote CI and p
 
 The `CI` workflow divides the existing browser commands into four groups on separate fresh Windows runners: interface, updates/site/first use, playback/continuity, and sharing/support. This limits resource accumulation between suites after a run failed to load the Vite React refresh module with `net::ERR_NO_BUFFER_SPACE`. All existing suites remain enabled, with the same assertions and deadlines. The required **Browser regression** check aggregates every group and fails if any group fails, is cancelled or is skipped. Each failed group uploads its own traces and screenshots. No automatic retry turns a failed run green.
 
+The site readability report uses Playwright's per-test output directory. The site tests also run inside the sharing project, so they must not depend on `test-results/site/` being created by an earlier invocation on the same runner.
+
 The Windows resource probe prefers the PowerShell 7 host available on CI, with Windows PowerShell as a fallback only when `pwsh.exe` is absent. It resolves the owned process IDs in one `Get-Process` call, preserves creation-time guards against PID reuse, and validates the returned counters before accepting a snapshot. The 10-second query deadline is unchanged; timeouts, permission errors, incomplete output and missing root counters still fail. Deterministic regressions cover host selection, compatibility fallback and failure propagation; the existing live-process test continues to verify inclusion of descendants and exclusion of unrelated processes.
 
 ## Help and local presentation preparation

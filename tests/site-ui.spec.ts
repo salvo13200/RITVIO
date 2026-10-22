@@ -41,13 +41,13 @@ test('release refresh fails gracefully and never replaces official links with un
  await page.getByRole('button',{name:'Check latest releases'}).click();await expect(page.getByRole('status')).toContainText('Keeping the verified links');await expect(page.locator('[data-download=android]')).toHaveAttribute('href',publishedDownloads.android.download);
  await page.getByRole('button',{name:'Check latest releases'}).click();expect(calls).toBe(1);await expect(page.getByRole('status')).toContainText('Checked recently');
 });
-test('enlarged text, reduced motion and installation disclosures remain usable',async({page})=>{
+test('enlarged text, reduced motion and installation disclosures remain usable',async({page},testInfo)=>{
  await page.setViewportSize({width:393,height:852});await page.emulateMedia({reducedMotion:'reduce'});await page.goto('/');await page.evaluate(()=>document.documentElement.style.fontSize='150%');await settle(page);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  for(const title of ['How do I install on Android?','Which Windows download should I choose?','Does my library sync across devices?']){await page.getByText(title,{exact:true}).click();await expect(page.locator('details[open]')).not.toHaveCount(0);}
  await expect(page.getByText(/not Authenticode-signed/)).toBeVisible();await expect(page.getByText(/Windows and Android libraries are separate/)).toBeVisible();
  expect(await page.locator('.device-pair').evaluate(el=>getComputedStyle(el).animationName)).toBe('none');
- await writeFile('test-results/site/readability.json',JSON.stringify({width:393,rootText:'150%',horizontalOverflow:false,reducedMotion:true}));
+ await writeFile(testInfo.outputPath('readability.json'),JSON.stringify({width:393,rootText:'150%',horizontalOverflow:false,reducedMotion:true}));
 });
 test('successful release refresh exposes only the new official packages and truthful stable labels',async({page})=>{
  const releases=(['android','windows']as const).map(platform=>{const version=platform==='android'?'1.4.0':'1.0.0',tag=`${platform}-v${version}`,name=platform==='android'?`RITVIO-Android-${version}.apk`:`RITVIO-${version}-setup.exe`;return{draft:false,prerelease:false,tag_name:tag,html_url:`https://github.com/salvo13200/RITVIO/releases/tag/${tag}`,assets:[{name,size:10_000_000,state:'uploaded',browser_download_url:`https://github.com/salvo13200/RITVIO/releases/download/${tag}/${name}`}]};});
