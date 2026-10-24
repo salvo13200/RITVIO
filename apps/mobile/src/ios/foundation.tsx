@@ -33,9 +33,9 @@ export function Foundation({controller}:{controller:LanguageController}) {
   </section>
   <section className="foundation-next"><h2>{text.next}</h2><p>{text.scope}</p></section>
   <section className="foundation-language"><h2>{text.language}</h2><div className="foundation-language-buttons">
-   <button className="tonal" aria-pressed={language.preference==='en'} disabled={languageBusy} onClick={()=>void changeLanguage('en')}>English</button>
-   <button className="tonal" aria-pressed={language.preference==='it'} disabled={languageBusy} onClick={()=>void changeLanguage('it')}>Italiano</button>
-   <button className="text-action" aria-pressed={language.preference==='system'} disabled={languageBusy} onClick={()=>void changeLanguage('system')}>{text.systemLanguage}</button>
+   <button className="tonal" aria-pressed={language.preference==='en'} disabled={languageBusy} onClick={()=>void changeLanguage('en')}><Check aria-hidden="true" size={18}/><span>English</span></button>
+   <button className="tonal" aria-pressed={language.preference==='it'} disabled={languageBusy} onClick={()=>void changeLanguage('it')}><Check aria-hidden="true" size={18}/><span>Italiano</span></button>
+   <button className="text-action" aria-pressed={language.preference==='system'} disabled={languageBusy} onClick={()=>void changeLanguage('system')}><Check aria-hidden="true" size={18}/><span>{text.systemLanguage}</span></button>
   </div>{languageError&&<p role="alert">{text.languageError}</p>}</section>
  </main>;
 }

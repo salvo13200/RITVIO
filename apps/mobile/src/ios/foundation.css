@@ -16,7 +16,10 @@ html.ios-native{font:-apple-system-body;font-family:'Ancizar Sans',sans-serif}
 .ios-foundation h2{font-size:1.2rem;line-height:1.3;margin-bottom:10px}
 .foundation-next p{color:var(--muted);line-height:1.5}
 .foundation-language-buttons{display:flex;flex-wrap:wrap;gap:10px}
+.foundation-language-buttons>.tonal{flex:1 1 8rem}
 .foundation-language-buttons>.text-action{width:100%;margin-top:2px}
+.foundation-language-buttons>button[aria-pressed=true]{background:var(--accent);color:var(--on-accent)}
+.foundation-language-buttons>button[aria-pressed=false]>svg{visibility:hidden}
 .ios-foundation button{min-height:48px;white-space:normal}
 .ios-foundation button:disabled{opacity:.65}
 @media(max-width:340px){.ios-foundation{padding-right:18px;padding-left:18px}.foundation-facts>div{gap:12px}.ios-foundation h1{font-size:1.8rem}}

@@ -20,6 +20,8 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(app.webViews.staticTexts["Connection verified"].waitForExistence(timeout: 10))
         capture(app, "foundation-round-trip")
 
+        tap(app, "Use device language")
+        captureCurrent(app, "foundation-language-system")
         tap(app, "Italiano")
         XCTAssertTrue(app.webViews.staticTexts["Build tecnica iOS"].waitForExistence(timeout: 10))
         captureCurrent(app, "foundation-language-italian")
