@@ -42,3 +42,5 @@ export interface PlaybackPlugin{
 }
 export const nativePlayback=registerPlugin<PlaybackPlugin>('RitvioPlayback');
 export const isAndroid=Capacitor.getPlatform()==='android';
+export const isIOS=Capacitor.getPlatform()==='ios';
+export const isNativeMobile=isAndroid||isIOS;

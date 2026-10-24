@@ -29,6 +29,15 @@
       ]
     },
     {
+      "name": "@capacitor/ios",
+      "version": "8.5.3",
+      "license": "MIT",
+      "repository": "git+https://github.com/ionic-team/capacitor.git",
+      "notices": [
+        "javascript/@capacitor__ios@8.5.3/LICENSE"
+      ]
+    },
+    {
       "name": "@fastify/accept-negotiator",
       "version": "2.1.0",
       "license": "MIT",

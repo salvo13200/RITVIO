@@ -14,6 +14,9 @@ importers:
       '@capacitor/core':
         specifier: 8.5.3
         version: 8.5.3
+      '@capacitor/ios':
+        specifier: 8.5.3
+        version: 8.5.3(@capacitor/core@8.5.3)
       '@fastify/cors':
         specifier: 11.3.1
         version: 11.3.1
@@ -209,6 +212,11 @@ packages:
 
   '@capacitor/core@8.5.3':
     resolution: {integrity: sha512-oBE1oGuYE4ZzYYrulC75OuHdSsD6zLUy7d5o1tFwDLG4govGoubY15cxpiI5l0+q87Lm5p0bhbehMdzJg4aFag==}
+
+  '@capacitor/ios@8.5.3':
+    resolution: {integrity: sha512-HnnV92Jl8+3x0JUloXUMjFcUsQI8wHFVsKwkLn72DfRZXYGZW11tQbmNOWOnRTljaU18FdI1b9ipT09SzzPDNw==}
+    peerDependencies:
+      '@capacitor/core': ^8.5.0
 
   '@electron-internal/extract-zip@1.0.5':
     resolution: {integrity: sha512-+bqFCP98pLI0Tt0XQo1TmlXtwjWchISndDOxCkEcIuUgXWpBnLyRI+2DU+mesvnMMX6L1XDqYNA0lXNDHd/yiA==}
@@ -2548,6 +2556,10 @@ snapshots:
   '@capacitor/core@8.5.3':
     dependencies:
       tslib: 2.8.1
+
+  '@capacitor/ios@8.5.3(@capacitor/core@8.5.3)':
+    dependencies:
+      '@capacitor/core': 8.5.3
 
   '@electron-internal/extract-zip@1.0.5': {}
 

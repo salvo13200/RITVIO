@@ -4,6 +4,14 @@
 
 Windows 1.0.0 / Android 1.4.0 acceptance, source correspondence, remote CI and public-download checks are recorded in [Quality status](QUALITY_STATUS.md). The staged test descriptions below distinguish their original source-only scope from later native acceptance; a browser fixture never substitutes for a physical-device result.
 
+## iOS foundation (unreleased)
+
+`pnpm exec tsx --test tests/ios-foundation.test.ts` checks platform isolation, the native readiness contract, challenge/response validation, version separation and source-export exclusions. `pnpm ios:prepare` prepares only bundled assets and Capacitor configuration, including on Windows; it is not evidence of native compilation.
+
+On macOS, `pnpm ios:build --smoke` separately builds the simulator and unsigned arm64 device target. The XCTest UI test launches the packaged app, verifies the actual Swift bridge and bundled-asset response, performs a fresh challenge round trip, changes language, terminates/relaunches the app and verifies persistence. It runs on up to two available iPhone simulators; the second uses larger accessibility text. Screenshots come from XCTest, not a browser mock. Reports record the selected models and runtimes, so a recent simulator is never presented as an iOS 15/iPhone 6s result.
+
+Artifacts and SHA-256 sidecars are under `.local/ios/artifacts/`, with simulator/device ZIPs explicitly separated. The device ZIP has no distribution signature and is not a directly installable IPA. IOS-1 has no search, playback, library, lyrics or sharing implementation; native capabilities and the technical screen report that scope explicitly. Physical installation, free-signing renewal, locked-screen listening, Bluetooth/calls, real performance and iOS 15 compatibility remain pending until a device is available. See [build instructions](BUILDING.md#ios-foundation-technical-build).
+
 ## CI isolation and native process sampling
 
 The `CI` workflow divides the existing browser commands into four groups on separate fresh Windows runners: interface, updates/site/first use, playback/continuity, and sharing/support. This limits resource accumulation between suites after a run failed to load the Vite React refresh module with `net::ERR_NO_BUFFER_SPACE`. All existing suites remain enabled, with the same assertions and deadlines. The required **Browser regression** check aggregates every group and fails if any group fails, is cancelled or is skipped. Each failed group uploads its own traces and screenshots. No automatic retry turns a failed run green.
