@@ -1,4 +1,6 @@
-.ios-foundation{max-width:560px;min-height:100vh;margin:0 auto;padding:32px 24px;padding-top:max(28px,env(safe-area-inset-top));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:max(32px,env(safe-area-inset-bottom));padding-left:max(24px,env(safe-area-inset-left));font-size:1rem;line-height:1.5}
+html.ios-native body{position:fixed;inset:0;overflow:hidden}
+html.ios-native #root{height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.ios-foundation{max-width:560px;height:100%;min-height:0;overflow-y:auto;margin:0 auto;padding:28px 24px 32px;font-size:1rem;line-height:1.5;-webkit-overflow-scrolling:touch}
 .ios-foundation header .brand{display:block;color:var(--accent);font-size:1.15rem;margin-bottom:28px}
 .ios-foundation h1{font-size:2rem;line-height:1.14;margin-bottom:12px}
 .ios-foundation .intro{margin:0;color:var(--muted)}
@@ -7,9 +9,9 @@ html.ios-native{font:-apple-system-body;font-family:'Ancizar Sans',sans-serif}
 .foundation-status{display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
 .foundation-status svg{flex-shrink:0;color:var(--accent);margin-top:2px}
 .foundation-facts{margin:24px 0 0}
-.foundation-facts>div{display:flex;align-items:baseline;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding:11px 0}
+.foundation-facts>div{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr));align-items:baseline;gap:4px 20px;border-bottom:1px solid var(--line);padding:11px 0}
 .foundation-facts dt{color:var(--muted);min-width:0}
-.foundation-facts dd{margin:0;text-align:right;overflow-wrap:anywhere;min-width:0;font-variant-numeric:tabular-nums}
+.foundation-facts dd{margin:0;overflow-wrap:anywhere;min-width:0;font-variant-numeric:tabular-nums}
 .foundation-next,.foundation-language{margin-top:32px}
 .ios-foundation h2{font-size:1.2rem;line-height:1.3;margin-bottom:10px}
 .foundation-next p{color:var(--muted);line-height:1.5}

@@ -10,6 +10,7 @@ final class FoundationUITests: XCTestCase {
         let english = app.webViews.switches["English"]
         XCTAssertTrue(english.waitForExistence(timeout: 45))
         tap(app, "English")
+        captureCurrent(app, "foundation-language-english")
         XCTAssertTrue(app.webViews.staticTexts["Native bridge ready"].waitForExistence(timeout: 15))
         XCTAssertTrue(app.webViews.staticTexts["IOS-1"].exists)
         XCTAssertTrue(app.webViews.staticTexts["Included in this app"].exists)
@@ -21,6 +22,7 @@ final class FoundationUITests: XCTestCase {
 
         tap(app, "Italiano")
         XCTAssertTrue(app.webViews.staticTexts["Build tecnica iOS"].waitForExistence(timeout: 10))
+        captureCurrent(app, "foundation-language-italian")
         app.terminate()
         app.launch()
         XCTAssertTrue(app.webViews.staticTexts["Build tecnica iOS"].waitForExistence(timeout: 30))
@@ -33,7 +35,16 @@ final class FoundationUITests: XCTestCase {
     }
 
     private func capture(_ app: XCUIApplication, _ name: String) {
-        for _ in 0..<3 { app.swipeDown() }
+        let brand = app.webViews.staticTexts["RITVIO"]
+        for _ in 0..<10 {
+            if brand.isHittable { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(brand.isHittable, "The capture must include the top of the page")
+        captureCurrent(app, name)
+    }
+
+    private func captureCurrent(_ app: XCUIApplication, _ name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways
