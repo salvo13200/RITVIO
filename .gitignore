@@ -17,6 +17,7 @@ __pycache__/
 .local/
 apps/mobile/web-dist/
 apps/mobile/ios-web-dist/
+apps/mobile/ios/App/Runtime/
 **/DerivedData/
 **/xcuserdata/
 **/.swiftpm/

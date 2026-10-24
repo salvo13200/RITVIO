@@ -172,12 +172,12 @@ def playlist_preview(identifier, cancellation):
     finally:session.close()
 
 
-def resolve(video_id):
+def resolve(video_id, *, format_selector='bestaudio[ext=m4a]/bestaudio', include_metadata=False):
     _video_id(video_id)
     if not _started: raise RuntimeError('Resolver not initialized')
     options = {'quiet': True, 'no_warnings': True, 'logger': QuietLogger(), 'skip_download': True,
                'noplaylist': True, 'cachedir': False, 'socket_timeout': 12, 'retries': 0,
-               'format': 'bestaudio[ext=m4a]/bestaudio', 'js_runtimes': {}}
+               'format': format_selector, 'js_runtimes': {}}
     with yt_dlp.YoutubeDL(options) as downloader:
         info = downloader.extract_info(f'https://www.youtube.com/watch?v={video_id}', download=False)
     url = info.get('url', '')
@@ -190,4 +190,9 @@ def resolve(video_id):
     allowed_headers = {'user-agent', 'referer', 'origin', 'accept', 'accept-language'}
     headers = {key: value for key, value in (info.get('http_headers') or {}).items()
                if key.lower() in allowed_headers and isinstance(value, str) and '\r' not in value and '\n' not in value}
-    return json.dumps({'url': url, 'expires': expires, 'headers': headers})
+    result = {'url': url, 'expires': expires, 'headers': headers}
+    if include_metadata:
+        result.update({'container': info.get('ext'), 'codec': info.get('acodec'),
+                       'duration': info.get('duration'), 'bytes': info.get('filesize') or info.get('filesize_approx'),
+                       'protocol': info.get('protocol')})
+    return json.dumps(result)

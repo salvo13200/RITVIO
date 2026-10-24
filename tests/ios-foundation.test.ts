@@ -16,7 +16,10 @@ test('foundation accepts native metadata without inventing playback capabilities
  assert.equal(parseFoundationStatus(status),status);
  assert.equal(parseFoundationStatus({...status,bundledAssets:false}).bundledAssets,false);
  for(const input of [null,{}, {...status,platform:'android'},{...status,environment:'web'},{...status,version:1},{...status,minimumOS:''},{...status,capabilities:null}])assert.throws(()=>parseFoundationStatus(input));
- for(const feature of Object.keys(status.capabilities))assert.throws(()=>parseFoundationStatus({...status,capabilities:{...status.capabilities,[feature]:true}}),/cannot advertise/);
+ for(const feature of Object.keys(status.capabilities))assert.throws(()=>parseFoundationStatus({...status,capabilities:{...status.capabilities,[feature]:true}}));
+ const resolverBuild={...status,phase:'IOS-2',capabilities:{...status.capabilities,resolver:true}};
+ assert.equal(parseFoundationStatus(resolverBuild).capabilities.resolver,true);
+ assert.throws(()=>parseFoundationStatus({...resolverBuild,capabilities:{...resolverBuild.capabilities,playback:true}}));
 });
 test('bridge round trip must return the actual challenge and native platform',()=>{
  verifyFoundationCheck({platform:'ios',nonce:'12345678'},'12345678');
@@ -24,11 +27,11 @@ test('bridge round trip must return the actual challenge and native platform',()
 });
 test('public source excludes iOS build products, signing identities and local web copies',()=>{
  for(const file of ['apps/mobile/ios/App/App/RitvioPlaybackPlugin.swift','apps/mobile/ios/App/App/PrivacyInfo.xcprivacy','apps/mobile/ios/App/App.xcodeproj/project.pbxproj','apps/mobile/ios/App/App.xcodeproj/xcshareddata/xcschemes/App.xcscheme','apps/mobile/ios-version.json'])assert.equal(isPublicSource(file),true,file);
- for(const file of ['apps/mobile/ios-web-dist/index.html','apps/mobile/ios/App/App/public/index.html','apps/mobile/ios/App/App/capacitor.config.json','apps/mobile/ios/App/App/config.xml','apps/mobile/ios/DerivedData/build.txt','apps/mobile/ios/App/App.xcodeproj/xcuserdata/private.xcuserstate','apps/mobile/ios/.swiftpm/config.json','apps/mobile/ios/profile.mobileprovision','apps/mobile/ios/identity.p12','apps/mobile/ios/key.p8','apps/mobile/ios/App.xcarchive/Info.plist','apps/mobile/ios/tests.xcresult/Info.plist','apps/mobile/ios/RITVIO.ipa','apps/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/RITVIO.png'])assert.equal(isPublicSource(file),false,file);
+ for(const file of ['apps/mobile/ios/App/Runtime/quickjs/quickjs.c','apps/mobile/ios/App/Runtime/Python.xcframework/Info.plist','apps/mobile/ios-web-dist/index.html','apps/mobile/ios/App/App/public/index.html','apps/mobile/ios/App/App/capacitor.config.json','apps/mobile/ios/App/App/config.xml','apps/mobile/ios/DerivedData/build.txt','apps/mobile/ios/App/App.xcodeproj/xcuserdata/private.xcuserstate','apps/mobile/ios/.swiftpm/config.json','apps/mobile/ios/profile.mobileprovision','apps/mobile/ios/identity.p12','apps/mobile/ios/key.p8','apps/mobile/ios/App.xcarchive/Info.plist','apps/mobile/ios/tests.xcresult/Info.plist','apps/mobile/ios/RITVIO.ipa','apps/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/RITVIO.png'])assert.equal(isPublicSource(file),false,file);
 });
 test('iOS build version remains independent from the existing Android release',async()=>{
  const ios=JSON.parse(await readFile(new URL('../apps/mobile/ios-version.json',import.meta.url),'utf8'));
  const android=JSON.parse(await readFile(new URL('../apps/mobile/package.json',import.meta.url),'utf8'));
  const gradle=await readFile(new URL('../apps/mobile/android/app/build.gradle',import.meta.url),'utf8');
- assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-1');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
+ assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-2');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
 });

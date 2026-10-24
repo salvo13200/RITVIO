@@ -20,6 +20,17 @@ AA1000000000000000000002 = {isa = PBXBuildFile; fileRef = AA10000000000000000000
 AA1000000000000000000004 = {isa = PBXBuildFile; fileRef = AA1000000000000000000003; };
 AA1000000000000000000006 = {isa = PBXBuildFile; fileRef = AA1000000000000000000005; };
 AA1000000000000000000008 = {isa = PBXBuildFile; fileRef = AA1000000000000000000007; };
+BB2000000000000000000002 = {isa = PBXBuildFile; fileRef = BB2000000000000000000001; };
+BB2000000000000000000004 = {isa = PBXBuildFile; fileRef = BB2000000000000000000003; };
+BB2000000000000000000006 = {isa = PBXBuildFile; fileRef = BB2000000000000000000005; };
+BB2000000000000000000008 = {isa = PBXBuildFile; fileRef = BB2000000000000000000007; };
+BB200000000000000000000A = {isa = PBXBuildFile; fileRef = BB2000000000000000000009; };
+BB200000000000000000000C = {isa = PBXBuildFile; fileRef = BB200000000000000000000B; };
+BB200000000000000000000E = {isa = PBXBuildFile; fileRef = BB200000000000000000000D; };
+BB2000000000000000000010 = {isa = PBXBuildFile; fileRef = BB200000000000000000000F; };
+BB2000000000000000000012 = {isa = PBXBuildFile; fileRef = BB2000000000000000000011; };
+BB2000000000000000000021 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; };
+BB2000000000000000000022 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy,); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -39,6 +50,16 @@ AA1000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourceco
 AA1000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 AA1000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationUITests.swift; sourceTree = "<group>"; };
 AA1000000000000000000009 = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RitvioFoundationUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+BB2000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "App/RitvioResolverBridge.c"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/ResolverWorker.swift"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/ResolverStreamProbe.swift"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/ResolverSelfTest.swift"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/quickjs.c"; sourceTree = SOURCE_ROOT; };
+BB200000000000000000000B = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/dtoa.c"; sourceTree = SOURCE_ROOT; };
+BB200000000000000000000D = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/libregexp.c"; sourceTree = SOURCE_ROOT; };
+BB200000000000000000000F = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/libunicode.c"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/cutils.c"; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Runtime/Python.xcframework; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -47,17 +68,35 @@ AA1000000000000000000009 = {isa = PBXFileReference; explicitFileType = wrapper.c
 			buildActionMask = 2147483647;
 			files = (
 				4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */,
+BB2000000000000000000021,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 AA1000000000000000000013 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+BB2000000000000000000023 = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 10; files = (BB2000000000000000000022,); name = "Embed Python"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
+/* Begin PBXShellScriptBuildPhase section */
+BB2000000000000000000024 = {isa = PBXShellScriptBuildPhase; buildActionMask = 2147483647; files = (); inputPaths = (); outputPaths = (); name = "Embed Python standard library and resolver"; runOnlyForDeploymentPostprocessing = 0; shellPath = /bin/sh; shellScript = "/usr/bin/python3 \"$PROJECT_DIR/../../../../scripts/embed-ios-python.py\""; alwaysOutOfDate = 1; };
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXGroup section */
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
 				958DCC722DB07C7200EA8C5F /* debug.xcconfig */,
+BB2000000000000000000001,
+BB2000000000000000000003,
+BB2000000000000000000005,
+BB2000000000000000000007,
+BB2000000000000000000009,
+BB200000000000000000000B,
+BB200000000000000000000D,
+BB200000000000000000000F,
+BB2000000000000000000011,
+BB2000000000000000000020,
 				504EC3061FED79650016851F /* App */,
 AA1000000000000000000010,
 				504EC3051FED79650016851F /* Products */,
@@ -103,6 +142,8 @@ AA1000000000000000000010 = {isa = PBXGroup; children = (AA1000000000000000000007
 				504EC3001FED79650016851F /* Sources */,
 				504EC3011FED79650016851F /* Frameworks */,
 				504EC3021FED79650016851F /* Resources */,
+BB2000000000000000000023,
+BB2000000000000000000024,
 			);
 			buildRules = (
 			);
@@ -185,6 +226,15 @@ AA1000000000000000000014 = {isa = PBXResourcesBuildPhase; buildActionMask = 2147
 			buildActionMask = 2147483647;
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
+BB2000000000000000000002,
+BB2000000000000000000004,
+BB2000000000000000000006,
+BB2000000000000000000008,
+BB200000000000000000000A,
+BB200000000000000000000C,
+BB200000000000000000000E,
+BB2000000000000000000010,
+BB2000000000000000000012,
 AA1000000000000000000002,
 AA1000000000000000000004,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
@@ -328,15 +378,21 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
 			baseConfigurationReference = 958DCC722DB07C7200EA8C5F /* debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                ENABLE_USER_SCRIPT_SANDBOXING = NO;
+                SWIFT_OBJC_BRIDGING_HEADER = "App/App-Bridging-Header.h";
+                HEADER_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Runtime/quickjs",);
+                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)", "$(BUILT_PRODUCTS_DIR)/XCFrameworkIntermediates/Python",);
+                OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
+
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -350,15 +406,21 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+                ENABLE_USER_SCRIPT_SANDBOXING = NO;
+                SWIFT_OBJC_BRIDGING_HEADER = "App/App-Bridging-Header.h";
+                HEADER_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Runtime/quickjs",);
+                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)", "$(BUILT_PRODUCTS_DIR)/XCFrameworkIntermediates/Python",);
+                OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
+
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 0.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";

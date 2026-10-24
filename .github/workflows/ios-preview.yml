@@ -1,4 +1,4 @@
-name: iOS foundation
+name: iOS native verification
 on:
   push:
     branches: ['codex/ios-*']
@@ -8,6 +8,8 @@ on:
       - 'scripts/*ios*'
       - 'scripts/mobile-platform.*'
       - 'tests/ios-foundation.test.ts'
+      - 'tests/ios-resolver*'
+      - 'third-party/ios/**'
       - 'build-resources/icon.png'
       - 'package.json'
       - 'pnpm-lock.yaml'
@@ -22,7 +24,7 @@ jobs:
   foundation:
     name: iOS simulator and unsigned device build
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -34,12 +36,14 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec tsx --test tests/ios-foundation.test.ts
+      - run: node scripts/prepare-ios-resolver.mjs
+      - run: python3 tests/ios_resolver_test.py
       - run: xcodebuild -version
       - run: pnpm ios:build --smoke
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
-          name: RITVIO-IOS-1-${{ github.sha }}
+          name: RITVIO-iOS-${{ github.sha }}
           path: .local/ios/artifacts/
           if-no-files-found: error
           retention-days: 5

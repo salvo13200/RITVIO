@@ -1,10 +1,11 @@
 import {spawn} from 'node:child_process';
 import {createRequire} from 'node:module';
-import {readFile,writeFile,mkdir,stat} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,stat,rm} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {prepareIOSIcon} from './ios-assets.mjs';
+import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
@@ -19,6 +20,7 @@ const version=JSON.parse(await readFile(path.join(mobile,'ios-version.json'),'ut
 await run(process.execPath,[path.join(path.dirname(require.resolve('vite/package.json')),'bin/vite.js'),'build'],{cwd:mobile});
 await run(process.execPath,[path.join(path.dirname(require.resolve('@capacitor/cli/package.json')),'bin/capacitor'),'sync','ios'],{cwd:mobile});
 await prepareIOSIcon(root);
+await prepareIOSResolver();
 const swiftPackage=await readFile(path.join(mobile,'ios/App/CapApp-SPM/Package.swift'),'utf8');
 const capacitor=JSON.parse(await readFile(path.join(root,'node_modules/@capacitor/ios/package.json'),'utf8')).version;
 if(!swiftPackage.includes(`exact: "${capacitor}"`))throw Error('Capacitor Swift dependency must match the locked npm version');
@@ -28,8 +30,8 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:'IOS-1',version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:false,playback:false,artifacts:[],simulators:[]};
-await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:'IOS-1',nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',playback:false,artifacts:[],simulators:[]};
+await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
 async function archive(app,name,destination){
  const plist=JSON.parse(await run('plutil',['-convert','json','-o','-',path.join(app,'Info.plist')],{capture:true}));
@@ -40,6 +42,7 @@ async function archive(app,name,destination){
  await writeFile(zip+'.sha256',`${sha256}  ${name}\n`);report.artifacts.push({file:name,destination,bytes:bytes.length,sha256,architectures:mach.trim().split(/\s+/)});
 }
 try {
+if(buildDevice){const derived=path.join(output,'device');await run('xcodebuild',[...base,'-configuration','Release','-sdk','iphoneos','-destination','generic/platform=iOS','-derivedDataPath',derived,'build','CODE_SIGNING_ALLOWED=NO']);await archive(path.join(derived,'Build/Products/Release-iphoneos/App.app'),`RITVIO-iOS-${version.version}-device-unsigned.zip`,'device-unsigned');}
 if(buildSimulator){
  const derived=path.join(output,'simulator');await run('xcodebuild',[...base,'-configuration','Debug','-sdk','iphonesimulator','-destination','generic/platform=iOS Simulator','-derivedDataPath',derived,'build','CODE_SIGNING_ALLOWED=NO']);
  await archive(path.join(derived,'Build/Products/Debug-iphonesimulator/App.app'),`RITVIO-iOS-${version.version}-simulator.zip`,'simulator');
@@ -63,15 +66,34 @@ if(buildSimulator){
     const result=path.join(results,`foundation-${index}.xcresult`);
     try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
-    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:'passed',screenshots:`screenshots-${index}`});
+    const live=index===0;
+    const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
+    const evidence=path.join(container,'Documents/resolver-evidence.json');
+    await rm(evidence,{force:true});
+    await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-resolver-check',...(live?['--ritvio-resolver-live']:[])]);
+    let nativeEvidence;
+    let previousStage;
+    for(let attempt=0;attempt<240;attempt++){
+     try{
+      const value=JSON.parse(await readFile(evidence,'utf8'));
+      await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(value,null,2)+'\n');
+      if(value.stage!==previousStage){previousStage=value.stage;console.log(`Native resolver ${index}: ${value.stage}`);}
+      if(value.status==='passed'||value.status==='failed'){nativeEvidence=value;break;}
+     }catch(error){if(error.code!=='ENOENT')throw error;}
+     await new Promise(resolve=>setTimeout(resolve,1000));
+    }
+    if(!nativeEvidence)throw Error('Native resolver evidence did not complete within 240 seconds');
+    await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(nativeEvidence,null,2)+'\n');
+    if(nativeEvidence.status!=='passed')throw Error(`Native resolver check failed: ${nativeEvidence.failedStage}/${nativeEvidence.error}`);
+    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:'passed',resolver:'passed',live,screenshots:`screenshots-${index}`});
    }finally{await run('xcrun',['simctl','shutdown',device.udid]);if(device.created)await run('xcrun',['simctl','delete',device.udid]);}
   }
  }
 }
-if(buildDevice){const derived=path.join(output,'device');await run('xcodebuild',[...base,'-configuration','Release','-sdk','iphoneos','-destination','generic/platform=iOS','-derivedDataPath',derived,'build','CODE_SIGNING_ALLOWED=NO']);await archive(path.join(derived,'Build/Products/Release-iphoneos/App.app'),`RITVIO-iOS-${version.version}-device-unsigned.zip`,'device-unsigned');}
+report.resolver=report.simulators.length?'passed':'not-run';
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
-await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:'IOS-1',nativeBuild:'passed',physicalTests:'pending'},null,2)+'\n');
+await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'passed',physicalTests:'pending'},null,2)+'\n');
 } catch(error) {
- await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:'IOS-1',nativeBuild:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
+ await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
  throw error;
 }

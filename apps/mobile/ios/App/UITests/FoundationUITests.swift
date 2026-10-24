@@ -12,7 +12,7 @@ final class FoundationUITests: XCTestCase {
         tap(app, "English")
         captureCurrent(app, "foundation-language-english")
         XCTAssertTrue(app.webViews.staticTexts["Native bridge ready"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.webViews.staticTexts["IOS-1"].exists)
+        XCTAssertTrue(app.webViews.staticTexts["IOS-2"].exists)
         XCTAssertTrue(app.webViews.staticTexts["Included in this app"].exists)
         capture(app, "foundation-english")
 
@@ -56,7 +56,7 @@ final class FoundationUITests: XCTestCase {
     private func tap(_ app: XCUIApplication, _ name: String) {
         // WebKit exposes aria-pressed language choices as native switches.
         let button = app.webViews.switches[name]
-        for _ in 0..<5 {
+        for _ in 0..<8 {
             if button.isHittable { break }
             app.swipeUp()
         }

@@ -12,6 +12,8 @@ Android native notices and licence texts are reproduced in [`third-party/android
 
 Electron 44.7.0 is MIT. Windows packages retain Electron's LICENSE and Chromium's bundled `LICENSES.chromium.html`, Python 3.13.16's LICENSE, Python distribution metadata/licence files, and the notices in this repository. Bundled Node, Chromium and Python components retain their upstream licences. Android and Windows differ in runtime dependencies: Android does not install the Windows-only optional Python dependency set.
 
+The unreleased iOS resolver uses Python Apple Support 3.13-b17 (Python 3.13.17), QuickJS 2026-06-04 and the locked pure-Python subset recorded in [`third-party/ios/runtime-lock.json`](third-party/ios/runtime-lock.json). Native component notices and source references are reproduced in [`third-party/ios/`](third-party/ios/README.md), including the support archive's BZip2, libffi, mpdecimal, OpenSSL and liblzma dependencies. The generated iOS runtime is not part of the source tree; build scripts verify upstream archives by SHA-256 and include notices in the app bundle. Native compilation and personal-device acceptance are separate checks.
+
 GPL-2.0-or-later Python source included in the Windows runtime must remain available with corresponding release source. The public release procedure also archives the exact resolver source distributions; do not distribute executables without the matching RITVIO source/build scripts and upstream source/notice material required by the included licences. Your private signing key is not part of the public source. Forks build with their own key and cannot replace official installations signed by another key.
 
 ## Fonts, icons and images

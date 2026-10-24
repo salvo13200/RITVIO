@@ -23,6 +23,7 @@ export function isPublicSource(file){
   if(/^apps\/mobile\/android\/app\/src\/main\/assets\/(public\/|capacitor\.)/.test(name)||name==='apps/mobile/android/app/src/main/res/xml/config.xml')return false;
   if(name.startsWith('apps/mobile/android/app/src/main/assets/ritvio-licenses/'))return false;
   if(name.startsWith('apps/mobile/ios/App/App/public/')||/^apps\/mobile\/ios\/App\/App\/(capacitor\.config\.json|config\.xml)$/.test(name)||name==='apps/mobile/ios/App/App/Assets.xcassets/AppIcon.appiconset/RITVIO.png')return false;
+  if(name.startsWith('apps/mobile/ios/App/Runtime/'))return false;
   if(name.startsWith('apps/client/assets/')||name==='apps/client/src/design-review.tsx'||name==='apps/client/design-review.html'||name==='scripts/build-design-review.mjs')return false;
   return true;
 }
