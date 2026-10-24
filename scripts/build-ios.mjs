@@ -39,13 +39,20 @@ async function archive(app,name,destination){
  const zip=path.join(artifacts,name);await run('ditto',['-c','-k','--sequesterRsrc','--keepParent',app,zip]);const bytes=await readFile(zip),sha256=createHash('sha256').update(bytes).digest('hex');
  await writeFile(zip+'.sha256',`${sha256}  ${name}\n`);report.artifacts.push({file:name,destination,bytes:bytes.length,sha256,architectures:mach.trim().split(/\s+/)});
 }
+try {
 if(buildSimulator){
  const derived=path.join(output,'simulator');await run('xcodebuild',[...base,'-configuration','Debug','-sdk','iphonesimulator','-destination','generic/platform=iOS Simulator','-derivedDataPath',derived,'build','CODE_SIGNING_ALLOWED=NO']);
  await archive(path.join(derived,'Build/Products/Debug-iphonesimulator/App.app'),`RITVIO-iOS-${version.version}-simulator.zip`,'simulator');
  if(options.has('--smoke')){
   const available=JSON.parse(await run('xcrun',['simctl','list','devices','available','--json'],{capture:true}));
   const devices=Object.entries(available.devices).filter(([runtime])=>runtime.includes('iOS')).flatMap(([runtime,list])=>list.filter(device=>device.name.startsWith('iPhone')&&device.isAvailable).map(device=>({...device,runtime})));
-  const compact=devices.find(device=>device.name.includes('SE')||device.name.includes('mini'))??devices[0];
+  let compact=devices.find(device=>device.name.includes('SE')||device.name.includes('mini'));
+  if(!compact&&devices[0]){
+   const types=JSON.parse(await run('xcrun',['simctl','list','devicetypes','--json'],{capture:true}));
+   const type=types.devicetypes.find(type=>type.name.includes('iPhone SE (3rd generation)'));
+   if(type){const udid=(await run('xcrun',['simctl','create','RITVIO compact check',type.identifier,devices[0].runtime],{capture:true})).trim();compact={name:type.name,udid,state:'Shutdown',runtime:devices[0].runtime,created:true};}
+  }
+  compact??=devices[0];
   const large=devices.find(device=>device.udid!==compact?.udid&&!device.name.includes('SE')&&!device.name.includes('mini'));
   if(!compact)throw Error('No available iPhone simulator');
   for(const [index,device] of [compact,large].filter(Boolean).entries()){
@@ -57,10 +64,14 @@ if(buildSimulator){
     try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
     report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:'passed',screenshots:`screenshots-${index}`});
-   }finally{await run('xcrun',['simctl','shutdown',device.udid]);}
+   }finally{await run('xcrun',['simctl','shutdown',device.udid]);if(device.created)await run('xcrun',['simctl','delete',device.udid]);}
   }
  }
 }
 if(buildDevice){const derived=path.join(output,'device');await run('xcodebuild',[...base,'-configuration','Release','-sdk','iphoneos','-destination','generic/platform=iOS','-derivedDataPath',derived,'build','CODE_SIGNING_ALLOWED=NO']);await archive(path.join(derived,'Build/Products/Release-iphoneos/App.app'),`RITVIO-iOS-${version.version}-device-unsigned.zip`,'device-unsigned');}
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:'IOS-1',nativeBuild:'passed',physicalTests:'pending'},null,2)+'\n');
+} catch(error) {
+ await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:'IOS-1',nativeBuild:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
+ throw error;
+}

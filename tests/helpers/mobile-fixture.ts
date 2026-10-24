@@ -8,7 +8,7 @@ export async function fixture(page:Page,{empty=false,error=false,queueLength=2,l
  if(images.length!==4)throw Error('The mobile fixture requires four artwork files');
  await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/webp',headers:{'access-control-allow-origin':'*'},body:images[route.request().url().includes('12345678901')?1:route.request().url().includes('23456789012')?2:route.request().url().includes('34567890123')?3:0]}));
  await page.route('https://lh3.googleusercontent.com/**',route=>route.fulfill({contentType:'image/webp',body:images[0]}));
- await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isAndroid=true;export const nativePlayback=window.__mobileNative;'}));
+ await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isAndroid=true;export const isIOS=false;export const isNativeMobile=true;export const nativePlayback=window.__mobileNative;'}));
  await page.addInitScript(({empty,error,queueLength,language,sampleTracks,appVersion})=>{
   const first=sampleTracks?.[0]??{videoId:'abcdefghijk',title:'A luci spente',artist:'Luna Riva',thumbnail:'https://i.ytimg.com/vi/abcdefghijk/hqdefault.jpg',duration:222,album:{id:'ALBUM1',name:'Notti chiare'},artists:[{id:'ARTIST1',name:'Luna Riva'}]};
   const second=sampleTracks?.[1]??{...first,videoId:'12345678901',title:'Orizzonti',artist:'Marea',thumbnail:'https://i.ytimg.com/vi/12345678901/hqdefault.jpg'};

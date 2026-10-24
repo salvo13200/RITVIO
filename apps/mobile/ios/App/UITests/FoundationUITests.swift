@@ -7,7 +7,7 @@ final class FoundationUITests: XCTestCase {
         app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         // The preference may survive an earlier test run; select English first.
-        let english = app.webViews.buttons["English"]
+        let english = app.webViews.switches["English"]
         XCTAssertTrue(english.waitForExistence(timeout: 45))
         tap(app, "English")
         XCTAssertTrue(app.webViews.staticTexts["Native bridge ready"].waitForExistence(timeout: 15))
@@ -41,12 +41,20 @@ final class FoundationUITests: XCTestCase {
     }
 
     private func tap(_ app: XCUIApplication, _ name: String) {
-        let button = app.webViews.buttons[name]
+        // WebKit exposes aria-pressed language choices as native switches.
+        let button = app.webViews.switches[name]
         for _ in 0..<5 {
             if button.isHittable { break }
             app.swipeUp()
         }
         XCTAssertTrue(button.isHittable, "Button is not reachable: \(name)")
         button.tap()
+    }
+
+    override func tearDownWithError() throws {
+        let screenshot = XCTAttachment(screenshot: XCUIApplication().screenshot())
+        screenshot.name = "foundation-final-state"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
     }
 }
