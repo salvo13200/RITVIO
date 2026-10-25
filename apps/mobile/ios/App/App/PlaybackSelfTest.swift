@@ -5,6 +5,7 @@ import AVFoundation
 /// It is deliberately independent of provider access and is never live evidence.
 enum PlaybackSelfTest {
     #if DEBUG
+    private static let fixtureSeconds = 90
     static func startIfRequested() {
         guard ProcessInfo.processInfo.arguments.contains("--ritvio-playback-check") else { return }
         Task { @MainActor in await run() }
@@ -20,7 +21,7 @@ enum PlaybackSelfTest {
         do {
             progress(stage)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-            let tracks = (1...3).map { ["videoId": "ritviotest\($0)", "title": "Original tone \($0)", "artist": "RITVIO native check", "thumbnail": "", "duration": 12] as [String: Any] }
+            let tracks = (1...3).map { ["videoId": "ritviotest\($0)", "title": "Original tone \($0)", "artist": "RITVIO native check", "thumbnail": "", "duration": fixtureSeconds] as [String: Any] }
             let decoded = try tracks.map(PlaybackTrack.decode)
             var policy = PlaybackQueue(); try policy.replace(decoded, at: 1)
             policy.repeatMode = "one"
@@ -49,7 +50,7 @@ enum PlaybackSelfTest {
                     resolved.append(payload)
                     DispatchQueue.main.asyncAfter(deadline: .now() + (resolved.count == 1 ? 0.25 : 0.05)) {
                         callback(.success(["url": "https://fixture.googlevideo.com/audio.m4a", "headers": ["User-Agent": "RITVIO-native-test"],
-                            "expires": Date().timeIntervalSince1970 + 300, "container": "m4a", "codec": "mp4a.40.2", "protocol": "https", "duration": 12]))
+                            "expires": Date().timeIntervalSince1970 + 300, "container": "m4a", "codec": "mp4a.40.2", "protocol": "https", "duration": fixtureSeconds]))
                     }
                 }, cancelResolve: { _ in cancelled += 1 })
             guard let player = owner else { throw ResolverFailure.code("OWNER_MISSING") }
@@ -83,14 +84,14 @@ enum PlaybackSelfTest {
             report["interruptionPolicy"] = ["syntheticEvents": true, "userPausePreserved": true, "recommendedResume": true, "routeLossPauses": true]
 
             progress("end-repeat")
-            _ = try player.command("repeat", value: "one"); _ = try player.command("play"); _ = try player.command("seek", value: 11.7)
+            _ = try player.command("repeat", value: "one"); _ = try player.command("play"); _ = try player.command("seek", value: Double(fixtureSeconds) - 0.3)
             try await wait("REPEAT_ONE_TRANSPORT_FAILED") { !loading(player) && position(player) < 2 && playing(player) }
             try expect(player.snapshot()["index"] as? Int == 2, "REPEAT_ONE_CHANGED_TRACK")
-            _ = try player.command("repeat", value: "all"); _ = try player.command("seek", value: 11.7)
+            _ = try player.command("repeat", value: "all"); _ = try player.command("seek", value: Double(fixtureSeconds) - 0.3)
             try await wait("REPEAT_ALL_TRANSPORT_FAILED") { player.snapshot()["index"] as? Int == 0 && !loading(player) && playing(player) }
             _ = try player.command("repeat", value: "off"); _ = try player.command("jump", value: 2)
             try await wait("LAST_TRACK_NOT_READY") { !loading(player) && playing(player) }
-            _ = try player.command("seek", value: 11.7)
+            _ = try player.command("seek", value: Double(fixtureSeconds) - 0.3)
             try await wait("END_FAILED") { player.snapshot()["status"] as? String == "ended" && !playing(player) }
             _ = try player.command("play")
             try await wait("RESTART_AFTER_END_FAILED") { !loading(player) && playing(player) && position(player) > 0.15 && position(player) < 3 }
@@ -129,6 +130,7 @@ enum PlaybackSelfTest {
             report["persistence"] = ["queueAndPosition": true, "pausedOnRestore": true, "noSignedDescriptors": true]
             report["transport"] = FixtureMediaProtocol.stats()
             try expect(FixtureMediaProtocol.stats()["allowedHeadersForwarded"] as? Bool == true && (FixtureMediaProtocol.stats()["largestRangeBytes"] as? Int ?? Int.max) <= PlaybackResourceLoader.chunkBytes, "TRANSPORT_BOUNDS_FAILED")
+            try expect(audio.count > PlaybackResourceLoader.chunkBytes && (FixtureMediaProtocol.stats()["nonzeroRanges"] as? Int ?? 0) > 0, "MULTI_RANGE_NOT_EXERCISED")
             report["audioSession"] = "playback-category-activated"
             report["status"] = "passed"
         } catch {
@@ -158,7 +160,7 @@ enum PlaybackSelfTest {
     private static func makeAudio(in directory: URL) async throws -> Data {
         var wav = Data()
         func word<T: FixedWidthInteger>(_ number: T) { var value = number.littleEndian; withUnsafeBytes(of: &value) { wav.append(contentsOf: $0) } }
-        let count = 22050 * 12
+        let count = 22050 * fixtureSeconds
         wav.append(contentsOf: "RIFF".utf8); word(UInt32(36 + count * 2)); wav.append(contentsOf: "WAVEfmt ".utf8)
         word(UInt32(16)); word(UInt16(1)); word(UInt16(1)); word(UInt32(22050)); word(UInt32(44100)); word(UInt16(2)); word(UInt16(16))
         wav.append(contentsOf: "data".utf8); word(UInt32(count * 2))
@@ -189,11 +191,12 @@ private final class FixtureMediaProtocol: URLProtocol {
     private static var mode = "normal"
     private static var requests = 0
     private static var largestRange = 0
+    private static var nonzeroRanges = 0
     private static var headersValid = true
-    static func configure(_ body: Data) { lock.lock(); audio = body; mode = "normal"; requests = 0; largestRange = 0; headersValid = true; lock.unlock() }
+    static func configure(_ body: Data) { lock.lock(); audio = body; mode = "normal"; requests = 0; largestRange = 0; nonzeroRanges = 0; headersValid = true; lock.unlock() }
     static func reset() { configure(Data()) }
     static func setMode(_ value: String) { lock.lock(); mode = value; lock.unlock() }
-    static func stats() -> [String: Any] { lock.lock(); defer { lock.unlock() }; return ["synthetic": true, "requests": requests, "largestRangeBytes": largestRange, "allowedHeadersForwarded": headersValid, "audioFileBytes": audio.count, "realTLS": false] }
+    static func stats() -> [String: Any] { lock.lock(); defer { lock.unlock() }; return ["synthetic": true, "requests": requests, "largestRangeBytes": largestRange, "nonzeroRanges": nonzeroRanges, "allowedHeadersForwarded": headersValid, "audioFileBytes": audio.count, "realTLS": false] }
     override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "fixture.googlevideo.com" }
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
     override func startLoading() {
@@ -213,7 +216,7 @@ private final class FixtureMediaProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: NSError(domain: "fixture", code: 416)); return
         }
         let last = min(end, audio.count - 1), body = audio.subdata(in: start..<(last + 1))
-        Self.lock.lock(); Self.largestRange = max(Self.largestRange, body.count); Self.lock.unlock()
+        Self.lock.lock(); Self.largestRange = max(Self.largestRange, body.count); if start > 0 { Self.nonzeroRanges += 1 }; Self.lock.unlock()
         let response = HTTPURLResponse(url: url, statusCode: 206, httpVersion: "HTTP/1.1", headerFields: ["Content-Type": "audio/mp4", "Content-Length": String(body.count), "Content-Range": "bytes \(start)-\(last)/\(audio.count)", "Accept-Ranges": "bytes"])!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body); client?.urlProtocolDidFinishLoading(self)
