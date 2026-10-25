@@ -52,6 +52,8 @@ for name in ('app', 'site-packages'):
 notices = project.parents[3] / 'third-party'
 if notices.is_dir():
     shutil.copytree(notices, resolver / 'licenses', ignore=ignored)
+    for name in ('LICENSE', 'THIRD_PARTY_NOTICES.md', 'PRIVACY.md'):
+        shutil.copyfile(project.parents[3] / name, resolver / 'licenses' / name)
 
 dynamic = python_path / 'lib/python3.13/lib-dynload'
 for module in dynamic.glob('*.so'):

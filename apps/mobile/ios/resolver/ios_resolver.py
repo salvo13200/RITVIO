@@ -27,6 +27,36 @@ _sessions = []
 _search_cache = OrderedDict()
 _stream_cache = OrderedDict()
 _cooldown_until = 0.0
+_provider_signals = set()
+
+
+def provider_signal(message):
+    text = str(message).lower()
+    if 'sign in' in text or 'not a bot' in text:
+        return 'PROVIDER_SIGN_IN_REQUIRED'
+    if 'challenge solving failed' in text or 'signature extraction failed' in text or 'no supported javascript' in text:
+        return 'JS_CHALLENGE_FAILED'
+    if 'po token' in text and ('required' in text or 'missing' in text):
+        return 'PROVIDER_TOKEN_REQUIRED'
+    if 'requested format is not available' in text:
+        return 'FORMAT_UNAVAILABLE'
+    if 'http error 429' in text or 'too many requests' in text:
+        return 'RATE_LIMITED'
+    if 'http error 403' in text or 'http error 401' in text:
+        return 'PROVIDER_REJECTED'
+    return None
+
+
+class DiagnosticLogger(shared.QuietLogger):
+    def warning(self, message):
+        signal = provider_signal(message)
+        if signal:
+            _provider_signals.add(signal)
+
+    error = warning
+
+
+shared.QuietLogger = DiagnosticLogger
 
 
 class ResolverError(Exception):
@@ -137,6 +167,7 @@ def resolve(video_id):
         return {**valid_stream(cached), 'cacheHit': True}
     if time.monotonic() < _cooldown_until:
         raise ResolverError('RATE_LIMITED')
+    _provider_signals.clear()
     result = valid_stream(json.loads(shared.resolve(video_id, format_selector='bestaudio[ext=m4a][acodec^=mp4a][protocol=https]', include_metadata=True)))
     checkpoint()
     cache_write(_stream_cache, video_id, result, min(result['expires'] - 45, time.time() + 300), 4)
@@ -180,6 +211,7 @@ def engine_checks():
 
 def invoke(payload_json):
     try:
+        _provider_signals.clear()
         try:
             payload = json.loads(payload_json)
         except (json.JSONDecodeError, TypeError):
@@ -206,6 +238,10 @@ def invoke(payload_json):
     except Exception as error:
         reason = native.abort_reason()
         code = ('CANCELLED' if reason == 'cancelled' else 'TIMEOUT') if reason else error.code if isinstance(error, ResolverError) else 'NETWORK_TIMEOUT' if isinstance(error, requests.Timeout) else 'PROVIDER_UNAVAILABLE'
+        if code == 'PROVIDER_UNAVAILABLE':
+            signal = provider_signal(error)
+            signals = _provider_signals | ({signal} if signal else set())
+            code = next((item for item in ('PROVIDER_SIGN_IN_REQUIRED', 'JS_CHALLENGE_FAILED', 'PROVIDER_TOKEN_REQUIRED', 'FORMAT_UNAVAILABLE', 'RATE_LIMITED', 'PROVIDER_REJECTED') if item in signals), code)
         # Provider errors may contain signed URLs. Never send their raw text to JS/logs.
         return json.dumps({'ok': False, 'error': code})
     finally:

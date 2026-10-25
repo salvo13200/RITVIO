@@ -48,6 +48,7 @@ enum ResolverSelfTest {
                     let repeated = try await worker.call(["operation": "search", "query": query])
                     guard repeated["cacheHit"] as? Bool == true else { throw ResolverFailure.code("SEARCH_CACHE_MISSED") }
                     searches.append(["query": query, "items": items.count, "cacheReused": true])
+                    report["searches"] = searches
                     progress("live-resolution")
                     let coldStart = Date()
                     let descriptor = try await worker.call(["operation": "resolve", "videoId": videoID], budget: 60000)
@@ -76,6 +77,7 @@ enum ResolverSelfTest {
         } catch {
             report["status"] = "failed"; report["failedStage"] = stage
             report["error"] = (error as? ResolverFailure)?.identifier ?? "NATIVE_CHECK_FAILED"
+            report["runtimeAfterFailure"] = try? await worker.call(["operation": "status"])
         }
         write(report)
     }

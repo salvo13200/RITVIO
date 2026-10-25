@@ -8,13 +8,18 @@ on:
       - 'scripts/*ios*'
       - 'scripts/mobile-platform.*'
       - 'tests/ios-foundation.test.ts'
-      - 'tests/ios-resolver*'
+      - 'tests/ios*'
       - 'third-party/ios/**'
       - 'build-resources/icon.png'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/ios-preview.yml'
   workflow_dispatch:
+    inputs:
+      full_ui:
+        description: Include native UI/language captures on both iPhone sizes
+        type: boolean
+        default: true
 permissions:
   contents: read
 concurrency:
@@ -39,7 +44,10 @@ jobs:
       - run: node scripts/prepare-ios-resolver.mjs
       - run: python3 tests/ios_resolver_test.py
       - run: xcodebuild -version
-      - run: pnpm ios:build --smoke
+      - if: github.event_name == 'workflow_dispatch' && inputs.full_ui
+        run: pnpm ios:build --smoke
+      - if: github.event_name != 'workflow_dispatch' || !inputs.full_ui
+        run: pnpm ios:build --smoke --resolver-only
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:

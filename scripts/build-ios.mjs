@@ -9,9 +9,10 @@ import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
-for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke'].includes(flag))throw Error(`Unknown option: ${flag}`);
+for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only'].includes(flag))throw Error(`Unknown option: ${flag}`);
 if(!options.has('--prepare-only')&&process.platform!=='darwin')throw Error('Xcode builds require macOS. Use pnpm ios:prepare on Windows.');
 if(options.has('--smoke')&&options.has('--prepare-only'))throw Error('Smoke tests require a native build.');
+if(options.has('--resolver-only')&&!options.has('--smoke'))throw Error('Resolver-only mode requires --smoke');
 const env={...process.env,RITVIO_MOBILE_PLATFORM:'ios'};
 function run(file,args,{cwd=root,capture=false}={}){
  return new Promise((resolve,reject)=>{let stdout='';const child=spawn(file,args,{cwd,env,windowsHide:true,stdio:capture?['ignore','pipe','inherit']:'inherit'});if(capture)child.stdout.on('data',chunk=>{stdout+=chunk;if(stdout.length>16*1024*1024)child.kill();});child.once('error',reject);child.once('exit',(code,signal)=>code===0?resolve(stdout):reject(Error(`${path.basename(file)} failed (${code??signal})`)));});
@@ -58,14 +59,16 @@ if(buildSimulator){
   compact??=devices[0];
   const large=devices.find(device=>device.udid!==compact?.udid&&!device.name.includes('SE')&&!device.name.includes('mini'));
   if(!compact)throw Error('No available iPhone simulator');
-  for(const [index,device] of [compact,large].filter(Boolean).entries()){
+  for(const [index,device] of (options.has('--resolver-only')?[compact]:[compact,large]).filter(Boolean).entries()){
    if(device.state!=='Booted')await run('xcrun',['simctl','boot',device.udid]);
    try{
     await run('xcrun',['simctl','bootstatus',device.udid,'-b']);await run('xcrun',['simctl','ui',device.udid,'appearance','dark']);
     if(index===1)await run('xcrun',['simctl','ui',device.udid,'content_size','accessibility-large']);
+    if(!options.has('--resolver-only')){
     const result=path.join(results,`foundation-${index}.xcresult`);
     try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
+    }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0;
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
     const evidence=path.join(container,'Documents/resolver-evidence.json');
@@ -85,7 +88,7 @@ if(buildSimulator){
     if(!nativeEvidence)throw Error('Native resolver evidence did not complete within 240 seconds');
     await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(nativeEvidence,null,2)+'\n');
     if(nativeEvidence.status!=='passed')throw Error(`Native resolver check failed: ${nativeEvidence.failedStage}/${nativeEvidence.error}`);
-    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:'passed',resolver:'passed',live,screenshots:`screenshots-${index}`});
+    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':'passed',resolver:'passed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
    }finally{await run('xcrun',['simctl','shutdown',device.udid]);if(device.created)await run('xcrun',['simctl','delete',device.udid]);}
   }
  }

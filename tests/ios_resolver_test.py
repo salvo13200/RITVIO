@@ -98,5 +98,12 @@ class IOSResolverTests(unittest.TestCase):
         self.call(operation='not-an-operation')
         session.close.assert_called_once(); self.assertFalse(resolver._sessions)
 
+    def test_provider_diagnostics_use_fixed_codes_without_error_text(self):
+        for message, code in [('Sign in to confirm you are not a bot', 'PROVIDER_SIGN_IN_REQUIRED'), ('Requested format is not available', 'FORMAT_UNAVAILABLE'), ('challenge solving failed', 'JS_CHALLENGE_FAILED'), ('HTTP Error 429: Too Many Requests', 'RATE_LIMITED')]:
+            with self.subTest(code=code), patch.object(resolver.shared, 'resolve', side_effect=RuntimeError(message + ' ' + self.stream['url'])):
+                text = resolver.invoke(json.dumps({'operation': 'resolve', 'videoId': 'abcdefghijk'}))
+                self.assertEqual(json.loads(text)['error'], code)
+                self.assertNotIn('signature', text)
+
 
 if __name__ == '__main__': unittest.main()
