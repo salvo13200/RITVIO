@@ -128,7 +128,8 @@ final class NativePlaybackOwner {
             queue.setShuffle(enabled); persist()
         case "jump":
             guard let index = Self.integer(value), queue.items.indices.contains(index) else { throw ResolverFailure.code("INVALID_QUEUE") }
-            queue.index = index; wantsPlayback = true; activate(at: 0)
+            if queue.index != index { queue.index = index; queue.revision += 1 }
+            wantsPlayback = true; activate(at: 0)
         case "move":
             guard let item = value as? [String: Any], let from = Self.integer(item["from"]), let to = Self.integer(item["to"]), let revision = Self.integer(item["revision"]) else { throw ResolverFailure.code("INVALID_QUEUE") }
             try queue.move(from: from, to: to, expectedRevision: revision); persist()

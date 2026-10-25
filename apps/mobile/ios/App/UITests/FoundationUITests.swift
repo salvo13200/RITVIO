@@ -31,12 +31,15 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 10), "Seeking while paused must stay paused")
         capture(app, "ios4-player-native-fixture")
         XCUIDevice.shared.orientation = .landscapeLeft
+        let landscape = NSPredicate { _, _ in app.frame.width > app.frame.height }
+        expectation(for: landscape, evaluatedWith: app); waitForExpectations(timeout: 10)
         XCTAssertTrue(button(app, "Next song").isHittable)
         capture(app, "ios4-player-landscape-native-fixture")
         XCUIDevice.shared.orientation = .portrait
         queue.tap()
         let slow = button(app, "Reorder: Slow motion"), night = button(app, "Reorder: Night swim")
         XCTAssertTrue(slow.waitForExistence(timeout: 10)); XCTAssertTrue(night.isHittable)
+        slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10)); button(app, "Cancel").tap()
         night.press(forDuration: 0.25, thenDragTo: slow)
         let reordered = NSPredicate { _, _ in
             let first = app.webViews.buttons["Reorder: Night swim"], second = app.webViews.buttons["Reorder: Slow motion"]
@@ -63,7 +66,9 @@ final class FoundationUITests: XCTestCase {
         capture(app, "ios4-search-recoverable-error")
         button(app, "Clear search").tap(); field.typeText("empty\n")
         XCTAssertTrue(app.webViews.staticTexts["No songs found"].waitForExistence(timeout: 10))
-        button(app, "Settings").tap(); capture(app, "ios4-settings")
+        button(app, "Settings").tap()
+        XCTAssertTrue(app.webViews.staticTexts["IOS-4"].waitForExistence(timeout: 10))
+        capture(app, "ios4-settings")
         chooseLanguage(app, "Italiano"); button(app, "Fine").tap()
         app.terminate(); app.launch()
         XCTAssertTrue(app.webViews.staticTexts["Il tuo ascolto"].waitForExistence(timeout: 35))
@@ -79,10 +84,11 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(choice.waitForExistence(timeout: 10)); choice.tap()
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
-        Thread.sleep(forTimeInterval: 0.35)
-        let attachment = XCTAttachment(screenshot: app.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
+        Thread.sleep(forTimeInterval: name.contains("landscape") ? 1.0 : 0.35)
+        // A full-screen capture avoids app.screenshot's transformed-window ROI in landscape.
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)
     }
     override func tearDownWithError() throws {
-        let attachment = XCTAttachment(screenshot: XCUIApplication().screenshot()); attachment.name = "ios4-final-state"; attachment.lifetime = .keepAlways; add(attachment)
+        let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); attachment.name = "ios4-final-state"; attachment.lifetime = .keepAlways; add(attachment)
     }
 }

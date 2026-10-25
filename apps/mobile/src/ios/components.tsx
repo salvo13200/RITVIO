@@ -32,7 +32,7 @@ export function Empty({title,body,children}:{title:string;body:string;children?:
 }
 /** A custom dialog keeps iOS 15 support; HTMLDialogElement.showModal requires iOS 15.4. */
 const dialogStack:symbol[]=[];
-export function Sheet({title,closeLabel,onClose,children,className=''}:{title:string;closeLabel:string;onClose:()=>void;children:ReactNode;className?:string}){
+export function Sheet({title,closeLabel,onClose,children,className='',closeText=false}:{title:string;closeLabel:string;onClose:()=>void;children:ReactNode;className?:string;closeText?:boolean}){
  const ref=useRef<HTMLElement>(null),close=useRef(onClose);close.current=onClose;
  useEffect(()=>{
   const prior=document.activeElement as HTMLElement|null;
@@ -51,5 +51,5 @@ export function Sheet({title,closeLabel,onClose,children,className=''}:{title:st
   document.addEventListener('keydown',key);
   return()=>{cancelAnimationFrame(frame);document.removeEventListener('keydown',key);const index=dialogStack.indexOf(token);if(index>=0)dialogStack.splice(index,1);if(prior?.isConnected)prior.focus();};
  },[]);
- return <section ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`ios-sheet ${className}`}><header className="ios-sheet-header"><h2>{title}</h2><IconButton label={closeLabel} onClick={onClose}><X/></IconButton></header>{children}</section>;
+ return <section ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`ios-sheet ${className}`}><header className="ios-sheet-header"><h2>{title}</h2>{closeText?<button className="ios-sheet-done" onClick={onClose}>{closeLabel}</button>:<IconButton label={closeLabel} onClick={onClose}><X/></IconButton>}</header>{children}</section>;
 }

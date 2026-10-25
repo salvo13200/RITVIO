@@ -29,7 +29,7 @@ export function Player({state,text,send,onClose,onQueue}:{state:MobilePlayback;t
  return <Sheet title={text.nowPlaying} closeLabel={text.hidePlayer} onClose={onClose} className="ios-player">
   <div className="ios-player-top"><IconButton label={text.hidePlayer} onClick={onClose}><ChevronDown/></IconButton><span>{text.nowPlaying}</span><IconButton label={text.queue} onClick={onQueue}><ListMusic/></IconButton></div>
   <div className="ios-player-art" data-testid="player-art" ref={art}><Artwork src={track.thumbnail} large eager/></div>
-  <div className="ios-player-details">{track.album?.name&&<p className="ios-player-album">{track.album.name}</p>}<h1><ScrollText>{track.title}</ScrollText></h1><p className="ios-player-artist"><ScrollText>{track.artist}</ScrollText></p></div>
+  <div className="ios-player-details"><p className="ios-player-album" aria-hidden={!track.album?.name||undefined}>{track.album?.name??'\u00a0'}</p><h1><ScrollText>{track.title}</ScrollText></h1><p className="ios-player-artist"><ScrollText>{track.artist}</ScrollText></p></div>
   <Seek state={state} text={text} send={send}/>
   <div className="ios-transport">
    <IconButton label={text.shuffle} pressed={state.shuffle} onClick={()=>send({type:'shuffle',value:!state.shuffle})}><Shuffle/></IconButton>

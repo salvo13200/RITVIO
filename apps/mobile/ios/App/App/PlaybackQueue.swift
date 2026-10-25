@@ -55,14 +55,14 @@ struct PlaybackQueue: Codable {
         guard current != nil else { return false }
         if automatic && repeatMode == "one" { return true }
         guard let cursor = order.firstIndex(of: index) else { return false }
-        if cursor + 1 < order.count { index = order[cursor + 1]; return true }
-        if repeatMode == "all" { index = order[0]; return true }
+        if cursor + 1 < order.count { index = order[cursor + 1]; revision += 1; return true }
+        if repeatMode == "all" { index = order[0]; revision += 1; return true }
         return false
     }
     mutating func previous() -> Bool {
         guard let cursor = order.firstIndex(of: index) else { return false }
-        if cursor > 0 { index = order[cursor - 1]; return true }
-        if repeatMode == "all", let last = order.last { index = last; return true }
+        if cursor > 0 { index = order[cursor - 1]; revision += 1; return true }
+        if repeatMode == "all", let last = order.last { index = last; revision += 1; return true }
         return false
     }
     mutating func enqueue(_ track: PlaybackTrack, next: Bool) throws {

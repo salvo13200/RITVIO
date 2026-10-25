@@ -50,7 +50,14 @@ enum PlaybackSelfTest {
             let expected = [reordered.items[0].videoId, reordered.items[from].videoId, reordered.items[to].videoId]
             try reordered.move(from: from, to: to, expectedRevision: reordered.revision)
             try expect(reordered.valid && reordered.order.map { reordered.items[$0].videoId } == expected, "SHUFFLED_MOVE_ORDER_WRONG")
-            report["queuePolicy"] = ["repeatOne": true, "manualSkip": true, "repeatAll": true, "shufflePermutation": true, "reorderIdentity": true, "staleRevisionRejected": true]
+            var admission = PlaybackQueue(); try admission.replace(decoded, at: 0)
+            let beforeAdvance = admission.revision
+            _ = admission.advance(automatic: false)
+            do { try admission.move(from: 2, to: 1, expectedRevision: beforeAdvance); throw ResolverFailure.code("ADVANCED_QUEUE_EDIT_ACCEPTED") }
+            catch let failure as ResolverFailure { if failure.identifier != "QUEUE_CHANGED" { throw failure } }
+            do { _ = try admission.remove(1, expectedRevision: beforeAdvance); throw ResolverFailure.code("ADVANCED_QUEUE_REMOVE_ACCEPTED") }
+            catch let failure as ResolverFailure { if failure.identifier != "QUEUE_CHANGED" { throw failure } }
+            report["queuePolicy"] = ["repeatOne": true, "manualSkip": true, "repeatAll": true, "shufflePermutation": true, "reorderIdentity": true, "staleRevisionRejected": true, "currentChangeInvalidatesEdits": true]
 
             progress("original-aac")
             let audio = try await makeAudio(in: directory)
