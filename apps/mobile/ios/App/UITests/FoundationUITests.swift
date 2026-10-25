@@ -41,7 +41,13 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(slow.waitForExistence(timeout: 10)); XCTAssertTrue(night.isHittable)
         slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10))
         capture(app, "ios4-queue-song-actions"); button(app, "Cancel").tap()
+        let closedMenu = NSPredicate { _, _ in !self.button(app, "Cancel").exists }
+        expectation(for: closedMenu, evaluatedWith: app); waitForExpectations(timeout: 10)
         XCTAssertTrue(button(app, "Reorder: Night swim").waitForExistence(timeout: 10), "Queue controls must return to the native accessibility tree after dismissing the menu")
+        // Repeat the transition: one successful tree refresh must not hide an intermittent regression.
+        slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10)); button(app, "Cancel").tap()
+        expectation(for: closedMenu, evaluatedWith: app); waitForExpectations(timeout: 10)
+        XCTAssertTrue(button(app, "Reorder: Night swim").waitForExistence(timeout: 10))
         night.press(forDuration: 0.25, thenDragTo: slow)
         let reordered = NSPredicate { _, _ in
             let first = app.webViews.buttons["Reorder: Night swim"], second = app.webViews.buttons["Reorder: Slow motion"]
