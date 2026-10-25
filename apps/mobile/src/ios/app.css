@@ -17,7 +17,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-app .ios-icon[aria-pressed=true]{color:var(--ios-accent);background:#bd91f414}
 .ios-app .ios-primary{background:var(--ios-accent);color:#20172e;padding:12px 20px;min-height:48px;font-weight:650;border-radius:14px}
 .ios-app .ios-text{color:var(--ios-accent);font-weight:600}
-.ios-shell{display:flex;flex-direction:column;height:100%;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px)}
+.ios-shell{display:flex;flex-direction:column;height:100%;padding:max(env(safe-area-inset-top,0px),var(--ios-native-safe-top,0px)) max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px)) 0 max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px))}
 .ios-header{display:flex;align-items:center;justify-content:space-between;flex:0 0 auto;padding:12px 20px 6px;min-height:62px}
 .ios-brand{font-family:'Ancizar Sans',sans-serif;font-size:28px;line-height:1;font-weight:850;letter-spacing:-.035em;font-style:italic}
 .ios-content{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;padding:10px 22px 26px;scroll-padding-bottom:24px;scrollbar-color:#767081 transparent}
@@ -53,7 +53,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-app .ios-mini .artwork{width:44px;height:44px;border-radius:8px}
 .ios-app .ios-mini .ios-identity strong{font-size:14px}
 .ios-app .ios-mini .ios-identity small{font-size:12px}
-.ios-app .ios-tabs{display:flex;flex:0 0 auto;justify-content:space-around;gap:12px;min-height:64px;padding:6px 20px calc(6px + env(safe-area-inset-bottom,0px))}
+.ios-app .ios-tabs{display:flex;flex:0 0 auto;justify-content:space-around;gap:12px;min-height:64px;padding:6px 20px calc(6px + max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)))}
 .ios-app .ios-tabs button{min-width:92px;flex-direction:column;gap:3px;padding:4px 12px;color:var(--ios-muted);font-size:12px;border-radius:12px}
 .ios-app .ios-tabs button[aria-current=page]{color:var(--ios-accent)}
 .ios-app .ios-tabs svg{width:23px;height:23px}
@@ -76,7 +76,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-skeletons span{height:56px;border-radius:10px;background:#24222d}
 .ios-spinner{animation:ios-spin 1s linear infinite}
 @keyframes ios-spin{to{transform:rotate(360deg)}}
-.ios-app .ios-sheet{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;min-width:0;min-height:0;padding:calc(env(safe-area-inset-top,0px) + 10px) max(20px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom,0px) + 16px) max(20px,env(safe-area-inset-left,0px));background:var(--ios-bg);outline:none;animation:ios-reveal 220ms cubic-bezier(.16,1,.3,1) both;overflow:hidden}
+.ios-app .ios-sheet{position:absolute;inset:0;z-index:10;display:flex;flex-direction:column;min-width:0;min-height:0;padding:calc(max(env(safe-area-inset-top,0px),var(--ios-native-safe-top,0px)) + 10px) max(20px,max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px))) calc(max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)) + 16px) max(20px,max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px)));background:var(--ios-bg);outline:none;animation:ios-reveal 220ms cubic-bezier(.16,1,.3,1) both;overflow:hidden}
 @keyframes ios-reveal{from{transform:translateY(20px);opacity:.7}to{transform:translateY(0);opacity:1}}
 .ios-app .ios-sheet-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex:0 0 auto;margin-bottom:20px;min-height:44px}
 .ios-app .ios-sheet-header h2{min-width:0;font-size:24px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
@@ -110,7 +110,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-app .ios-transport{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:76px}
 .ios-app .ios-transport>.ios-icon:not(.ios-toggle){width:48px;height:48px;flex-basis:48px}
 .ios-app .ios-player-queue{gap:10px;font-size:14px;color:var(--ios-muted);justify-self:center;padding:8px 20px;margin-top:4px}
-.ios-app .ios-queue{padding-bottom:calc(env(safe-area-inset-bottom,0px) + 12px)}
+.ios-app .ios-queue{padding-bottom:calc(max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)) + 12px)}
 .ios-queue-current{flex-shrink:0;padding-bottom:14px}
 .ios-queue-current h3{font-size:13px;color:var(--ios-muted);margin-bottom:7px}
 .ios-app .ios-queue-current .ios-song{border:0;min-height:66px;padding:0}
@@ -134,6 +134,10 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-app .ios-setting-row{display:flex;width:100%;align-items:center;justify-content:space-between;gap:16px;min-height:52px;padding:10px 0;text-align:left;border-radius:0;border-bottom:1px solid var(--ios-hairline)}
 .ios-app .ios-setting-row[aria-pressed=true]{color:var(--ios-accent)}
 .ios-setting-row input{accent-color:var(--ios-accent);width:24px;height:24px;flex-shrink:0}
+.ios-app .ios-switch{position:relative;appearance:none;-webkit-appearance:none;width:51px;height:31px;margin:0;border:0;border-radius:20px;background:#6b6474;cursor:pointer;transition:background-color 180ms ease-out}
+.ios-app .ios-switch::after{content:'';position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 4px #0004;transition:transform 200ms cubic-bezier(.16,1,.3,1)}
+.ios-app .ios-switch:checked{background:var(--ios-accent)}
+.ios-app .ios-switch:checked::after{transform:translateX(20px)}
 .ios-settings dl{font-size:14px;margin:0}
 .ios-settings dl div{display:flex;justify-content:space-between;gap:12px;padding:8px 0}
 .ios-settings dt{color:var(--ios-muted)}
@@ -143,12 +147,12 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-menu-artist{color:var(--ios-muted);font-size:14px;margin-bottom:18px!important}
 .ios-app .ios-menu>button{justify-content:flex-start;width:100%;padding:16px 8px;border-bottom:1px solid var(--ios-hairline);border-radius:0;min-height:56px}
 .ios-app .ios-confirm p{margin:4px 0 18px;color:var(--ios-muted)}
-.ios-app .ios-notice{position:absolute;z-index:50;bottom:calc(env(safe-area-inset-bottom,0px) + var(--ios-notice-bottom,20px));left:20px;right:20px;padding:14px 18px;max-width:540px;margin:auto;background:#393141;color:#fff;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity 180ms ease-out}
+.ios-app .ios-notice{position:absolute;z-index:50;bottom:calc(max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)) + var(--ios-notice-bottom,20px));left:20px;right:20px;padding:14px 18px;max-width:540px;margin:auto;background:#393141;color:#fff;border-radius:14px;font-size:14px;opacity:0;pointer-events:none;transition:opacity 180ms ease-out}
 .ios-notice.is-visible{opacity:1}
-.ios-playback-error{position:absolute;z-index:40;left:16px;right:16px;top:calc(env(safe-area-inset-top,0px) + 64px);display:flex;align-items:center;gap:12px;background:#3e2836;border-radius:12px;padding:12px 14px;color:#fff;font-size:13px;box-shadow:0 8px 24px #0006}
+.ios-playback-error{position:absolute;z-index:40;left:16px;right:16px;top:calc(max(env(safe-area-inset-top,0px),var(--ios-native-safe-top,0px)) + 64px);display:flex;align-items:center;gap:12px;background:#3e2836;border-radius:12px;padding:12px 14px;color:#fff;font-size:13px;box-shadow:0 8px 24px #0006}
 .ios-app .ios-playback-error button{flex-shrink:0;font-size:13px;text-decoration:underline;text-underline-offset:3px}
 .ios-app .ios-connection{padding:40px 0;color:var(--ios-muted)}
-@media(max-height:700px){.ios-app .ios-player{gap:6px;padding-left:24px;padding-right:24px;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 8px)}.ios-player-art{padding:0}.ios-app .ios-player h1{font-size:24px}.ios-app .ios-player-artist{font-size:16px}.ios-app .ios-player-details{padding-top:4px}.ios-app .ios-player-queue{margin-top:0}.ios-app .ios-transport{min-height:64px}.ios-app .ios-transport .ios-toggle-large{width:64px;height:64px;min-height:64px;flex-basis:64px}.ios-app .ios-resume{padding:12px 12px 18px}.ios-app .ios-resume-main .artwork{width:76px;height:76px}}
+@media(max-height:700px){.ios-app .ios-player{gap:6px;padding-left:24px;padding-right:24px;padding-bottom:calc(max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)) + 8px)}.ios-player-art{padding:0}.ios-app .ios-player h1{font-size:24px}.ios-app .ios-player-artist{font-size:16px}.ios-app .ios-player-details{padding-top:4px}.ios-app .ios-player-queue{margin-top:0}.ios-app .ios-transport{min-height:64px}.ios-app .ios-transport .ios-toggle-large{width:64px;height:64px;min-height:64px;flex-basis:64px}.ios-app .ios-resume{padding:12px 12px 18px}.ios-app .ios-resume-main .artwork{width:76px;height:76px}}
 @media(max-width:360px){.ios-content{padding-left:16px;padding-right:16px}.ios-app .ios-resume-main{gap:10px}.ios-app .ios-resume-main .artwork{width:68px;height:68px}.ios-app .ios-resume .ios-identity strong{font-size:18px}.ios-app .ios-transport{gap:2px}.ios-app .ios-transport>.ios-icon:not(.ios-toggle){width:44px;height:44px;flex-basis:44px}}
 @media(prefers-reduced-motion:reduce){.ios-app *,.ios-app *::before,.ios-app *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.ios-app .scroll-text{overflow:hidden;text-overflow:ellipsis}}
 .ios-reduce-motion *,.ios-reduce-motion *::before,.ios-reduce-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
@@ -171,7 +175,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-sheet-backdrop.is-raised{z-index:29}
 .ios-app .ios-shell[aria-hidden=true],.ios-app>div[aria-hidden=true]:not(.ios-sheet-backdrop){pointer-events:none}
 @media(orientation:landscape) and (max-height:500px){
- .ios-app .ios-player{grid-template-columns:minmax(0,.8fr) minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 62px 64px;column-gap:24px;row-gap:6px;padding-top:max(6px,env(safe-area-inset-top,0px));padding-bottom:max(10px,env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+ .ios-app .ios-player{grid-template-columns:minmax(0,.8fr) minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 62px 64px;column-gap:24px;row-gap:6px;padding-top:max(6px,max(env(safe-area-inset-top,0px),var(--ios-native-safe-top,0px)));padding-bottom:max(10px,max(env(safe-area-inset-bottom,0px),var(--ios-native-safe-bottom,0px)));padding-left:max(20px,max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px)));padding-right:max(20px,max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px)))}
  .ios-player-top{grid-column:1/-1;grid-row:1}
  .ios-player-art{grid-column:1;grid-row:2/5;padding:0}
  .ios-player-details{grid-column:2;grid-row:2;align-self:end;max-height:100%;padding-top:0}

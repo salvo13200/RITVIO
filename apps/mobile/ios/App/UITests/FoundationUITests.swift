@@ -65,12 +65,27 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(app.webViews.staticTexts["Added to queue"].waitForExistence(timeout: 10))
         button(app, "Clear search").tap(); field.typeText("offline\n")
         XCTAssertTrue(app.webViews.staticTexts["Search could not complete. Check your connection and try again."].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.webViews.staticTexts["Added to queue"].exists, "New search must dismiss superseded queue feedback")
+        XCTAssertTrue(button(app, "Try again").isHittable)
         capture(app, "ios4-search-recoverable-error")
         button(app, "Clear search").tap(); field.typeText("empty\n")
         XCTAssertTrue(app.webViews.staticTexts["No songs found"].waitForExistence(timeout: 10))
         button(app, "Settings").tap()
         XCTAssertTrue(app.webViews.staticTexts["IOS-4"].waitForExistence(timeout: 10))
+        let done = button(app, "Done"), headerTop = done.frame.minY
+        XCTAssertGreaterThanOrEqual(headerTop, app.frame.height > 800 ? 44 : 16, "Settings must remain below the portrait system region after keyboard dismissal")
+        let motion = app.webViews.switches["Reduce motion"]
+        XCTAssertTrue(motion.waitForExistence(timeout: 10)); XCTAssertEqual(String(describing: motion.value ?? ""), "0")
         capture(app, "ios4-settings")
+        motion.tap(); XCTAssertEqual(String(describing: motion.value ?? ""), "1")
+        capture(app, "ios4-settings-motion-on")
+        motion.tap(); XCTAssertEqual(String(describing: motion.value ?? ""), "0")
+        let sources = app.webViews.staticTexts["Music sources"]
+        for _ in 0..<4 { if sources.isHittable { break }; app.swipeUp() }
+        XCTAssertTrue(sources.isHittable, "Settings content must retain its own scrolling")
+        XCTAssertEqual(done.frame.minY, headerTop, accuracy: 2, "Settings header must stay fixed")
+        capture(app, "ios4-settings-sources")
+        for _ in 0..<4 { if app.webViews.switches["Italiano"].isHittable { break }; app.swipeDown() }
         chooseLanguage(app, "Italiano"); button(app, "Fine").tap()
         app.terminate(); app.launch()
         XCTAssertTrue(app.webViews.staticTexts["Il tuo ascolto"].waitForExistence(timeout: 35))

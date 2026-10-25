@@ -24,6 +24,8 @@ test('foundation accepts native metadata without inventing playback capabilities
  assert.equal(parseFoundationStatus(playerBuild).capabilities.playback,true);
  assert.equal(parseFoundationStatus({...playerBuild,phase:'IOS-4',textScale:1.65}).capabilities.playback,true);
  for(const textScale of [0,NaN,Infinity,'1.5'])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',textScale}));
+ assert.deepEqual(parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea:{top:62,right:0,bottom:34,left:0}}).safeArea,{top:62,right:0,bottom:34,left:0});
+ for(const safeArea of [null,{}, {top:-1,right:0,bottom:0,left:0},{top:NaN,right:0,bottom:0,left:0}])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea}));
  assert.throws(()=>parseFoundationStatus({...playerBuild,capabilities:{...playerBuild.capabilities,library:true}}));
 });
 test('bridge round trip must return the actual challenge and native platform',()=>{

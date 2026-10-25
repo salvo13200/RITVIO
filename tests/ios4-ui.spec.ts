@@ -16,7 +16,7 @@ async function fixture(page:Page,{empty=false,scale=1}:{empty?:boolean;scale?:nu
   const emit=()=>{state.stamp.sequence++;for(const listener of listeners)listener(copy(state));return copy(state);};
   const fail=(code:string)=>Object.assign(Error(code),{code});
   Object.assign(window,{__iosOperations:operations,__iosState:()=>copy(state),__iosEmit:(value:any)=>{state={...state,...value};return emit();},__ios:{
-   foundationStatus:async()=>({platform:'ios',phase:'IOS-4',version:'0.4.0',build:'4',bundleId:'it.ritvio.ios',systemVersion:'26.0',environment:'simulator',minimumOS:'15.0',bundledAssets:true,textScale:scale,capabilities:{resolver:true,playback:true,library:false,lyrics:false,sharing:false}}),
+   foundationStatus:async()=>({platform:'ios',phase:'IOS-4',version:'0.4.0',build:'4',bundleId:'it.ritvio.ios',systemVersion:'26.0',environment:'simulator',minimumOS:'15.0',bundledAssets:true,textScale:scale,safeArea:innerWidth>innerHeight?{top:0,right:20,bottom:0,left:20}:{top:20,right:0,bottom:20,left:0},capabilities:{resolver:true,playback:true,library:false,lyrics:false,sharing:false}}),
    snapshot:async()=>copy(state),
    languageRead:async()=>copy(language),languageWrite:async({preference}:any)=>{language={...language,preference,revision:language.revision+1};localStorage.setItem('__iosLanguage',preference);for(const listener of languages)listener(copy(language));return copy(language);},
    addListener:async(event:string,listener:(value:any)=>void)=>{const list=event==='language'?languages:listeners;list.add(listener);return {remove:async()=>{list.delete(listener);}};},
@@ -69,6 +69,7 @@ test('debounced search, stale result rejection, queue menu and error recovery',a
  await input.fill('slower');await page.waitForTimeout(400);await input.fill('empty');await expect(page.getByRole('heading',{name:'No songs found'})).toBeVisible();await page.waitForTimeout(400);await expect(page.getByRole('heading',{name:'No songs found'})).toBeVisible();
  await input.fill('offline');await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();await input.fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Play next',exact:true}).click();await expect(page.getByRole('status')).toContainText('Added to queue');
  const toast=(await page.getByRole('status').boundingBox())!,mini=(await page.getByTestId('mini-player').boundingBox())!;expect(toast.y+toast.height).toBeLessThanOrEqual(mini.y);
+ await input.fill('offline');await expect(page.getByRole('button',{name:'Try again'})).toBeInViewport();await expect(page.getByRole('status')).not.toContainText('Added to queue');
 });
 test('queue handles offer tap actions and cancel a held gesture after a native revision change',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Open player: After the rain'}).first().click();await page.getByRole('button',{name:'Queue',exact:true}).first().click();
@@ -90,7 +91,10 @@ test('small iPhone, large text, reduced motion and keyboard dialogs stay usable'
  await page.setViewportSize({width:375,height:667});await fixture(page,{scale:1.65});await page.getByRole('button',{name:'Open player: After the rain'}).first().click();
  const player=page.getByRole('dialog',{name:'Now playing',exact:true});
  expect(await player.evaluate(node=>node.scrollHeight<=node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Next song'})).toBeInViewport();
- await page.getByRole('button',{name:'Close player'}).first().click();await page.getByRole('button',{name:'Settings'}).click();await page.getByRole('checkbox',{name:'Reduce motion'}).check();await expect(page.locator('.ios-app')).toHaveClass(/ios-reduce-motion/);await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+ await page.getByRole('button',{name:'Close player'}).first().click();await page.getByRole('button',{name:'Settings'}).click();
+ expect((await page.getByRole('button',{name:'Done',exact:true}).boundingBox())!.y).toBeGreaterThanOrEqual(20);
+ await page.getByRole('switch',{name:'Reduce motion'}).check();await expect(page.locator('.ios-app')).toHaveClass(/ios-reduce-motion/);await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
+ await page.reload();await page.getByRole('button',{name:'Settings'}).click();await expect(page.getByRole('switch',{name:'Reduce motion'})).toBeChecked();await page.keyboard.press('Escape');
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.setViewportSize({width:667,height:375});await page.getByRole('button',{name:'Open player: After the rain'}).first().click();
  expect(await player.evaluate(node=>node.scrollHeight<=node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Next song'})).toBeInViewport();await expect(player.locator('.ios-player-details')).toBeInViewport();
