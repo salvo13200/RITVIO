@@ -31,7 +31,7 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[]};
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
 const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
@@ -65,9 +65,11 @@ if(buildSimulator){
    try{
     await run('xcrun',['simctl','bootstatus',device.udid,'-b']);await run('xcrun',['simctl','ui',device.udid,'appearance','dark']);
     if(index===1)await run('xcrun',['simctl','ui',device.udid,'content_size','accessibility-large']);
+    let uiPassed=true;
     if(!options.has('--resolver-only')){
     const result=path.join(results,`foundation-${index}.xcresult`);
     try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
+    catch(error){uiPassed=false;report.uiFailures.push({simulator:device.name,error:error.message});console.error(`Native UI failed on ${device.name}; continuing independent player/resolver and other-device checks.`);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0&&!options.has('--skip-live');
@@ -107,7 +109,7 @@ if(buildSimulator){
     }
     if(!nativeEvidence)throw Error('Native resolver evidence did not complete within 240 seconds');
     await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(nativeEvidence,null,2)+'\n');
-    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':'passed',resolver:nativeEvidence.status==='passed'?'passed':'failed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
+    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':uiPassed?'passed':'failed',resolver:nativeEvidence.status==='passed'?'passed':'failed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
     if(nativeEvidence.status!=='passed'){
      if(live&&String(nativeEvidence.failedStage).startsWith('live-')){
       report.liveFailures.push({simulator:device.name,stage:nativeEvidence.failedStage,error:nativeEvidence.error});
@@ -123,6 +125,7 @@ report.liveProvider=options.has('--skip-live')?'not-run':report.liveFailures.len
 report.nativeBuild=nativeBuildPassed()?'passed':'failed';
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 if(report.liveFailures.length)throw Error('Live provider acceptance remains open; see the redacted resolver evidence.');
+if(report.uiFailures.length)throw Error('Native UI checks failed; see the XCTest captures and uiFailures.');
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:report.simulators.length?'passed':'not-run',physicalTests:'pending'},null,2)+'\n');
 } catch(error) {
  report.nativeBuild=nativeBuildPassed()?'passed':'failed';

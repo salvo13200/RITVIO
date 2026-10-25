@@ -20,6 +20,7 @@ export function App({controller}:{controller:LanguageController}){
  const [motion,setMotion]=useState(()=>{try{return localStorage.getItem('ritvio.ios.reduce-motion')==='true';}catch{return false;}}),[languageBusy,setLanguageBusy]=useState(false);
  const current=state.items[state.index],future=upcoming(state),searchRef=useRef<HTMLInputElement>(null),request=useRef(0),notice=useRef(0),root=useRef<HTMLDivElement>(null);
  const apply=useCallback((value:MobilePlayback)=>{setState(previous=>acceptPlaybackSnapshot(previous,value));setConnected(true);},[]);
+ useEffect(()=>{document.documentElement.lang=language.language;},[language.language]);
  function announce(value:string){window.clearTimeout(notice.current);setMessage(value);notice.current=window.setTimeout(()=>setMessage(''),5000);}
  useEffect(()=>{
   let disposed=false,listener:{remove:()=>Promise<void>}|undefined;

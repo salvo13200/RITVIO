@@ -74,9 +74,11 @@ test('small iPhone, large text, reduced motion and keyboard dialogs stay usable'
  expect(await player.evaluate(node=>node.scrollHeight<=node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Next song'})).toBeInViewport();
  await page.getByRole('button',{name:'Close player'}).first().click();await page.getByRole('button',{name:'Settings'}).click();await page.getByRole('checkbox',{name:'Reduce motion'}).check();await expect(page.locator('.ios-app')).toHaveClass(/ios-reduce-motion/);await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).toHaveCount(0);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.setViewportSize({width:667,height:375});await page.getByRole('button',{name:'Open player: After the rain'}).first().click();
+ expect(await player.evaluate(node=>node.scrollHeight<=node.clientHeight)).toBe(true);await expect(page.getByRole('button',{name:'Next song'})).toBeInViewport();await expect(player.locator('.ios-player-details')).toBeInViewport();
 });
 test('empty first run, language persistence and accessibility scan',async({page})=>{
  await fixture(page,{empty:true});await expect(page.getByRole('heading',{name:'Your next listen starts here'})).toBeVisible();await expect(page.getByTestId('mini-player')).toHaveCount(0);
  const accessibility=await new AxeBuilder({page}).include('.ios-app').analyze();expect(accessibility.violations).toEqual([]);
- await page.getByRole('button',{name:'Settings'}).click();await page.getByRole('button',{name:'Italiano',exact:true}).click();await page.getByRole('button',{name:'Fine',exact:true}).click();await expect(page.getByRole('heading',{name:'Il tuo ascolto'})).toBeVisible();await page.reload();await expect(page.getByRole('heading',{name:'Il tuo ascolto'})).toBeVisible();
+ await page.getByRole('button',{name:'Settings'}).click();await page.getByRole('button',{name:'Italiano',exact:true}).click();await page.getByRole('button',{name:'Fine',exact:true}).click();await expect(page.getByRole('heading',{name:'Il tuo ascolto'})).toBeVisible();await expect(page.locator('html')).toHaveAttribute('lang','it');await page.reload();await expect(page.getByRole('heading',{name:'Il tuo ascolto'})).toBeVisible();
 });

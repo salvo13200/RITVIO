@@ -13,6 +13,7 @@ final class FoundationUITests: XCTestCase {
         chooseLanguage(app, "English"); button(app, "Done").tap()
         let resume = button(app, "Open player: After the rain")
         XCTAssertTrue(resume.waitForExistence(timeout: 30))
+        XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 15))
         capture(app, "ios4-home-native-fixture"); resume.tap()
         let slider = app.webViews.sliders["Playback position"]
         XCTAssertTrue(slider.waitForExistence(timeout: 10))
@@ -20,9 +21,20 @@ final class FoundationUITests: XCTestCase {
         app.swipeUp()
         XCTAssertEqual(queue.frame.minY, origin.minY, accuracy: 2, "Expanded player must not scroll")
         XCTAssertFalse(app.webViews.sliders["Volume"].exists)
-        slider.adjust(toNormalizedSliderPosition: 0.6)
+        // XCTest's native-slider helper has no scrubber coordinates for a WKWebView range.
+        // Exercise the real touch path instead, then read the native-backed time value.
+        let start = slider.coordinate(withNormalizedOffset: CGVector(dx: 24.0 / 90.0, dy: 0.5))
+        let finish = slider.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5))
+        start.press(forDuration: 0.15, thenDragTo: finish)
+        let sought = NSPredicate { _, _ in String(describing: slider.value ?? "").contains("0:5") }
+        expectation(for: sought, evaluatedWith: app); waitForExpectations(timeout: 10)
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 10), "Seeking while paused must stay paused")
-        capture(app, "ios4-player-native-fixture"); queue.tap()
+        capture(app, "ios4-player-native-fixture")
+        XCUIDevice.shared.orientation = .landscapeLeft
+        XCTAssertTrue(button(app, "Next song").isHittable)
+        capture(app, "ios4-player-landscape-native-fixture")
+        XCUIDevice.shared.orientation = .portrait
+        queue.tap()
         let slow = button(app, "Reorder: Slow motion"), night = button(app, "Reorder: Night swim")
         XCTAssertTrue(slow.waitForExistence(timeout: 10)); XCTAssertTrue(night.isHittable)
         night.press(forDuration: 0.25, thenDragTo: slow)
@@ -37,6 +49,7 @@ final class FoundationUITests: XCTestCase {
         button(app, "Next song").tap()
         XCTAssertTrue(app.webViews.staticTexts["Night swim"].waitForExistence(timeout: 15), "Next must follow the reordered native queue")
         XCTAssertTrue(button(app, "Pause").waitForExistence(timeout: 15)); button(app, "Pause").tap()
+        XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 15))
         capture(app, "ios4-player-after-reordered-next")
         button(app, "Close player").tap(); button(app, "Search").tap()
         let field = app.webViews.searchFields["Songs or artists"]
