@@ -92,7 +92,9 @@ enum PlaybackSelfTest {
             try await wait("LAST_TRACK_NOT_READY") { !loading(player) && playing(player) }
             _ = try player.command("seek", value: 11.7)
             try await wait("END_FAILED") { player.snapshot()["status"] as? String == "ended" && !playing(player) }
-            report["endPolicy"] = ["repeatOne": true, "repeatAll": true, "stopAtEnd": true]
+            _ = try player.command("play")
+            try await wait("RESTART_AFTER_END_FAILED") { !loading(player) && playing(player) && position(player) > 0.15 && position(player) < 3 }
+            report["endPolicy"] = ["repeatOne": true, "repeatAll": true, "stopAtEnd": true, "restartAfterEnd": true]
 
             progress("expired-source-recovery")
             FixtureMediaProtocol.setMode("deny-once")

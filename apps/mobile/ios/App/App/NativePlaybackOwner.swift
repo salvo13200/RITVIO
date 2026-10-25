@@ -99,10 +99,11 @@ final class NativePlaybackOwner {
         switch type {
         case "play":
             guard queue.current != nil else { return snapshot() }
-            let restart = ended
+            let restart = ended || (player.currentItem == nil && duration > 0 && savedPosition >= duration - 0.05)
             wantsPlayback = true; ended = false; interrupted = false
-            if player.currentItem == nil || errorCode != nil { activate(at: savedPosition) } else { reconcileIntent() }
-            if restart { seek(to: 0) }
+            if player.currentItem == nil || errorCode != nil { activate(at: restart ? 0 : savedPosition) }
+            else if restart { seek(to: 0) }
+            else { reconcileIntent() }
         case "pause": wantsPlayback = false; player.pause(); watchdog?.cancel(); persist()
         case "next": if queue.advance(automatic: false) { activate(at: 0) } else { wantsPlayback = false; player.pause(); ended = true; persist() }
         case "previous":
@@ -134,7 +135,8 @@ final class NativePlaybackOwner {
             if queue.current == nil { stopCurrent(); wantsPlayback = false; savedPosition = 0 }
             else if removed { activate(at: 0) }
             persist()
-        case "retry": if queue.current != nil { activate(at: position, refresh: true) }
+        case "retry":
+            if queue.current != nil { wantsPlayback = true; interrupted = false; activate(at: position, refresh: true) }
         case "clear":
             stopCurrent(); queue = PlaybackQueue(revision: queue.revision + 1); wantsPlayback = false; savedPosition = 0; ended = false; errorCode = nil; persist()
             if systemIntegration { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
@@ -279,6 +281,7 @@ final class NativePlaybackOwner {
         } catch { /* Playback continues; no path or personal queue enters logs. */ }
     }
     func flush() { persist() }
+    func publishSnapshot() { emit() }
 
     func interruption(began: Bool, shouldResume: Bool = false) {
         if began { interrupted = true; player.pause(); watchdog?.cancel(); persist() }

@@ -4,6 +4,18 @@ import Capacitor
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
 
+    func sceneDidEnterBackground(_ scene: UIScene) {
+        NativePlaybackOwner.shared.flush()
+    }
+
+    func sceneDidDisconnect(_ scene: UIScene) {
+        NativePlaybackOwner.shared.flush()
+    }
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        NativePlaybackOwner.shared.publishSnapshot()
+    }
+
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
