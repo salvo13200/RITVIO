@@ -4,13 +4,15 @@
 
 Windows 1.0.0 / Android 1.4.0 acceptance, source correspondence, remote CI and public-download checks are recorded in [Quality status](QUALITY_STATUS.md). The staged test descriptions below distinguish their original source-only scope from later native acceptance; a browser fixture never substitutes for a physical-device result.
 
-## iOS foundation (unreleased)
+## iOS foundation and embedded resolver (unreleased)
 
 `pnpm exec tsx --test tests/ios-foundation.test.ts` checks platform isolation, the native readiness contract, challenge/response validation, version separation and source-export exclusions. `pnpm ios:prepare` prepares only bundled assets and Capacitor configuration, including on Windows; it is not evidence of native compilation.
 
 On macOS, `pnpm ios:build --smoke` separately builds the simulator and unsigned arm64 device target. The XCTest UI test launches the packaged app, verifies the actual Swift bridge and bundled-asset response, performs a fresh challenge round trip, changes language, terminates/relaunches the app and verifies persistence. It runs on up to two available iPhone simulators; the second uses larger accessibility text. Screenshots come from XCTest, not a browser mock. Reports record the selected models and runtimes, so a recent simulator is never presented as an iOS 15/iPhone 6s result.
 
-Artifacts and SHA-256 sidecars are under `.local/ios/artifacts/`, with simulator/device ZIPs explicitly separated. The device ZIP has no distribution signature and is not a directly installable IPA. IOS-1 has no search, playback, library, lyrics or sharing implementation; native capabilities and the technical screen report that scope explicitly. Physical installation, free-signing renewal, locked-screen listening, Bluetooth/calls, real performance and iOS 15 compatibility remain pending until a device is available. See [build instructions](BUILDING.md#ios-foundation-technical-build).
+IOS-2 additionally runs the packaged Python/QuickJS interpreter inside the app, checking trusted CA availability, execution/memory limits, lack of host IO in the JavaScript sandbox, cache eviction, CPU cancellation, concurrent admission and recovery after cancellation. The first simulator attempts two real music searches, cache reuse, AAC/M4A resolution and bounded initial/middle byte-range probes. Provider failures fail the live check; deterministic fixtures never replace live evidence. The host policy tests in `tests/ios_resolver_test.py` cover validation, cache rules, cancellation, error redaction and fixed provider-error categories; they do not prove native execution.
+
+`pnpm ios:build --smoke --resolver-only` runs the native resolver on one simulator without UI/XCTest captures, for backend diagnosis. This does not count as the two-device UI check. Full `--smoke` retains those UI/language captures. Artifacts and SHA-256 sidecars are under `.local/ios/artifacts/`, with simulator/device ZIPs explicitly separated. The device ZIP has no distribution signature and is not a directly installable IPA. The complete listening UI, playback, library, lyrics and sharing are later increments. Physical installation, free-signing renewal, locked-screen listening, Bluetooth/calls, real performance and iOS 15 compatibility remain pending until a device is available. See [build instructions](BUILDING.md#ios-embedded-resolver-technical-build).
 
 ## CI isolation and native process sampling
 
