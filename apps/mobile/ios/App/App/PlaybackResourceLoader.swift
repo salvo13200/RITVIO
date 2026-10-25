@@ -70,6 +70,13 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
     }
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource request: AVAssetResourceLoadingRequest) -> Bool {
         guard !stopped, loading.count < Self.maxRequests else { request.finishLoading(with: error("MEDIA_BUSY")); return true }
+        if let data = request.dataRequest {
+            guard data.requestedOffset >= 0, data.currentOffset >= 0, data.requestedLength >= 0,
+                  data.requestedOffset < 100_000_000_000,
+                  data.requestsAllDataToEndOfResource || Int64(data.requestedLength) <= Int64.max - data.requestedOffset else {
+                request.finishLoading(with: error("INVALID_RANGE")); return true
+            }
+        }
         let item = Loading(request)
         fetch(item)
         return true
@@ -109,6 +116,8 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
         }
         var redirected = request
         for (name, value) in headers { redirected.setValue(value, forHTTPHeaderField: name) }
+        redirected.setValue(task.originalRequest?.value(forHTTPHeaderField: "Range"), forHTTPHeaderField: "Range")
+        redirected.setValue("identity", forHTTPHeaderField: "Accept-Encoding")
         completionHandler(redirected)
     }
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse, completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {

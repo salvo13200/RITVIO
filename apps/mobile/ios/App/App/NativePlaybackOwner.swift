@@ -314,6 +314,8 @@ final class NativePlaybackOwner {
             }
         }
         bind(remote.playCommand, "play"); bind(remote.pauseCommand, "pause"); bind(remote.nextTrackCommand, "next"); bind(remote.previousTrackCommand, "previous"); bind(remote.stopCommand, "pause")
+        remote.togglePlayPauseCommand.isEnabled = true; remote.changePlaybackPositionCommand.isEnabled = true
+        remote.changeRepeatModeCommand.isEnabled = true; remote.changeShuffleModeCommand.isEnabled = true
         remote.togglePlayPauseCommand.addTarget { [weak self] _ in DispatchQueue.main.async { guard let self else { return }; _ = try? self.command(self.wantsPlayback ? "pause" : "play") }; return .success }
         remote.changePlaybackPositionCommand.addTarget { [weak self] event in
             guard let event = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
@@ -330,6 +332,9 @@ final class NativePlaybackOwner {
         }
     }
     private func updateNowPlaying() {
+        let commands = MPRemoteCommandCenter.shared()
+        commands.changeRepeatModeCommand.currentRepeatType = queue.repeatMode == "one" ? .one : queue.repeatMode == "all" ? .all : .off
+        commands.changeShuffleModeCommand.currentShuffleType = queue.shuffle ? .items : .off
         guard let track = queue.current else { MPNowPlayingInfoCenter.default().nowPlayingInfo = nil; return }
         MPNowPlayingInfoCenter.default().nowPlayingInfo = [MPMediaItemPropertyTitle: track.title, MPMediaItemPropertyArtist: track.artist,
             MPMediaItemPropertyAlbumTitle: track.album?.name ?? "", MPMediaItemPropertyPlaybackDuration: duration,

@@ -132,7 +132,12 @@ enum PlaybackSelfTest {
         } catch {
             report["status"] = "failed"; report["failedStage"] = stage
             report["error"] = (error as? ResolverFailure)?.identifier ?? "NATIVE_PLAYBACK_CHECK_FAILED"
-            if let owner { let state = owner.snapshot(); report["lastState"] = ["index": state["index"] ?? -1, "position": state["position"] ?? -1, "playing": state["playing"] ?? false, "loading": state["loading"] ?? false, "status": state["status"] ?? "unknown", "error": state["error"] ?? NSNull()] }
+            if let owner {
+                let state = owner.snapshot()
+                var lastState: [String: Any] = [:]
+                for key in ["index", "position", "playing", "loading", "status", "error"] { lastState[key] = state[key] ?? NSNull() }
+                report["lastState"] = lastState
+            }
         }
         write(report)
     }
