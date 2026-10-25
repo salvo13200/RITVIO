@@ -32,7 +32,9 @@ final class FoundationUITests: XCTestCase {
         }
         expectation(for: reordered, evaluatedWith: app); waitForExpectations(timeout: 10)
         capture(app, "ios4-queue-reordered-native")
-        button(app, "Done").tap(); button(app, "Next song").tap()
+        button(app, "Done").tap(); button(app, "Play").tap()
+        XCTAssertTrue(button(app, "Pause").waitForExistence(timeout: 15))
+        button(app, "Next song").tap()
         XCTAssertTrue(app.webViews.staticTexts["Night swim"].waitForExistence(timeout: 15), "Next must follow the reordered native queue")
         XCTAssertTrue(button(app, "Pause").waitForExistence(timeout: 15)); button(app, "Pause").tap()
         capture(app, "ios4-player-after-reordered-next")
