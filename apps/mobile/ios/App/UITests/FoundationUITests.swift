@@ -41,6 +41,7 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(slow.waitForExistence(timeout: 10)); XCTAssertTrue(night.isHittable)
         slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10))
         capture(app, "ios4-queue-song-actions"); button(app, "Cancel").tap()
+        XCTAssertTrue(button(app, "Reorder: Night swim").waitForExistence(timeout: 10), "Queue controls must return to the native accessibility tree after dismissing the menu")
         night.press(forDuration: 0.25, thenDragTo: slow)
         let reordered = NSPredicate { _, _ in
             let first = app.webViews.buttons["Reorder: Night swim"], second = app.webViews.buttons["Reorder: Slow motion"]

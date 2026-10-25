@@ -72,7 +72,7 @@ test('debounced search, stale result rejection, queue menu and error recovery',a
 });
 test('queue handles offer tap actions and cancel a held gesture after a native revision change',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Open player: After the rain'}).first().click();await page.getByRole('button',{name:'Queue',exact:true}).first().click();
- await page.getByRole('button',{name:'Reorder: Slow motion'}).click();await expect(page.getByRole('button',{name:'Move down'})).toBeVisible();await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ await page.getByRole('button',{name:'Reorder: Slow motion'}).click();await expect(page.getByRole('button',{name:'Move down'})).toBeVisible();await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('button',{name:'Reorder: Slow motion'})).toBeFocused();
  const grip=page.getByRole('button',{name:'Reorder: Night swim'}),from=(await grip.boundingBox())!,to=(await page.getByRole('button',{name:'Reorder: Slow motion'}).boundingBox())!;
  await page.mouse.move(from.x+22,from.y+22);await page.mouse.down();await page.mouse.move(to.x+22,to.y+22,{steps:8});
  expect((await grip.boundingBox())!.y).toBeLessThan(from.y-50);

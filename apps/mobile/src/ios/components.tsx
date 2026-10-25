@@ -7,7 +7,7 @@ import type {IOSCopy} from './copy';
 
 export {Artwork,ScrollText};
 export function IconButton({label,children,onClick,pressed,disabled=false,className=''}:{label:string;children:ReactNode;onClick:()=>void;pressed?:boolean;disabled?:boolean;className?:string}){
- return <button type="button" className={`ios-icon ${className}`} aria-label={label} aria-pressed={pressed} disabled={disabled} onClick={onClick}>{children}</button>;
+ return <button type="button" className={`ios-icon ${className}`} aria-label={label} aria-pressed={pressed} disabled={disabled} onClick={event=>{event.currentTarget.focus({preventScroll:true});onClick();}}>{children}</button>;
 }
 export function Toggle({state,text,onToggle,large=false}:{state:MobilePlayback;text:IOSCopy;onToggle:()=>void;large?:boolean}){
  return <IconButton className={`ios-toggle${large?' ios-toggle-large':''}`} label={state.loading?text.pause:state.playing?text.pause:text.play} onClick={onToggle}>{state.loading?<LoaderCircle className="ios-spinner" aria-hidden="true"/>:state.playing?<Pause fill="currentColor" aria-hidden="true"/>:<Play fill="currentColor" aria-hidden="true"/>}</IconButton>;
@@ -37,7 +37,7 @@ export function Sheet({title,closeLabel,onClose,children,className='',closeText=
  useEffect(()=>{
   const prior=document.activeElement as HTMLElement|null;
   const token=Symbol('ios-dialog');dialogStack.push(token);
-  const frame=requestAnimationFrame(()=>ref.current?.focus());
+  const frame=requestAnimationFrame(()=>{const target=ref.current?.querySelector<HTMLElement>('button:not(:disabled)')??ref.current;target?.focus({preventScroll:true});});
   function key(event:KeyboardEvent){
    if(dialogStack[dialogStack.length-1]!==token)return;
    if(event.key==='Escape'){event.preventDefault();close.current();return;}
@@ -49,7 +49,20 @@ export function Sheet({title,closeLabel,onClose,children,className='',closeText=
    else if(!event.shiftKey&&(document.activeElement===last||document.activeElement===ref.current)){first.focus();event.preventDefault();}
   }
   document.addEventListener('keydown',key);
-  return()=>{cancelAnimationFrame(frame);document.removeEventListener('keydown',key);const index=dialogStack.indexOf(token);if(index>=0)dialogStack.splice(index,1);if(prior?.isConnected)prior.focus();};
+  return()=>{
+   cancelAnimationFrame(frame);document.removeEventListener('keydown',key);const index=dialogStack.indexOf(token);if(index>=0)dialogStack.splice(index,1);
+   // React must first remove aria-hidden from the underlying screen. Restoring
+   // focus synchronously can leave WebKit's native accessibility tree empty.
+   requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(prior?.isConnected&&!prior.closest('[aria-hidden="true"]')){
+     const target=prior.matches('button,input,select,a[href]')?prior:prior.querySelector<HTMLElement>('button:not(:disabled)')??prior;
+     target.focus({preventScroll:true});
+    }else{
+     const sheets=Array.from(document.querySelectorAll<HTMLElement>('.ios-sheet[aria-modal="true"]')).filter(element=>!element.closest('[aria-hidden="true"]'));
+     sheets[sheets.length-1]?.querySelector<HTMLElement>('button:not(:disabled)')?.focus({preventScroll:true});
+    }
+   }));
+  };
  },[]);
  const raised=/ios-menu|ios-confirm/.test(className);
  return <><div aria-hidden="true" className={`ios-sheet-backdrop${raised?' is-raised':''}`} onClick={onClose}/><section ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`ios-sheet ${className}`}><header className="ios-sheet-header"><h2>{title}</h2>{closeText?<button className="ios-sheet-done" onClick={onClose}>{closeLabel}</button>:<IconButton label={closeLabel} onClick={onClose}><X/></IconButton>}</header>{children}</section></>;
