@@ -157,11 +157,15 @@ def valid_stream(value):
     return value
 
 
-def resolve(video_id):
+def resolve(video_id, refresh=False):
     try:
         shared._video_id(video_id)
     except ValueError:
         raise ResolverError('INVALID_VIDEO_ID') from None
+    if not isinstance(refresh, bool):
+        raise ResolverError('INVALID_ARGUMENT')
+    if refresh:
+        _stream_cache.pop(video_id, None)
     cached = cache_read(_stream_cache, video_id, time.time())
     if cached is not None:
         return {**valid_stream(cached), 'cacheHit': True}
@@ -225,7 +229,7 @@ def invoke(payload_json):
         elif operation == 'search':
             value = search(payload.get('query'))
         elif operation == 'resolve':
-            value = resolve(payload.get('videoId'))
+            value = resolve(payload.get('videoId'), payload.get('refresh', False))
         elif operation == 'engine-check':
             value = engine_checks()
         elif operation == 'cancel-check':

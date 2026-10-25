@@ -57,6 +57,17 @@ class IOSResolverTests(unittest.TestCase):
         with patch.object(resolver.shared, 'resolve', return_value=json.dumps(self.stream)) as provider:
             self.assertFalse(resolver.resolve('abcdefghijk')['cacheHit']); provider.assert_called_once()
 
+    def test_explicit_refresh_evicts_only_target_and_preserves_cooldown(self):
+        with patch.object(resolver.shared, 'resolve', return_value=json.dumps(self.stream)) as provider:
+            resolver.resolve('abcdefghijk'); resolver.resolve('lmnopqrstuv')
+            self.assertFalse(resolver.resolve('abcdefghijk', refresh=True)['cacheHit'])
+            self.assertTrue(resolver.resolve('lmnopqrstuv')['cacheHit'])
+            self.assertEqual(provider.call_count, 3)
+            resolver._cooldown_until = time.monotonic() + 30
+            with self.assertRaises(resolver.ResolverError): resolver.resolve('abcdefghijk', refresh=True)
+            self.assertEqual(provider.call_count, 3)
+        self.assertEqual(self.call(operation='resolve', videoId='abcdefghijk', refresh='yes')['error'], 'INVALID_ARGUMENT')
+
     def test_descriptor_rejects_incompatible_untrusted_or_expired_audio(self):
         updates = [{'url': 'https://evilgooglevideo.com/a'}, {'url': 'http://r1.googlevideo.com/a'}, {'url': 'https://user:password@r1.googlevideo.com/a'},
                    {'url': 'https://r1.googlevideo.com:444/a'}, {'codec': 'opus'}, {'container': 'webm'}, {'protocol': 'm3u8_native'},

@@ -12,7 +12,7 @@ final class FoundationUITests: XCTestCase {
         tap(app, "English")
         captureCurrent(app, "foundation-language-english")
         XCTAssertTrue(app.webViews.staticTexts["Native bridge ready"].waitForExistence(timeout: 15))
-        XCTAssertTrue(app.webViews.staticTexts["IOS-2"].exists)
+        XCTAssertTrue(app.webViews.staticTexts["IOS-3"].exists)
         XCTAssertTrue(app.webViews.staticTexts["Included in this app"].exists)
         capture(app, "foundation-english")
 

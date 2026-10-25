@@ -9,7 +9,7 @@ import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
-for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only'].includes(flag))throw Error(`Unknown option: ${flag}`);
+for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only','--skip-live'].includes(flag))throw Error(`Unknown option: ${flag}`);
 if(!options.has('--prepare-only')&&process.platform!=='darwin')throw Error('Xcode builds require macOS. Use pnpm ios:prepare on Windows.');
 if(options.has('--smoke')&&options.has('--prepare-only'))throw Error('Smoke tests require a native build.');
 if(options.has('--resolver-only')&&!options.has('--smoke'))throw Error('Resolver-only mode requires --smoke');
@@ -31,7 +31,7 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',playback:false,artifacts:[],simulators:[],liveFailures:[]};
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[]};
 const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
@@ -70,8 +70,27 @@ if(buildSimulator){
     try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
-    const live=index===0;
+    const live=index===0&&!options.has('--skip-live');
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
+    if(index===0&&version.phase==='IOS-3'&&!options.has('--resolver-only')){
+     const playbackEvidence=path.join(container,'Documents/playback-evidence.json');
+     await rm(playbackEvidence,{force:true});
+     await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-playback-check']);
+     let playback;
+     let previous;
+     for(let attempt=0;attempt<240;attempt++){
+      try{
+       const value=JSON.parse(await readFile(playbackEvidence,'utf8'));
+       if(value.stage!==previous){previous=value.stage;console.log(`Native playback: ${value.stage}`);}
+       await writeFile(path.join(artifacts,'playback.json'),JSON.stringify(value,null,2)+'\n');
+       if(value.status==='passed'||value.status==='failed'){playback=value;break;}
+      }catch(error){if(error.code!=='ENOENT')throw error;}
+      await new Promise(resolve=>setTimeout(resolve,1000));
+     }
+     if(!playback)throw Error('Native playback evidence did not complete within 240 seconds');
+     report.playback=playback.status==='passed'?'native-synthetic-passed':'failed';
+     if(playback.status!=='passed')throw Error(`Native playback check failed: ${playback.failedStage}/${playback.error}`);
+    }
     const evidence=path.join(container,'Documents/resolver-evidence.json');
     await rm(evidence,{force:true});
     await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-resolver-check',...(live?['--ritvio-resolver-live']:[])]);
@@ -99,7 +118,8 @@ if(buildSimulator){
   }
  }
 }
-report.resolver=report.liveFailures.length?'failed':report.simulators.length?'passed':'not-run';
+report.resolver=report.liveFailures.length?'failed':report.simulators.length?options.has('--skip-live')?'native-checks-passed':'passed':'not-run';
+report.liveProvider=options.has('--skip-live')?'not-run':report.liveFailures.length?'failed':report.simulators.length?'passed':'not-run';
 report.nativeBuild=nativeBuildPassed()?'passed':'failed';
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 if(report.liveFailures.length)throw Error('Live provider acceptance remains open; see the redacted resolver evidence.');

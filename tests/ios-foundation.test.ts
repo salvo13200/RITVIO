@@ -20,6 +20,9 @@ test('foundation accepts native metadata without inventing playback capabilities
  const resolverBuild={...status,phase:'IOS-2',capabilities:{...status.capabilities,resolver:true}};
  assert.equal(parseFoundationStatus(resolverBuild).capabilities.resolver,true);
  assert.throws(()=>parseFoundationStatus({...resolverBuild,capabilities:{...resolverBuild.capabilities,playback:true}}));
+ const playerBuild={...resolverBuild,phase:'IOS-3',capabilities:{...resolverBuild.capabilities,playback:true}};
+ assert.equal(parseFoundationStatus(playerBuild).capabilities.playback,true);
+ assert.throws(()=>parseFoundationStatus({...playerBuild,capabilities:{...playerBuild.capabilities,library:true}}));
 });
 test('bridge round trip must return the actual challenge and native platform',()=>{
  verifyFoundationCheck({platform:'ios',nonce:'12345678'},'12345678');
@@ -33,5 +36,5 @@ test('iOS build version remains independent from the existing Android release',a
  const ios=JSON.parse(await readFile(new URL('../apps/mobile/ios-version.json',import.meta.url),'utf8'));
  const android=JSON.parse(await readFile(new URL('../apps/mobile/package.json',import.meta.url),'utf8'));
  const gradle=await readFile(new URL('../apps/mobile/android/app/build.gradle',import.meta.url),'utf8');
- assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-2');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
+ assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-3');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
 });

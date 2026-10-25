@@ -20,6 +20,10 @@ on:
         description: Include native UI/language captures on both iPhone sizes
         type: boolean
         default: true
+      live_provider:
+        description: Also require real-provider stream acceptance (may be rejected by the provider)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -27,7 +31,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   foundation:
-    name: iOS simulator and unsigned device build
+    name: iOS native build and player (provider check opt-in)
     runs-on: macos-26
     timeout-minutes: 60
     steps:
@@ -45,9 +49,24 @@ jobs:
       - run: python3 tests/ios_resolver_test.py
       - run: xcodebuild -version
       - if: github.event_name != 'workflow_dispatch' || inputs.full_ui
-        run: pnpm ios:build --smoke
+        name: Native UI, player and resolver core (live provider optional)
+        env:
+          CHECK_LIVE: ${{ github.event_name == 'workflow_dispatch' && inputs.live_provider }}
+        run: |
+          if [ "$CHECK_LIVE" = "true" ]; then
+            pnpm ios:build --smoke
+          else
+            pnpm ios:build --smoke --skip-live
+          fi
       - if: github.event_name == 'workflow_dispatch' && !inputs.full_ui
-        run: pnpm ios:build --smoke --resolver-only
+        env:
+          CHECK_LIVE: ${{ inputs.live_provider }}
+        run: |
+          if [ "$CHECK_LIVE" = "true" ]; then
+            pnpm ios:build --smoke --resolver-only
+          else
+            pnpm ios:build --smoke --resolver-only --skip-live
+          fi
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:

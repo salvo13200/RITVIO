@@ -32,6 +32,10 @@ BB2000000000000000000012 = {isa = PBXBuildFile; fileRef = BB20000000000000000000
 BB2000000000000000000021 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; };
 BB2000000000000000000022 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy,); }; };
 BB2000000000000000000026 = {isa = PBXBuildFile; fileRef = BB2000000000000000000025; };
+CC3000000000000000000002 = {isa = PBXBuildFile; fileRef = CC3000000000000000000001; };
+CC3000000000000000000004 = {isa = PBXBuildFile; fileRef = CC3000000000000000000003; };
+CC3000000000000000000006 = {isa = PBXBuildFile; fileRef = CC3000000000000000000005; };
+CC3000000000000000000008 = {isa = PBXBuildFile; fileRef = CC3000000000000000000007; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +66,10 @@ BB200000000000000000000F = {isa = PBXFileReference; lastKnownFileType = sourceco
 BB2000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/cutils.c"; sourceTree = SOURCE_ROOT; };
 BB2000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Runtime/Python.xcframework; sourceTree = SOURCE_ROOT; };
 BB2000000000000000000025 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/ResolverTransportFixture.swift"; sourceTree = SOURCE_ROOT; };
+CC3000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/PlaybackQueue.swift"; sourceTree = SOURCE_ROOT; };
+CC3000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/PlaybackResourceLoader.swift"; sourceTree = SOURCE_ROOT; };
+CC3000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/NativePlaybackOwner.swift"; sourceTree = SOURCE_ROOT; };
+CC3000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/PlaybackSelfTest.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -100,6 +108,10 @@ BB200000000000000000000F,
 BB2000000000000000000011,
 BB2000000000000000000020,
 BB2000000000000000000025,
+CC3000000000000000000007,
+CC3000000000000000000005,
+CC3000000000000000000003,
+CC3000000000000000000001,
 				504EC3061FED79650016851F /* App */,
 AA1000000000000000000010,
 				504EC3051FED79650016851F /* Products */,
@@ -239,6 +251,10 @@ BB200000000000000000000E,
 BB2000000000000000000010,
 BB2000000000000000000012,
 BB2000000000000000000026,
+CC3000000000000000000008,
+CC3000000000000000000006,
+CC3000000000000000000004,
+CC3000000000000000000002,
 AA1000000000000000000002,
 AA1000000000000000000004,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
@@ -389,14 +405,14 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -417,14 +433,14 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.2.0;
+				MARKETING_VERSION = 0.3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
