@@ -47,6 +47,9 @@ final class FoundationUITests: XCTestCase {
     }
 
     private func captureCurrent(_ app: XCUIApplication, _ name: String) {
+        // Accessibility text updates can precede WebKit's next painted frame.
+        // Let the existing 150ms control transition settle before visual evidence.
+        Thread.sleep(forTimeInterval: 0.3)
         let attachment = XCTAttachment(screenshot: app.screenshot())
         attachment.name = name
         attachment.lifetime = .keepAlways

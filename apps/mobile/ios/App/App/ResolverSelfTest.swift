@@ -43,9 +43,12 @@ enum ResolverSelfTest {
             report["cancellation"] = ["code": "CANCELLED", "milliseconds": Date().timeIntervalSince(started) * 1000, "concurrentAdmission": "BUSY"]
             // A cancelled operation must not poison the next request.
             _ = try await worker.call(["operation": "status"])
+            progress("transport-policy")
+            report["transportPolicy"] = try await ResolverTransportFixture.verify()
             if live {
                 progress("live-search")
                 var searches = [[String: Any]](), streams = [[String: Any]]()
+                var candidates = [String]()
                 for query in ["Daft Punk", "Massive Attack"] {
                     let result = try await worker.call(["operation": "search", "query": query])
                     guard let items = result["items"] as? [[String: Any]], !items.isEmpty,
@@ -54,8 +57,11 @@ enum ResolverSelfTest {
                     guard repeated["cacheHit"] as? Bool == true else { throw ResolverFailure.code("SEARCH_CACHE_MISSED") }
                     searches.append(["query": query, "items": items.count, "cacheReused": true])
                     report["searches"] = searches
-                    progress("live-resolution")
+                    candidates.append(videoID)
+                }
+                for videoID in candidates {
                     report["attemptedVideoId"] = videoID
+                    progress("live-resolution")
                     let coldStart = Date()
                     let descriptor = try await worker.call(["operation": "resolve", "videoId": videoID], budget: 60000)
                     let coldMilliseconds = Date().timeIntervalSince(coldStart) * 1000

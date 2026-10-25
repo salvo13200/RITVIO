@@ -31,7 +31,8 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',playback:false,artifacts:[],simulators:[]};
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',playback:false,artifacts:[],simulators:[],liveFailures:[]};
+const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
 async function archive(app,name,destination){
@@ -87,16 +88,25 @@ if(buildSimulator){
     }
     if(!nativeEvidence)throw Error('Native resolver evidence did not complete within 240 seconds');
     await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(nativeEvidence,null,2)+'\n');
-    if(nativeEvidence.status!=='passed')throw Error(`Native resolver check failed: ${nativeEvidence.failedStage}/${nativeEvidence.error}`);
-    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':'passed',resolver:'passed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
+    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':'passed',resolver:nativeEvidence.status==='passed'?'passed':'failed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
+    if(nativeEvidence.status!=='passed'){
+     if(live&&String(nativeEvidence.failedStage).startsWith('live-')){
+      report.liveFailures.push({simulator:device.name,stage:nativeEvidence.failedStage,error:nativeEvidence.error});
+      console.error(`Live provider check remains open: ${nativeEvidence.error}. Continuing independent native checks.`);
+     }else throw Error(`Native resolver check failed: ${nativeEvidence.failedStage}/${nativeEvidence.error}`);
+    }
    }finally{await run('xcrun',['simctl','shutdown',device.udid]);if(device.created)await run('xcrun',['simctl','delete',device.udid]);}
   }
  }
 }
-report.resolver=report.simulators.length?'passed':'not-run';
+report.resolver=report.liveFailures.length?'failed':report.simulators.length?'passed':'not-run';
+report.nativeBuild=nativeBuildPassed()?'passed':'failed';
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
-await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'passed',physicalTests:'pending'},null,2)+'\n');
+if(report.liveFailures.length)throw Error('Live provider acceptance remains open; see the redacted resolver evidence.');
+await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:report.simulators.length?'passed':'not-run',physicalTests:'pending'},null,2)+'\n');
 } catch(error) {
- await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
+ report.nativeBuild=nativeBuildPassed()?'passed':'failed';
+ await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');
+ await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
  throw error;
 }

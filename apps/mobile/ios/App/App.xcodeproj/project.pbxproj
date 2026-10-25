@@ -31,6 +31,7 @@ BB2000000000000000000010 = {isa = PBXBuildFile; fileRef = BB20000000000000000000
 BB2000000000000000000012 = {isa = PBXBuildFile; fileRef = BB2000000000000000000011; };
 BB2000000000000000000021 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; };
 BB2000000000000000000022 = {isa = PBXBuildFile; fileRef = BB2000000000000000000020; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy,); }; };
+BB2000000000000000000026 = {isa = PBXBuildFile; fileRef = BB2000000000000000000025; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@ BB200000000000000000000D = {isa = PBXFileReference; lastKnownFileType = sourceco
 BB200000000000000000000F = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/libunicode.c"; sourceTree = SOURCE_ROOT; };
 BB2000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = "Runtime/quickjs/cutils.c"; sourceTree = SOURCE_ROOT; };
 BB2000000000000000000020 = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Runtime/Python.xcframework; sourceTree = SOURCE_ROOT; };
+BB2000000000000000000025 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/ResolverTransportFixture.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -97,6 +99,7 @@ BB200000000000000000000D,
 BB200000000000000000000F,
 BB2000000000000000000011,
 BB2000000000000000000020,
+BB2000000000000000000025,
 				504EC3061FED79650016851F /* App */,
 AA1000000000000000000010,
 				504EC3051FED79650016851F /* Products */,
@@ -235,6 +238,7 @@ BB200000000000000000000C,
 BB200000000000000000000E,
 BB2000000000000000000010,
 BB2000000000000000000012,
+BB2000000000000000000026,
 AA1000000000000000000002,
 AA1000000000000000000004,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
@@ -381,7 +385,7 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;
                 SWIFT_OBJC_BRIDGING_HEADER = "App/App-Bridging-Header.h";
                 HEADER_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Runtime/quickjs",);
-                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)", "$(BUILT_PRODUCTS_DIR)/XCFrameworkIntermediates/Python",);
+                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)",);
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
@@ -409,7 +413,7 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 ENABLE_USER_SCRIPT_SANDBOXING = NO;
                 SWIFT_OBJC_BRIDGING_HEADER = "App/App-Bridging-Header.h";
                 HEADER_SEARCH_PATHS = ("$(inherited)", "$(PROJECT_DIR)/Runtime/quickjs",);
-                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)", "$(BUILT_PRODUCTS_DIR)/XCFrameworkIntermediates/Python",);
+                FRAMEWORK_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)",);
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;

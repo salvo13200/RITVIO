@@ -7,6 +7,7 @@ final class ResolverStreamProbe: NSObject, URLSessionDataDelegate {
     private let start: Int64
     private var total: Int64 = 0
     private var received = 0
+    private var expected = 0
     private var prefix = Data()
     private var accepted = false
     private var done = false
@@ -14,11 +15,12 @@ final class ResolverStreamProbe: NSObject, URLSessionDataDelegate {
     init(start: Int64, completion: @escaping (Result<[String: Any], Error>) -> Void) { self.start = start; self.completion = completion }
     private static func allowed(_ url: URL) -> Bool { url.scheme == "https" && url.host?.hasSuffix(".googlevideo.com") == true && url.user == nil && url.password == nil && (url.port == nil || url.port == 443) }
 
-    static func check(_ descriptor: [String: Any], start: Int64 = 0) async throws -> [String: Any] {
+    static func check(_ descriptor: [String: Any], start: Int64 = 0, protocols: [AnyClass]? = nil) async throws -> [String: Any] {
         guard let text = descriptor["url"] as? String, let url = URL(string: text), allowed(url) else { throw ResolverFailure.code("INVALID_STREAM") }
         return try await withCheckedThrowingContinuation { continuation in
             let probe = ResolverStreamProbe(start: start) { continuation.resume(with: $0) }
             let configuration = URLSessionConfiguration.ephemeral
+            if let protocols { configuration.protocolClasses = protocols }
             configuration.urlCache = nil; configuration.httpShouldSetCookies = false
             configuration.timeoutIntervalForRequest = 12; configuration.timeoutIntervalForResource = 15
             let delegateQueue = OperationQueue(); delegateQueue.maxConcurrentOperationCount = 1
@@ -46,7 +48,7 @@ final class ResolverStreamProbe: NSObject, URLSessionDataDelegate {
               first == start, last >= first, last - first < 1024, count > last, count < 100_000_000_000 else {
             completionHandler(.cancel); finish(.failure(ResolverFailure.code("RANGE_UNSUPPORTED"))); return
         }
-        total = count; accepted = true; completionHandler(.allow)
+        total = count; expected = Int(last - first + 1); accepted = true; completionHandler(.allow)
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
@@ -57,7 +59,7 @@ final class ResolverStreamProbe: NSObject, URLSessionDataDelegate {
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
         if done { return }
-        guard error == nil, accepted, received > 0 else { finish(.failure(ResolverFailure.code("TRANSPORT_UNAVAILABLE"))); return }
+        guard error == nil, accepted, received == expected, received > 0 else { finish(.failure(ResolverFailure.code("TRANSPORT_UNAVAILABLE"))); return }
         if start == 0 && (prefix.count < 8 || String(data: prefix.subdata(in: 4..<8), encoding: .ascii) != "ftyp") { finish(.failure(ResolverFailure.code("CONTAINER_MISMATCH"))); return }
         finish(.success(["httpStatus": 206, "start": start, "bytes": received, "total": total, "mp4Header": start == 0]))
     }
