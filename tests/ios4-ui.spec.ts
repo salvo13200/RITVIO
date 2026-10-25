@@ -81,6 +81,7 @@ test('queue handles offer tap actions and cancel a held gesture after a native r
 });
 test('a song menu consumes outside taps without activating the screen behind it',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();
+ await expect(page.getByRole('dialog',{name:'Slow motion',exact:true})).toBeVisible();
  const gear=(await page.locator('.ios-header button').boundingBox())!;await page.mouse.click(gear.x+gear.width/2,gear.y+gear.height/2);
  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Search',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type||op.method==='playTracks').length)).toBe(0);
