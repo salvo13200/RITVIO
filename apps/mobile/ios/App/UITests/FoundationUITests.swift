@@ -91,7 +91,11 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(sources.isHittable, "Settings content must retain its own scrolling")
         XCTAssertEqual(done.frame.minY, headerTop, accuracy: 2, "Settings header must stay fixed")
         capture(app, "ios4-settings-sources")
-        for _ in 0..<4 { if app.webViews.switches["Italiano"].isHittable { break }; app.swipeDown() }
+        // WKWebView can report a partially clipped row as hittable even when its
+        // centre is behind the fixed header. Bring the entire control below it.
+        let italian = app.webViews.switches["Italiano"]
+        for _ in 0..<4 { if italian.exists && italian.frame.minY >= done.frame.maxY { break }; app.swipeDown() }
+        XCTAssertGreaterThanOrEqual(italian.frame.minY, done.frame.maxY)
         chooseLanguage(app, "Italiano"); button(app, "Fine").tap()
         app.terminate(); app.launch()
         XCTAssertTrue(app.webViews.staticTexts["Il tuo ascolto"].waitForExistence(timeout: 35))
@@ -105,6 +109,8 @@ final class FoundationUITests: XCTestCase {
     private func chooseLanguage(_ app: XCUIApplication, _ label: String) {
         let choice = app.webViews.switches[label]
         XCTAssertTrue(choice.waitForExistence(timeout: 10)); choice.tap()
+        let selected = NSPredicate { _, _ in String(describing: choice.value ?? "") == "1" }
+        expectation(for: selected, evaluatedWith: app); waitForExpectations(timeout: 10)
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
         Thread.sleep(forTimeInterval: name.contains("landscape") ? 1.0 : 0.35)
