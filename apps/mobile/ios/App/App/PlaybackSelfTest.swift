@@ -160,7 +160,11 @@ enum PlaybackSelfTest {
         wav.append(contentsOf: "RIFF".utf8); word(UInt32(36 + count * 2)); wav.append(contentsOf: "WAVEfmt ".utf8)
         word(UInt32(16)); word(UInt16(1)); word(UInt16(1)); word(UInt32(22050)); word(UInt32(44100)); word(UInt16(2)); word(UInt16(16))
         wav.append(contentsOf: "data".utf8); word(UInt32(count * 2))
-        for index in 0..<count { word(Int16(sin(Double(index) * 2 * .pi * 440 / 22050) * 2000)) }
+        let angularStep: Double = 2.0 * Double.pi * 440.0 / 22050.0
+        for index in 0..<count {
+            let sample: Int16 = Int16(sin(Double(index) * angularStep) * 2000.0)
+            word(sample)
+        }
         let input = directory.appendingPathComponent("original-tone.wav"), output = directory.appendingPathComponent("original-tone.m4a")
         try wav.write(to: input)
         guard let exporter = AVAssetExportSession(asset: AVURLAsset(url: input), presetName: AVAssetExportPresetAppleM4A) else { throw ResolverFailure.code("FIXTURE_ENCODER_UNAVAILABLE") }
