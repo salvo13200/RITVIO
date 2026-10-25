@@ -12,6 +12,11 @@ enum ResolverSelfTest {
     private static func run(live: Bool) async {
         let worker = ResolverWorker.shared
         var report: [String: Any] = ["schema": 1, "phase": "IOS-2", "native": true, "liveRequested": live, "playback": false, "physicalTests": "pending"]
+        #if arch(arm64)
+        report["executionArchitecture"] = "arm64"
+        #else
+        report["executionArchitecture"] = "x86_64"
+        #endif
         var stage = "runtime"
         func progress(_ next: String) {
             stage = next; report["stage"] = stage; report["status"] = "running"
@@ -50,6 +55,7 @@ enum ResolverSelfTest {
                     searches.append(["query": query, "items": items.count, "cacheReused": true])
                     report["searches"] = searches
                     progress("live-resolution")
+                    report["attemptedVideoId"] = videoID
                     let coldStart = Date()
                     let descriptor = try await worker.call(["operation": "resolve", "videoId": videoID], budget: 60000)
                     let coldMilliseconds = Date().timeIntervalSince(coldStart) * 1000
