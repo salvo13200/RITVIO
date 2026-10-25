@@ -100,7 +100,7 @@ final class NativePlaybackOwner {
         case "play":
             guard queue.current != nil else { return snapshot() }
             let restart = ended
-            wantsPlayback = true; ended = false
+            wantsPlayback = true; ended = false; interrupted = false
             if player.currentItem == nil || errorCode != nil { activate(at: savedPosition) } else { reconcileIntent() }
             if restart { seek(to: 0) }
         case "pause": wantsPlayback = false; player.pause(); watchdog?.cancel(); persist()
@@ -117,7 +117,8 @@ final class NativePlaybackOwner {
             guard let mode = value as? String, ["off", "all", "one"].contains(mode) else { throw ResolverFailure.code("INVALID_ARGUMENT") }
             queue.repeatMode = mode; queue.revision += 1; persist()
         case "shuffle":
-            guard let enabled = value as? Bool else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+            guard let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+            let enabled = number.boolValue
             queue.setShuffle(enabled); persist()
         case "jump":
             guard let index = Self.integer(value), queue.items.indices.contains(index) else { throw ResolverFailure.code("INVALID_QUEUE") }
@@ -128,6 +129,7 @@ final class NativePlaybackOwner {
         case "remove":
             let details = value as? [String: Any]
             guard let index = Self.integer(details?["index"] ?? value) else { throw ResolverFailure.code("INVALID_QUEUE") }
+            if let details, Self.integer(details["revision"]) == nil { throw ResolverFailure.code("INVALID_QUEUE") }
             let removed = try queue.remove(index, expectedRevision: details.flatMap { Self.integer($0["revision"]) })
             if queue.current == nil { stopCurrent(); wantsPlayback = false; savedPosition = 0 }
             else if removed { activate(at: 0) }
@@ -244,9 +246,13 @@ final class NativePlaybackOwner {
     }
     private func finishError(_ code: String) {
         savedPosition = position
+        generation += 1; seekGeneration += 1; pendingResolution = nil
+        if let activeResolution { cancelResolve(activeResolution) }
+        itemObservation = nil
+        if let endedObserver { NotificationCenter.default.removeObserver(endedObserver); self.endedObserver = nil }
         errorCode = code; wantsPlayback = false; resolving = false; seeking = false; pendingSeek = nil; recovering = false
         loader?.stop()
-        player.pause(); watchdog?.cancel(); retryWork?.cancel(); persist(); emit()
+        player.pause(); player.replaceCurrentItem(with: nil); watchdog?.cancel(); retryWork?.cancel(); persist(); emit()
     }
     private func armWatchdog() {
         watchdog?.cancel(); let current = generation
@@ -291,14 +297,14 @@ final class NativePlaybackOwner {
             guard let self, let raw = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?.uintValue else { return }
             let options = AVAudioSession.InterruptionOptions(rawValue: (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? NSNumber)?.uintValue ?? 0)
             self.interruption(began: raw == AVAudioSession.InterruptionType.began.rawValue, shouldResume: options.contains(.shouldResume))
-        }) )
+        })
         notifications.append(center.addObserver(forName: AVAudioSession.routeChangeNotification, object: nil, queue: .main) { [weak self] note in
             guard let self, (note.userInfo?[AVAudioSessionRouteChangeReasonKey] as? NSNumber)?.uintValue == AVAudioSession.RouteChangeReason.oldDeviceUnavailable.rawValue else { return }
             self.routeLost()
-        }) )
+        })
         notifications.append(center.addObserver(forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main) { [weak self] _ in
             guard let self else { return }; self.wantsPlayback = false; self.stopCurrent(); self.errorCode = "AUDIO_SESSION_RESET"; self.emit()
-        }) )
+        })
         let remote = MPRemoteCommandCenter.shared()
         func bind(_ command: MPRemoteCommand, _ type: String) {
             command.isEnabled = true
