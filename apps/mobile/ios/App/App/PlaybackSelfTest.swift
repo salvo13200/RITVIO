@@ -1,5 +1,6 @@
 import Foundation
 import AVFoundation
+import UIKit
 
 /// Native AVPlayer evidence from original generated tones and synthetic HTTP.
 /// It is deliberately independent of provider access and is never live evidence.
@@ -11,7 +12,7 @@ enum PlaybackSelfTest {
         Task { @MainActor in await run() }
     }
     @MainActor private static func run() async {
-        var report: [String: Any] = ["schema": 1, "phase": "IOS-3", "nativeAVPlayer": true, "syntheticTransport": true,
+        var report: [String: Any] = ["schema": 1, "phase": "IOS-4", "nativeAVPlayer": true, "syntheticTransport": true,
             "source": "original-generated-tone", "providerStreaming": "pending", "audibleOutput": "not-measured", "physicalTests": "pending"]
         var stage = "queue-policy"
         func progress(_ value: String) { stage = value; report["stage"] = stage; report["status"] = "running"; write(report) }
@@ -38,6 +39,17 @@ enum PlaybackSelfTest {
             catch let failure as ResolverFailure { if failure.identifier != "QUEUE_CHANGED" { throw failure } }
             _ = try policy.remove(0, expectedRevision: policy.revision)
             try expect(policy.current?.videoId == "ritviotest1" && policy.valid, "REMOVE_CHANGED_CURRENT")
+            var reordered = PlaybackQueue()
+            try reordered.replace(decoded, at: 0)
+            try reordered.move(from: 2, to: 1, expectedRevision: reordered.revision)
+            try expect(reordered.order.map { reordered.items[$0].videoId } == ["ritviotest1", "ritviotest3", "ritviotest2"], "MOVE_PLAYBACK_ORDER_UNCHANGED")
+            try expect(reordered.advance(automatic: false) && reordered.current?.videoId == "ritviotest3", "MOVE_NEXT_WRONG")
+            try expect(reordered.previous() && reordered.current?.videoId == "ritviotest1", "MOVE_PREVIOUS_WRONG")
+            reordered.shuffle = true; reordered.order = [0, 2, 1]
+            let from = reordered.order[2], to = reordered.order[1]
+            let expected = [reordered.items[0].videoId, reordered.items[from].videoId, reordered.items[to].videoId]
+            try reordered.move(from: from, to: to, expectedRevision: reordered.revision)
+            try expect(reordered.valid && reordered.order.map { reordered.items[$0].videoId } == expected, "SHUFFLED_MOVE_ORDER_WRONG")
             report["queuePolicy"] = ["repeatOne": true, "manualSkip": true, "repeatAll": true, "shufflePermutation": true, "reorderIdentity": true, "staleRevisionRejected": true]
 
             progress("original-aac")
@@ -157,7 +169,7 @@ enum PlaybackSelfTest {
         }
         throw ResolverFailure.code(code)
     }
-    private static func makeAudio(in directory: URL) async throws -> Data {
+    static func makeAudio(in directory: URL) async throws -> Data {
         var wav = Data()
         func word<T: FixedWidthInteger>(_ number: T) { var value = number.littleEndian; withUnsafeBytes(of: &value) { wav.append(contentsOf: $0) } }
         let count = 22050 * fixtureSeconds
@@ -185,7 +197,7 @@ enum PlaybackSelfTest {
 }
 
 #if DEBUG
-private final class FixtureMediaProtocol: URLProtocol {
+final class FixtureMediaProtocol: URLProtocol {
     private static let lock = NSLock()
     private static var audio = Data()
     private static var mode = "normal"
@@ -222,5 +234,78 @@ private final class FixtureMediaProtocol: URLProtocol {
         client?.urlProtocol(self, didLoad: body); client?.urlProtocolDidFinishLoading(self)
     }
     override func stopLoading() {}
+}
+
+/// Only a Debug build with this explicit launch argument can enter the UI fixture.
+/// Playback still goes through the real owner, AVPlayer and bounded range loader.
+/// The tone and geometric covers are original diagnostics, never catalog evidence.
+enum NativeUIFixture {
+    static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--ritvio-ui-check") }
+    private static var preparing = false
+    static let tracks: [[String: Any]] = [
+        ["videoId": "ritviotest1", "title": "After the rain", "artist": "Luna Vale", "thumbnail": "", "duration": 90, "album": ["id": "fixture-album", "name": "Night scenes"]],
+        ["videoId": "ritviotest2", "title": "Slow motion", "artist": "North Avenue", "thumbnail": "", "duration": 90],
+        ["videoId": "ritviotest3", "title": "Golden hour", "artist": "June Atlas", "thumbnail": "", "duration": 90],
+        ["videoId": "ritviotest4", "title": "Night swim", "artist": "Luna Vale", "thumbnail": "", "duration": 90],
+        ["videoId": "ritviotest5", "title": "A very long song title for checking readable overflow on an iPhone", "artist": "A collaborative artist name that also needs room", "thumbnail": "", "duration": 90]
+    ]
+    static func makeOwner() -> NativePlaybackOwner {
+        let storage = FileManager.default.temporaryDirectory.appendingPathComponent("ui-fixture-\(UUID().uuidString).json")
+        return NativePlaybackOwner(storage: storage, protocols: [FixtureMediaProtocol.self], systemIntegration: false,
+            resolver: { _, _, callback in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    callback(.success(["url": "https://fixture.googlevideo.com/audio.m4a", "headers": ["User-Agent": "RITVIO-native-test"], "expires": Date().timeIntervalSince1970 + 300, "container": "m4a", "codec": "mp4a.40.2", "protocol": "https", "duration": 90]))
+                }
+            }, cancelResolve: { _ in })
+    }
+    static func prepareIfRequested() {
+        guard enabled, !preparing else { return }; preparing = true
+        Task { @MainActor in
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ui-media-\(UUID().uuidString)", isDirectory: true)
+            defer { try? FileManager.default.removeItem(at: directory) }
+            do {
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+                FixtureMediaProtocol.configure(try await PlaybackSelfTest.makeAudio(in: directory))
+                if !ProcessInfo.processInfo.arguments.contains("--ritvio-ui-empty") {
+                    let player = NativePlaybackOwner.shared
+                    _ = try player.playTracks(tracks, index: 0)
+                    _ = try player.command("pause"); _ = try player.command("seek", value: 24)
+                }
+            } catch { assertionFailure("Original UI media fixture could not be prepared") }
+        }
+    }
+    private static let covers: [String] = (0..<5).map { index in
+        let palette: [(CGFloat, CGFloat, CGFloat)] = [(0.27,0.20,0.49),(0.12,0.29,0.38),(0.57,0.28,0.21),(0.19,0.25,0.43),(0.36,0.22,0.41)]
+        let color = palette[index]
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: 512, height: 512))
+        let data = renderer.pngData { context in
+            UIColor(red: color.0, green: color.1, blue: color.2, alpha: 1).setFill(); context.fill(CGRect(x: 0, y: 0, width: 512, height: 512))
+            UIColor(red: 0.81, green: 0.68, blue: 0.94, alpha: 0.8).setFill()
+            context.cgContext.fillEllipse(in: CGRect(x: 292, y: 74, width: 126, height: 126))
+            for column in 0..<9 {
+                UIColor(red: 0.08, green: 0.08, blue: 0.15, alpha: 0.82).setFill()
+                let height = 100 + (column * 67 + index * 31) % 180
+                context.fill(CGRect(x: CGFloat(column * 64 - 10), y: CGFloat(512 - height), width: 58, height: CGFloat(height)))
+            }
+        }
+        return "data:image/png;base64," + data.base64EncodedString()
+    }
+    static func present(_ state: [String: Any]) -> [String: Any] {
+        var result = state
+        if let items = state["items"] as? [[String: Any]] {
+            result["items"] = items.map { track in
+                var item = track
+                let number = Int(String((track["videoId"] as? String ?? "1").suffix(1))) ?? 1
+                item["thumbnail"] = covers[max(0, min(4, number - 1))]
+                return item
+            }
+        }
+        return result
+    }
+    static func playbackTrack(_ track: [String: Any]) -> [String: Any] {
+        var result = track
+        if tracks.contains(where: { $0["videoId"] as? String == track["videoId"] as? String }) { result["thumbnail"] = "" }
+        return result
+    }
 }
 #endif

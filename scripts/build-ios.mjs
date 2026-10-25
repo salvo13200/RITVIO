@@ -72,7 +72,7 @@ if(buildSimulator){
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0&&!options.has('--skip-live');
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
-    if(index===0&&version.phase==='IOS-3'&&!options.has('--resolver-only')){
+    if(index===0&&['IOS-3','IOS-4'].includes(version.phase)&&!options.has('--resolver-only')){
      const playbackEvidence=path.join(container,'Documents/playback-evidence.json');
      await rm(playbackEvidence,{force:true});
      await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-playback-check']);

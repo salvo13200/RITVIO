@@ -26,17 +26,30 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
 
     public override func load() {
         DispatchQueue.main.async { [weak self] in
-            NativePlaybackOwner.shared.onSnapshot = { [weak self] state in self?.notifyListeners("playback", data: state) }
+            NativePlaybackOwner.shared.onSnapshot = { [weak self] state in self?.notifyListeners("playback", data: self?.present(state) ?? state) }
+            #if DEBUG
+            NativeUIFixture.prepareIfRequested()
+            #endif
         }
     }
     @objc func snapshot(_ call: CAPPluginCall) { playback(call) { NativePlaybackOwner.shared.snapshot() } }
     @objc func playTracks(_ call: CAPPluginCall) {
         guard let items = call.getArray("items") as? [[String: Any]], !items.isEmpty, items.count <= 500, let index = call.getInt("index") else { call.reject("Invalid queue", "INVALID_QUEUE"); return }
-        playback(call) { try NativePlaybackOwner.shared.playTracks(items, index: index) }
+        playback(call) {
+            #if DEBUG
+            if NativeUIFixture.enabled { return try NativePlaybackOwner.shared.playTracks(items.map(NativeUIFixture.playbackTrack), index: index) }
+            #endif
+            return try NativePlaybackOwner.shared.playTracks(items, index: index)
+        }
     }
     @objc func enqueue(_ call: CAPPluginCall) {
         guard let track = call.getObject("track") else { call.reject("Invalid track", "INVALID_TRACK"); return }
-        playback(call) { try NativePlaybackOwner.shared.enqueue(track, next: call.getBool("next") ?? false) }
+        playback(call) {
+            #if DEBUG
+            if NativeUIFixture.enabled { return try NativePlaybackOwner.shared.enqueue(NativeUIFixture.playbackTrack(track), next: call.getBool("next") ?? false) }
+            #endif
+            return try NativePlaybackOwner.shared.enqueue(track, next: call.getBool("next") ?? false)
+        }
     }
     @objc func command(_ call: CAPPluginCall) {
         guard let type = call.getString("type") else { call.reject("Invalid command", "INVALID_COMMAND"); return }
@@ -44,15 +57,31 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
     }
     private func playback(_ call: CAPPluginCall, operation: @escaping () throws -> [String: Any]) {
         DispatchQueue.main.async {
-            do { call.resolve(try operation()) }
+            do { call.resolve(self.present(try operation())) }
             catch { call.reject("Playback operation could not complete", (error as? ResolverFailure)?.identifier ?? "PLAYBACK_UNAVAILABLE") }
         }
+    }
+
+    private func present(_ state: [String: Any]) -> [String: Any] {
+        #if DEBUG
+        if NativeUIFixture.enabled { return NativeUIFixture.present(state) }
+        #endif
+        return state
     }
 
     @objc func resolverStatus(_ call: CAPPluginCall) { resolve(call, payload: ["operation": "status"]) }
 
     @objc func search(_ call: CAPPluginCall) {
         guard let query = call.getString("query"), (3...200).contains(query.trimmingCharacters(in: .whitespacesAndNewlines).count) else { call.reject("Enter between 3 and 200 characters", "INVALID_QUERY"); return }
+        #if DEBUG
+        if NativeUIFixture.enabled {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                if query.lowercased().contains("offline") { call.reject("Synthetic offline check", "NETWORK_UNAVAILABLE") }
+                else { call.resolve(NativeUIFixture.present(["items": query.lowercased().contains("empty") ? [] : NativeUIFixture.tracks, "cached": false])) }
+            }
+            return
+        }
+        #endif
         resolve(call, payload: ["operation": "search", "query": query]) { value in
             ["items": value["items"] ?? [], "cached": value["cacheHit"] as? Bool ?? false]
         }
@@ -93,12 +122,13 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
             #endif
             let bundle = Bundle.main
             call.resolve([
-                "platform": "ios", "phase": "IOS-3",
+                "platform": "ios", "phase": "IOS-4",
                 "version": bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
                 "build": bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
                 "bundleId": bundle.bundleIdentifier ?? "unknown",
                 "minimumOS": bundle.object(forInfoDictionaryKey: "MinimumOSVersion") as? String ?? "unknown",
                 "systemVersion": UIDevice.current.systemVersion, "environment": environment,
+                "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
                 "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": false, "lyrics": false, "sharing": false]
             ])

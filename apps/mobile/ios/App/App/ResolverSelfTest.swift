@@ -11,7 +11,7 @@ enum ResolverSelfTest {
 
     private static func run(live: Bool) async {
         let worker = ResolverWorker.shared
-        var report: [String: Any] = ["schema": 1, "phase": "IOS-3", "scope": "resolver-only", "native": true, "liveRequested": live, "playback": false, "physicalTests": "pending"]
+        var report: [String: Any] = ["schema": 1, "phase": "IOS-4", "scope": "resolver-only", "native": true, "liveRequested": live, "playback": false, "physicalTests": "pending"]
         #if arch(arm64)
         report["executionArchitecture"] = "arm64"
         #else

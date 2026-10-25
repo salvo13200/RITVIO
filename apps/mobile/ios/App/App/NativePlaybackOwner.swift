@@ -4,7 +4,12 @@ import MediaPlayer
 
 /// Main-thread owner of transport, intent, queue and system controls. UI is a client.
 final class NativePlaybackOwner {
-    static let shared = NativePlaybackOwner()
+    static let shared: NativePlaybackOwner = {
+        #if DEBUG
+        if NativeUIFixture.enabled { return NativeUIFixture.makeOwner() }
+        #endif
+        return NativePlaybackOwner()
+    }()
     typealias Resolve = ([String: Any], String, @escaping (Result<[String: Any], ResolverFailure>) -> Void) -> Void
     var onSnapshot: (([String: Any]) -> Void)?
     private let player = AVPlayer()

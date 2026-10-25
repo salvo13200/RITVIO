@@ -74,11 +74,17 @@ struct PlaybackQueue: Codable {
     mutating func move(from: Int, to: Int, expectedRevision: Int) throws {
         guard expectedRevision == revision else { throw ResolverFailure.code("QUEUE_CHANGED") }
         guard items.indices.contains(from), items.indices.contains(to) else { throw ResolverFailure.code("INVALID_QUEUE") }
+        guard from != to else { return }
+        // Move the occurrence in the effective playback order as well as storage.
+        var playbackIdentities = order
+        let destination = playbackIdentities.firstIndex(of: to)!
+        playbackIdentities.removeAll { $0 == from }
+        playbackIdentities.insert(from, at: destination)
         var identities = Array(items.indices)
         let moving = identities.remove(at: from); identities.insert(moving, at: to)
         let original = items; items = identities.map { original[$0] }
         index = identities.firstIndex(of: index) ?? 0
-        order = order.compactMap { identities.firstIndex(of: $0) }
+        order = playbackIdentities.compactMap { identities.firstIndex(of: $0) }
         revision += 1
     }
     mutating func remove(_ entry: Int, expectedRevision: Int?) throws -> Bool {
