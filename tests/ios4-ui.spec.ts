@@ -79,6 +79,12 @@ test('queue handles offer tap actions and cancel a held gesture after a native r
  await page.evaluate(()=>{const state=(window as any).__iosState();(window as any).__iosEmit({queueRevision:state.queueRevision+1,index:1});});await expect(page.locator('.ios-queue-entry.is-lifted')).toHaveCount(0);await page.mouse.up();
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type==='move').length)).toBe(0);await expect(page.getByRole('status')).toContainText('Reorder cancelled');
 });
+test('a song menu consumes outside taps without activating the screen behind it',async({page})=>{
+ await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();
+ const gear=(await page.locator('.ios-header button').boundingBox())!;await page.mouse.click(gear.x+gear.width/2,gear.y+gear.height/2);
+ await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Search',exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type||op.method==='playTracks').length)).toBe(0);
+});
 test('small iPhone, large text, reduced motion and keyboard dialogs stay usable',async({page})=>{
  await page.setViewportSize({width:375,height:667});await fixture(page,{scale:1.65});await page.getByRole('button',{name:'Open player: After the rain'}).first().click();
  const player=page.getByRole('dialog',{name:'Now playing',exact:true});

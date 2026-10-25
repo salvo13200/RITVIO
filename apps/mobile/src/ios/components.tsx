@@ -51,5 +51,6 @@ export function Sheet({title,closeLabel,onClose,children,className='',closeText=
   document.addEventListener('keydown',key);
   return()=>{cancelAnimationFrame(frame);document.removeEventListener('keydown',key);const index=dialogStack.indexOf(token);if(index>=0)dialogStack.splice(index,1);if(prior?.isConnected)prior.focus();};
  },[]);
- return <section ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`ios-sheet ${className}`}><header className="ios-sheet-header"><h2>{title}</h2>{closeText?<button className="ios-sheet-done" onClick={onClose}>{closeLabel}</button>:<IconButton label={closeLabel} onClick={onClose}><X/></IconButton>}</header>{children}</section>;
+ const raised=/ios-menu|ios-confirm/.test(className);
+ return <><div aria-hidden="true" className={`ios-sheet-backdrop${raised?' is-raised':''}`} onClick={onClose}/><section ref={ref} role="dialog" aria-modal="true" aria-label={title} tabIndex={-1} className={`ios-sheet ${className}`}><header className="ios-sheet-header"><h2>{title}</h2>{closeText?<button className="ios-sheet-done" onClick={onClose}>{closeLabel}</button>:<IconButton label={closeLabel} onClick={onClose}><X/></IconButton>}</header>{children}</section></>;
 }

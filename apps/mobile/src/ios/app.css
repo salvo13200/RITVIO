@@ -138,7 +138,7 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-settings dl div{display:flex;justify-content:space-between;gap:12px;padding:8px 0}
 .ios-settings dt{color:var(--ios-muted)}
 .ios-settings dd{margin:0;text-align:right;font-variant-numeric:tabular-nums}
-.ios-app .ios-menu,.ios-app .ios-confirm{inset:auto 0 0;z-index:30;padding-top:22px;max-height:85%;overflow:auto;border-radius:20px 20px 0 0;background:#25222e;box-shadow:0 -28px 100px 60px #0009}
+.ios-app .ios-menu,.ios-app .ios-confirm{inset:auto 0 0;z-index:30;padding-top:22px;max-height:85%;overflow:auto;border-radius:20px 20px 0 0;background:#25222e;box-shadow:0 -12px 32px #0005}
 .ios-menu .ios-sheet-header{margin-bottom:2px}
 .ios-menu-artist{color:var(--ios-muted);font-size:14px;margin-bottom:18px!important}
 .ios-app .ios-menu>button{justify-content:flex-start;width:100%;padding:16px 8px;border-bottom:1px solid var(--ios-hairline);border-radius:0;min-height:56px}
@@ -167,6 +167,9 @@ html.ios-native body{position:fixed;inset:0;overscroll-behavior:none}
 .ios-app .ios-queue-list .ios-identity strong{font-size:calc(15px * var(--ios-text-scale,1))}
 .ios-app .ios-queue-list .ios-identity small{font-size:calc(13px * var(--ios-text-scale,1))}
 .ios-app .ios-sheet-done{color:var(--ios-accent);font-size:17px;font-weight:600;padding-right:0;flex-shrink:0}
+.ios-sheet-backdrop{position:absolute;inset:0;z-index:9;background:#0007;touch-action:none}
+.ios-sheet-backdrop.is-raised{z-index:29}
+.ios-app .ios-shell[aria-hidden=true],.ios-app>div[aria-hidden=true]:not(.ios-sheet-backdrop){pointer-events:none}
 @media(orientation:landscape) and (max-height:500px){
  .ios-app .ios-player{grid-template-columns:minmax(0,.8fr) minmax(0,1fr);grid-template-rows:44px minmax(0,1fr) 62px 64px;column-gap:24px;row-gap:6px;padding-top:max(6px,env(safe-area-inset-top,0px));padding-bottom:max(10px,env(safe-area-inset-bottom,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
  .ios-player-top{grid-column:1/-1;grid-row:1}
