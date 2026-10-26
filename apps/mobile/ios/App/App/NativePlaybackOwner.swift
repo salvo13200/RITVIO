@@ -12,6 +12,8 @@ final class NativePlaybackOwner {
     }()
     typealias Resolve = ([String: Any], String, @escaping (Result<[String: Any], ResolverFailure>) -> Void) -> Void
     var onSnapshot: (([String: Any]) -> Void)?
+    var onTrackStarted: ((PlaybackTrack) -> Void)?
+    private var rememberedGeneration = -1
     private let player = AVPlayer()
     private var queue = PlaybackQueue()
     private var loader: PlaybackResourceLoader?
@@ -56,6 +58,9 @@ final class NativePlaybackOwner {
             guard let self else { return }
             if self.player.timeControlStatus == .waitingToPlayAtSpecifiedRate && self.wantsPlayback { self.armWatchdog() }
             else if !self.resolving { self.watchdog?.cancel() }
+            if self.player.timeControlStatus == .playing, self.rememberedGeneration != self.generation, let track = self.queue.current {
+                self.rememberedGeneration = self.generation; self.onTrackStarted?(track)
+            }
             self.emit()
         } })
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { [weak self] _ in

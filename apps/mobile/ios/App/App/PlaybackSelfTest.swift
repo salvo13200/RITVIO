@@ -20,6 +20,7 @@ enum PlaybackSelfTest {
         var owner: NativePlaybackOwner?
         defer { owner?.shutdown(); FixtureMediaProtocol.reset(); try? FileManager.default.removeItem(at: directory) }
         do {
+            progress("library"); report["library"] = try LibrarySelfTest.run()
             progress(stage)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let tracks = (1...3).map { ["videoId": "ritviotest\($0)", "title": "Original tone \($0)", "artist": "RITVIO native check", "thumbnail": "", "duration": fixtureSeconds] as [String: Any] }

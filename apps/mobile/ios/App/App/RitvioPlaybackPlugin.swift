@@ -19,14 +19,28 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "snapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "playTracks", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "enqueue", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "command", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "command", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "library", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "libraryCommand", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "saveQueue", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "chooseArtwork", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "removeArtwork", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "navigationState", returnType: CAPPluginReturnPromise)
     ]
     private let preferenceKey = "ritvio.language.preference"
     private let revisionKey = "ritvio.language.revision"
+    let libraryWorker = DispatchQueue(label: "it.ritvio.library", qos: .userInitiated)
+    var artworkPicker: LibraryArtworkPicker?
 
     public override func load() {
         DispatchQueue.main.async { [weak self] in
             NativePlaybackOwner.shared.onSnapshot = { [weak self] state in self?.notifyListeners("playback", data: self?.present(state) ?? state) }
+            NativePlaybackOwner.shared.onTrackStarted = { [weak self] track in
+                self?.libraryWorker.async { [weak self] in
+                    guard let self else { return }
+                    if let value = try? NativeLibraryStore.shared.remember(track) { self.emitLibrary(value) }
+                }
+            }
             #if DEBUG
             NativeUIFixture.prepareIfRequested()
             #endif
