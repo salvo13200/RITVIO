@@ -106,6 +106,24 @@ The command builds an unsigned arm64 device app and the simulator app, runs nati
 
 The `iOS native verification` workflow uses a standard macOS runner, with read-only repository permissions and no Apple account/signing secrets. Matching iOS work-branch pushes run independent native/UI/player checks with provider requests excluded. Manual dispatch can additionally enable `live_provider`; a provider rejection then fails the run. This distinction permits development while live iOS acceptance remains open; a green core run does not mean provider streaming works. The workflow uploads short-lived technical artifacts and does not create a release, merge a branch or change public download links. Apple keys, provisioning profiles, pairing data, generated icons, copied web assets, `Runtime/` dependencies and Xcode build output must remain outside public source.
 
+### IOS-6: prepare a physical-test IPA
+
+An existing unsigned **device** ZIP can be packaged locally on Windows, macOS or Linux with Python 3.10+. This step does not compile, sign, install or publish the app. Download the artifact from the exact native-verification run and retain its metadata; substitute the actual run ID and artifact name below:
+
+```powershell
+gh run download RUN_ID --name ARTIFACT_NAME --dir .local/ios/artifacts
+gh run view RUN_ID --json headSha,status,conclusion,databaseId,url | Out-File -Encoding utf8 .local/ios/artifacts/run-metadata.json
+python tests/ios_package_test.py
+python scripts/package-ios-candidate.py --artifacts .local/ios/artifacts --check-only
+python scripts/package-ios-candidate.py --artifacts .local/ios/artifacts --output .local/ios/candidates
+```
+
+On macOS/Linux, save the same `gh run view` JSON with shell redirection instead of PowerShell's `Out-File`. The packager verifies the native report's archive hash, bundle identity, Release configuration, general arm64 iPhoneOS binaries, native deployment targets and embedded resolver inventory. It writes `Payload/App.app` without changing app file bytes or permissions, then validates the resulting IPA again. The original app version/build remain intact: IOS-6 is a packaging stage. Output also includes SHA-256, the source-run record/report, dependency inventory, GPL/notices and an English installation guide. Repeating the command accepts identical output and refuses different existing files.
+
+Optional `--notes PATH` accepts JSON with the exact `sourceCommit` and string arrays `implemented`, `notYetPorted` and `deferredChecks`. Use this to describe the actual candidate's scope. Native UI/provider failures are retained in the manifest, even if packaging succeeds; neither a completed failed CI run nor a green synthetic run is promoted to physical acceptance. The output always declares `personalSigningRequired: true` and `publicReleaseReady: false`.
+
+Sign and install the IPA using your own account in [Sideloadly](https://sideloadly.io/index.html) on Windows or macOS. Free-account signatures need renewal after seven days; optional automatic renewal still requires a computer and a connected/paired device. Follow the [official setup and renewal guidance](https://sideloadly.io/faq.html). Personal signing, first installation, updates preserving library data, actual provider playback, locked-screen audio, interruptions, Photos and renewal must be tested on hardware before an iOS release. The packaging command does not request Apple credentials or modify existing Android/Windows releases.
+
 ## Source and notices for redistribution
 
 ```powershell
