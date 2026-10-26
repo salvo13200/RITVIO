@@ -7,6 +7,8 @@ import type {IOSCopy} from './copy';
 export function Seek({state,text,send}:{state:MobilePlayback;text:IOSCopy;send:(command:MobileCommand)=>void}){
  const [preview,setPreview]=useState<number|null>(null),dragging=useRef(false),latest=useRef(0),ignoreChange=useRef(false);
  const duration=Math.max(0,state.duration),value=Math.min(duration,Math.max(0,preview??state.position));
+ const legacyTouch=Boolean((window as Window&{ritvioLegacyTouch?:boolean}).ritvioLegacyTouch);
+ function touchPreview(input:HTMLInputElement,x:number){const rect=input.getBoundingClientRect();const next=Math.max(0,Math.min(duration,(x-rect.left)/Math.max(1,rect.width)*duration));latest.current=Math.round(next*10)/10;setPreview(latest.current);}
  useEffect(()=>{dragging.current=false;setPreview(null);},[state.index,state.items[state.index]?.videoId]);
  function release(commit:boolean){if(!dragging.current)return;dragging.current=false;ignoreChange.current=true;if(commit)send({type:'seek',value:latest.current});setPreview(null);requestAnimationFrame(()=>{ignoreChange.current=false;});}
  return <div className={`ios-seek${state.playing?' is-playing':''}`} style={{'--ios-progress':`${duration>0?value/duration*100:0}%`} as CSSProperties}>
@@ -14,9 +16,12 @@ export function Seek({state,text,send}:{state:MobilePlayback;text:IOSCopy;send:(
   {preview!==null&&<output className="ios-seek-preview" style={{left:`${Math.min(88,Math.max(12,duration>0?value/duration*100:0))}%`}}>{mobileTime(preview)}</output>}
   <input aria-label={text.seek} type="range" min="0" max={duration||1} step="0.1" value={value} disabled={!duration}
    aria-valuetext={`${mobileTime(value)} / ${mobileTime(duration)}`}
-   onPointerDown={event=>{if(!duration)return;dragging.current=true;latest.current=value;setPreview(value);event.currentTarget.setPointerCapture(event.pointerId);}}
+   onPointerDown={event=>{if(!duration||legacyTouch)return;dragging.current=true;latest.current=value;setPreview(value);event.currentTarget.setPointerCapture(event.pointerId);}}
    onChange={event=>{const next=Number(event.target.value);latest.current=next;if(dragging.current)setPreview(next);else if(!ignoreChange.current)send({type:'seek',value:next});}}
-   onPointerUp={()=>release(true)} onPointerCancel={()=>release(false)} onLostPointerCapture={()=>release(false)}
+   onPointerUp={()=>{if(!legacyTouch)release(true);}} onPointerCancel={()=>{if(!legacyTouch)release(false);}} onLostPointerCapture={()=>{if(!legacyTouch)release(false);}}
+   onTouchStart={event=>{if(legacyTouch&&duration&&event.touches.length===1){dragging.current=true;touchPreview(event.currentTarget,event.touches[0].clientX);}}}
+   onTouchMove={event=>{if(legacyTouch&&dragging.current&&event.touches.length===1)touchPreview(event.currentTarget,event.touches[0].clientX);}}
+   onTouchEnd={()=>{if(legacyTouch)release(true);}} onTouchCancel={()=>{if(legacyTouch)release(false);}}
    onKeyDown={event=>{if(event.key==='Escape')release(false);}}/>
   <div className="ios-time"><span>{mobileTime(value)}</span><span>{mobileTime(duration)}</span></div>
  </div>;
