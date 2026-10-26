@@ -51,6 +51,9 @@ final class PCTestController: UIViewController, WKNavigationDelegate {
         decisionHandler(action.request.url?.scheme == "ritvio12" && action.request.url?.host == "bundle" ? .allow : .cancel)
     }
     private func publish(_ value: [String: Any]) {
+        // Audio stays native while WKWebView is suspended. Do not accumulate
+        // four snapshot scripts/second during locked-screen listening.
+        if value["event"] != nil && UIApplication.shared.applicationState != .active { return }
         guard let bytes = try? JSONSerialization.data(withJSONObject:value), let text = String(data:bytes,encoding:.utf8) else { return }
         let safe = text.replacingOccurrences(of:"\u{2028}",with:"\\u2028").replacingOccurrences(of:"\u{2029}",with:"\\u2029")
         DispatchQueue.main.async { self.web.evaluateJavaScript("window.__ritvioReceive && window.__ritvioReceive(\(safe))",completionHandler:nil) }

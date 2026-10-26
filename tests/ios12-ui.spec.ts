@@ -40,7 +40,7 @@ async function fixture(page:Page){
 async function pair(page:Page){await page.getByLabel('PC IP address').fill('192.168.1.10');await page.getByLabel('Pairing code').fill('123456');await page.getByRole('button',{name:'Connect',exact:true}).click();await expect(page.getByRole('heading',{name:'Your listening'})).toBeVisible();}
 test('old-WebKit API fallbacks bootstrap; pairing errors recover without losing the form',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await fixture(page);
- await page.screenshot({path:info.outputPath('connection.png')});
+ await page.screenshot({animations:'disabled',path:info.outputPath('connection.png')});
  await page.getByLabel('PC IP address').fill('192.168.1.10');await page.getByLabel('Pairing code').fill('000000');await page.getByRole('button',{name:'Connect',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Incorrect');
  await pair(page);await expect(page.getByRole('button',{name:'Connection',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Library',exact:true})).toBeVisible();
@@ -61,12 +61,12 @@ test('queue handle reorders via the touch-to-pointer fallback',async({page})=>{
 test('search, fixed player, touch seek release and queue work through the legacy message adapter',async({page},info)=>{
  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));await fixture(page);await pair(page);
  await page.getByRole('navigation',{name:'RITVIO'}).getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('Luna Vale');
- await expect(page.getByRole('button',{name:'Play: After the rain',exact:true})).toBeVisible();await page.screenshot({path:info.outputPath('search.png')});
+ await expect(page.getByRole('button',{name:'Play: After the rain',exact:true})).toBeVisible();await page.screenshot({animations:'disabled',path:info.outputPath('search.png')});
  await page.getByRole('button',{name:'Play: After the rain',exact:true}).click();
  await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Add to queue',exact:true}).click();
  await page.getByTestId('mini-player').getByRole('button',{name:'Open player: After the rain'}).click();
  await expect(page.getByRole('dialog',{name:'Now playing'})).toBeVisible();
- await page.screenshot({path:info.outputPath('player.png')});
+ await page.screenshot({animations:'disabled',path:info.outputPath('player.png')});
  const slider=page.getByRole('slider',{name:'Playback position'});const rect=await slider.boundingBox();if(!rect)throw Error('Seek control missing');
  const touch=await page.context().newCDPSession(page),y=rect.y+rect.height/2;
  await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:rect.x+rect.width*.25,y}]});
@@ -75,6 +75,6 @@ test('search, fixed player, touch seek release and queue work through the legacy
  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
  await expect.poll(()=>page.evaluate(()=>(window as any).__pcTestCalls.filter((x:any)=>x.method==='command'&&x.data.type==='seek').length)).toBe(1);
  expect(await page.locator('.ios-player').evaluate(node=>node.scrollHeight<=node.clientHeight+1)).toBe(true);
- await page.getByRole('button',{name:'Queue',exact:true}).first().click();await expect(page.getByRole('dialog',{name:'Queue'})).toBeVisible();await expect(page.getByRole('button',{name:'Reorder: Slow motion'})).toBeVisible();await page.screenshot({path:info.outputPath('queue.png')});
+ await page.getByRole('button',{name:'Queue',exact:true}).first().click();await expect(page.getByRole('dialog',{name:'Queue'})).toBeVisible();await expect(page.getByRole('button',{name:'Reorder: Slow motion'})).toBeVisible();await page.screenshot({animations:'disabled',path:info.outputPath('queue.png')});
  expect(errors).toEqual([]);
 });
