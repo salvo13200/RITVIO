@@ -30,6 +30,8 @@ def build(simulator=False):
     loader = (SHARED / 'PlaybackResourceLoader.swift').read_text()
     assert loader.count('import UniformTypeIdentifiers') == 1 and loader.count('UTType.mpeg4Audio.identifier') == 1
     loader = loader.replace('import UniformTypeIdentifiers','import MobileCoreServices').replace('UTType.mpeg4Audio.identifier','kUTTypeMPEG4Audio as String')
+    assert loader.count('response.value(forHTTPHeaderField: "Content-Range")') == 1
+    loader = loader.replace('response.value(forHTTPHeaderField: "Content-Range")','PCHeader.value(response, "Content-Range")')
     (generated / 'PlaybackResourceLoader.swift').write_text(loader)
     sources += [generated / 'PlaybackResourceLoader.swift'] + sorted((ROOT / 'apps/ios12-test/native').glob('*.swift'))
     sdk_path = run('xcrun','--sdk',sdk,'--show-sdk-path')

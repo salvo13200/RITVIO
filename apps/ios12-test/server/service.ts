@@ -22,7 +22,7 @@ export function descriptor(info:any,id:string,now=Date.now()){
 export function publicTrack(track:any):NativeTrack{
  if(!track||!/^[\w-]{11}$/.test(track.videoId)||typeof track.title!=='string'||!track.title.trim()||typeof track.artist!=='string')throw new AppError(502,'CATALOG_INVALID','Invalid track metadata.');
  const resource=(x:any)=>x&&typeof x.id==='string'&&typeof x.name==='string'?{id:x.id.slice(0,256),name:x.name.slice(0,256)}:undefined;
- return {videoId:track.videoId,title:track.title.slice(0,300),artist:track.artist.slice(0,300),thumbnail:`https://i.ytimg.com/vi/${track.videoId}/hqdefault.jpg`,duration:Math.max(0,Math.min(86400,Number(track.duration)||0)),artists:(track.artists??[]).slice(0,20).map(resource).filter(Boolean),...(resource(track.album)?{album:resource(track.album)}:{})};
+ return {videoId:track.videoId,title:track.title.slice(0,250),artist:track.artist.slice(0,250),thumbnail:`https://i.ytimg.com/vi/${track.videoId}/hqdefault.jpg`,duration:Math.max(0,Math.min(86400,Number(track.duration)||0)),artists:(track.artists??[]).slice(0,20).map(resource).filter(Boolean),...(resource(track.album)?{album:resource(track.album)}:{})};
 }
 type Backend={search(query:string):Promise<{items:any[]}>;resolve(id:string,fresh:boolean,signal:AbortSignal):Promise<any>;close():Promise<void>};
 const equal=(a:string,b:string)=>{const x=Buffer.from(a),y=Buffer.from(b);return x.length===y.length&&timingSafeEqual(x,y);};
@@ -30,6 +30,7 @@ export async function createPCTestService(backend:Backend,options:{pin?:string;h
  const now=options.now??Date.now,pin=options.pin??String(randomInt(100000,1000000)),created=now();
  if(!/^\d{6}$/.test(pin)||!options.hosts.length||options.hosts.some(x=>!privateAddress(x)))throw Error('Private IPv4 hosts and six-digit PIN required');
  let token='',paired=false,active=0;const rates=new Map<string,{time:number;count:number}>();
+ const searchCache=new Map<string,{time:number;items:NativeTrack[]}>();
  const app=Fastify({logger:false,bodyLimit:4096,forceCloseConnections:true,requestIdHeader:false,ajv:{customOptions:{removeAdditional:false}}});
  app.addHook('onRequest',async(request)=>{
   const host=request.headers.host?.replace(/:\d+$/,'');
@@ -52,7 +53,13 @@ export async function createPCTestService(backend:Backend,options:{pin?:string;h
  app.get('/v1/status',async()=>({protocol:1,mode:'ios12-pc-test',ready:true}));
  app.get('/setup',async(_request,reply)=>reply.type('text/html').header('Content-Security-Policy',"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'").send(`<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RITVIO PC test</title><style>body{background:#101117;color:#f6f3fb;font:18px system-ui;max-width:650px;margin:60px auto;padding:24px;line-height:1.6}h1{line-height:1.15}strong,code{color:#c8a6f5}code{font-size:28px;letter-spacing:4px}li{margin:12px 0}</style><h1>Connect your iPhone</h1><p>RITVIO · temporary iOS 12 test</p><ol><li>Keep this PC and the iPhone on the same private network.</li><li>In RITVIO PC Test enter the PC address: <strong>${options.hosts.filter(x=>!x.startsWith('127.')).join(' or ')||'127.0.0.1'}</strong>.</li><li>Port: <strong>${app.server.address()&&typeof app.server.address()==='object'?(app.server.address() as any).port:59212}</strong></li><li>Pairing code: <code>${paired?'PAIRED':pin}</code></li></ol><p>${paired?'The code has been consumed. Restart the helper to pair again.':'This code expires after 15 minutes and can be used once.'}</p><p>Keep the helper running. Search and stream resolution run here; audio plays on the iPhone. This does not verify the embedded iOS resolver.</p></html>`));
  async function bounded<T>(run:()=>Promise<T>){if(active>=3)throw new AppError(429,'BUSY','The PC is busy. Try again shortly.');active++;try{return await run();}finally{active--;}}
- app.post<{Body:{query:string}}>('/v1/search',{schema:body({query:{type:'string',minLength:3,maxLength:200}})},request=>bounded(async()=>({items:(await backend.search(request.body.query)).items.slice(0,20).map(publicTrack),cached:false})));
+ app.post<{Body:{query:string}}>('/v1/search',{schema:body({query:{type:'string',minLength:3,maxLength:200}})},request=>bounded(async()=>{
+  const query=request.body.query.trim().replace(/\s+/g,' '),key=query.toLocaleLowerCase('en');
+  if(query.length<3)throw new AppError(400,'INVALID_QUERY','Enter at least three characters.');
+  const cached=searchCache.get(key);if(cached&&now()-cached.time<120000)return {items:cached.items,cached:true};
+  const items=(await backend.search(query)).items.slice(0,20).map(publicTrack);searchCache.delete(key);searchCache.set(key,{time:now(),items});
+  while(searchCache.size>8)searchCache.delete(searchCache.keys().next().value!);return {items,cached:false};
+ }));
  app.post<{Body:{videoId:string;refresh?:boolean}}>('/v1/resolve',{schema:body({videoId:{type:'string',pattern:'^[A-Za-z0-9_-]{11}$'},refresh:{type:'boolean'}},['videoId'])},async(request,reply)=>{
   const controller=new AbortController();const abort=()=>{if(!reply.raw.writableEnded)controller.abort();};reply.raw.once('close',abort);
   try{return await bounded(async()=>descriptor(await backend.resolve(request.body.videoId,request.body.refresh===true,controller.signal),request.body.videoId));}finally{reply.raw.removeListener('close',abort);}
