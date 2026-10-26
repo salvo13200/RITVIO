@@ -31,6 +31,18 @@ test('duplicate playlist occurrences reorder by index and stale gestures never c
  await page.evaluate(()=>{const lib=(window as any).__iosLibrary();lib.revision++;lib.playlists[0].revision++;(window as any).__iosLibraryEmit(lib);});await expect(page.locator('.ios-library-entry.is-lifted')).toHaveCount(0);await page.mouse.up();
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((x:any)=>x.method==='libraryCommand'&&x.type==='move').length)).toBe(1);
 });
+test('two-song playlist reorders through a held touchscreen gesture',async({page,browserName})=>{
+ test.skip(browserName!=='chromium','Real touchscreen injection uses Chromium CDP; native XCTest covers WKWebView.');
+ await page.setViewportSize({width:375,height:667});const value=seed();value.playlists[0].items=value.playlists[0].items.slice(0,2);
+ await fixture(page,{withLibrary:true,librarySeed:value});await library(page);await page.getByRole('button',{name:'Night drive, 2 songs',exact:true}).click();
+ const slow=page.getByRole('button',{name:'Reorder: Slow motion',exact:true}),rain=page.getByRole('button',{name:'Reorder: After the rain',exact:true});
+ const source=(await slow.boundingBox())!,target=(await rain.boundingBox())!,x=source.x+source.width/2,y=source.y+source.height/2,end=target.y+target.height/2;
+ const input=await page.context().newCDPSession(page);await input.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await page.waitForTimeout(250);
+ expect(Math.abs((await slow.boundingBox())!.y-source.y)).toBeLessThan(2);
+ for(let step=1;step<=12;step++)await input.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y+(end-y)*step/12}]});
+ await input.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await input.detach();
+ await expect.poll(()=>page.evaluate(()=>(window as any).__iosLibrary().playlists[0].items.map((x:any)=>x.videoId))).toEqual(['ritviotest2','ritviotest1']);
+});
 test('stale edits and failed writes preserve stored data; personal photo cancellation preserves playback',async({page})=>{
  await fixture(page,{withLibrary:true,librarySeed:seed()});await library(page);await page.getByRole('button',{name:'Playlist options: Night drive',exact:true}).click();await page.getByRole('button',{name:'Edit details',exact:true}).click();
  await page.getByRole('textbox',{name:'Name',exact:true}).fill('My unsaved edit');await page.evaluate(()=>{const value=(window as any).__iosLibrary();value.revision++;value.playlists[0].revision++;value.playlists[0].name='Changed elsewhere';(window as any).__iosLibraryEmit(value);});await expect(page.getByRole('button',{name:'Save',exact:true})).toBeDisabled();await expect(page.getByRole('alert')).toContainText('playlist changed');

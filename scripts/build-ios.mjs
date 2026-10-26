@@ -74,7 +74,7 @@ if(buildSimulator){
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0&&!options.has('--skip-live');
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
-    if(index===0&&['IOS-3','IOS-4'].includes(version.phase)&&!options.has('--resolver-only')){
+    if(index===0&&['IOS-3','IOS-4','IOS-5'].includes(version.phase)&&!options.has('--resolver-only')){
      const playbackEvidence=path.join(container,'Documents/playback-evidence.json');
      await rm(playbackEvidence,{force:true});
      await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-playback-check']);
@@ -126,6 +126,7 @@ report.nativeBuild=nativeBuildPassed()?'passed':'failed';
 await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');console.log(JSON.stringify(report));
 if(report.liveFailures.length)throw Error('Live provider acceptance remains open; see the redacted resolver evidence.');
 if(report.uiFailures.length)throw Error('Native UI checks failed; see the XCTest captures and uiFailures.');
+if(options.has('--smoke')&&!options.has('--resolver-only')&&report.playback!=='native-synthetic-passed')throw Error('Full native verification requires a passed player check.');
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:report.simulators.length?'passed':'not-run',physicalTests:'pending'},null,2)+'\n');
 } catch(error) {
  report.nativeBuild=nativeBuildPassed()?'passed':'failed';
