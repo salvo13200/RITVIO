@@ -17,6 +17,15 @@ SHARED = ROOT / 'apps/mobile/ios/App/App'
 def run(*args):
     return subprocess.check_output(list(map(str, args)), cwd=ROOT, text=True).strip()
 
+def archive_app(app, target_file, simulator=False):
+    # Keep bundle metadata uncompressed for compatibility with IPA re-signers.
+    # This changes the container only; personal signing is still mandatory.
+    with zipfile.ZipFile(target_file, 'w', zipfile.ZIP_DEFLATED) as archive:
+        for file in sorted(app.rglob('*')):
+            if file.is_file():
+                name = ('' if simulator else 'Payload/') + 'PCTest.app/' + file.relative_to(app).as_posix()
+                archive.write(file, name, compress_type=zipfile.ZIP_STORED if file.name == 'Info.plist' else zipfile.ZIP_DEFLATED)
+
 def build(simulator=False):
     sdk = 'iphonesimulator' if simulator else 'iphoneos'
     arch = 'arm64'  # macos-14 is Apple Silicon; device remains general arm64.
@@ -39,10 +48,11 @@ def build(simulator=False):
     command += list(map(str,sources)) + ['-o',str(app / 'PCTest')]
     for framework in ['UIKit','WebKit','AVFoundation','MediaPlayer','ImageIO','MobileCoreServices','Security']:
         command += ['-framework',framework]
-    command += ['-Xlinker','-rpath','-Xlinker','/usr/lib/swift']
+    command += ['-Xlinker','-rpath','-Xlinker','/usr/lib/swift',
+                '-Xlinker','-rpath','-Xlinker','@executable_path/Frameworks']
     subprocess.run(command, cwd=ROOT, check=True)
     metadata = {'CFBundleIdentifier':'it.ritvio.pctest','CFBundleDisplayName':'RITVIO PC Test','CFBundleName':'PCTest',
-                'CFBundleExecutable':'PCTest','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.1.0','CFBundleVersion':'1',
+                'CFBundleExecutable':'PCTest','CFBundlePackageType':'APPL','CFBundleShortVersionString':'0.1.1','CFBundleVersion':'2',
                 'MinimumOSVersion':minimum,'CFBundleSupportedPlatforms':['iPhoneSimulator' if simulator else 'iPhoneOS'],
                 'UIDeviceFamily':[1],'LSRequiresIPhoneOS':True,'UIRequiredDeviceCapabilities':['arm64'],
                 'UIBackgroundModes':['audio'],'UIStatusBarStyle':'UIStatusBarStyleLightContent','UILaunchStoryboardName':'LaunchScreen',
@@ -61,19 +71,22 @@ def build(simulator=False):
         shutil.copyfile(ROOT / name,app / name)
     # Copy any back-deployment Swift libraries required by the linked binary.
     subprocess.run(['xcrun','swift-stdlib-tool','--copy','--platform',sdk,'--scan-executable',str(app / 'PCTest'),'--destination',str(app / 'Frameworks')],check=True)
-    for library in (app / 'Frameworks').glob('*.dylib'):
-        if simulator: subprocess.run(['codesign','--force','--sign','-',str(library)],check=True)
-    if simulator: subprocess.run(['codesign','--force','--sign','-',str(app)],check=True)
+    # Ad-hoc seals reserve complete signature structures for downstream re-signing.
+    # They grant no installation entitlement and contain no Apple account/profile.
+    signing = ['codesign','--force','--sign','-','--timestamp=none','--digest-algorithm=sha1,sha256']
+    for library in sorted((app / 'Frameworks').glob('*.dylib')):
+        subprocess.run(signing + [str(library)],check=True)
+    subprocess.run(signing + [str(app)],check=True)
+    subprocess.run(['codesign','--verify','--deep','--strict',str(app)],check=True)
     ARTIFACTS.mkdir(parents=True,exist_ok=True)
-    name = 'RITVIO-iOS12-PC-Test-0.1.0-' + ('simulator.zip' if simulator else 'unsigned.ipa')
+    name = 'RITVIO-iOS12-PC-Test-0.1.1-' + ('simulator.zip' if simulator else 'unsigned.ipa')
     target_file = ARTIFACTS / name
-    with zipfile.ZipFile(target_file,'w',zipfile.ZIP_DEFLATED) as archive:
-        for file in sorted(app.rglob('*')):
-            if file.is_file(): archive.write(file,('' if simulator else 'Payload/') + 'PCTest.app/' + file.relative_to(app).as_posix())
+    archive_app(app, target_file, simulator)
     checksum = hashlib.sha256(target_file.read_bytes()).hexdigest()
     (ARTIFACTS / (name + '.sha256')).write_text(checksum + '  ' + name + '\n')
     evidence = {'schema':1,'purpose':'temporary-ios12-pc-test','publicReleaseReady':False,'minimumOS':minimum,
-                'architecture':'arm64','destination':sdk,'signing':'ad-hoc-simulator' if simulator else 'unsigned-personal-signing-required',
+                'architecture':'arm64','destination':sdk,'signing':'ad-hoc-simulator' if simulator else 'ad-hoc-placeholder-personal-signing-required',
+                'adHocSealVerification':'passed','personalProvisioningProfile':False,
                 'embeddedPython':False,'embeddedCapacitor':False,'pcRequired':True,'physicalTests':'pending',
                 'xcode':run('xcodebuild','-version'),'sourceCommit':run('git','rev-parse','HEAD'),
                 'artifact':{'file':name,'bytes':target_file.stat().st_size,'sha256':checksum},

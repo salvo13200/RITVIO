@@ -100,7 +100,7 @@ final class PCTestController: UIViewController, WKNavigationDelegate {
                 #else
                 let environment = "device"
                 #endif
-                done(.success(["platform":"ios","phase":"IOS-12-PC","version":"0.1.0","build":"1","bundleId":"it.ritvio.pctest","systemVersion":UIDevice.current.systemVersion,"environment":environment,"minimumOS":"12.0","bundledAssets":true,"textScale":UIFont.preferredFont(forTextStyle:.body).pointSize / 17,"safeArea":["top":area.top,"right":area.right,"bottom":area.bottom,"left":area.left],"capabilities":["resolver":false,"playback":true,"library":true,"lyrics":false,"sharing":false]]))
+                done(.success(["platform":"ios","phase":"IOS-12-PC","version":"0.1.1","build":"2","bundleId":"it.ritvio.pctest","systemVersion":UIDevice.current.systemVersion,"environment":environment,"minimumOS":"12.0","bundledAssets":true,"textScale":UIFont.preferredFont(forTextStyle:.body).pointSize / 17,"safeArea":["top":area.top,"right":area.right,"bottom":area.bottom,"left":area.left],"capabilities":["resolver":false,"playback":true,"library":true,"lyrics":false,"sharing":false]]))
             case "foundationCheck": done(.success(["platform":"ios","nonce":data["nonce"] ?? ""]))
             case "languageRead": done(.success(language()))
             case "languageWrite":

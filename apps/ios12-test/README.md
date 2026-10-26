@@ -2,7 +2,7 @@
 
 Temporary iPhone 6 test variant, separate from the autonomous iOS app. The iPhone runs the bundled listening interface, native AVPlayer, queue and local library. An awake PC on the same private LAN provides search and AAC stream resolution. Audio is streamed directly to the iPhone from the validated media host; this helper does not download or convert it.
 
-This build does **not** validate the embedded Python resolver in the official iOS-15+ candidate. It has a separate app ID (`it.ritvio.pctest`), version (`0.1.0`) and data sandbox. No jailbreak or phone system modification is involved. Lyrics, image-sharing cards, artist/album pages and radio/timer are outside its current IOS-5A source scope.
+This build does **not** validate the embedded Python resolver in the official iOS-15+ candidate. It has a separate app ID (`it.ritvio.pctest`), version (`0.1.1`) and data sandbox. No jailbreak or phone system modification is involved. Lyrics, image-sharing cards, artist/album pages and radio/timer are outside its current IOS-5A source scope.
 
 ## PC helper
 
@@ -26,10 +26,10 @@ On macOS 14 with Xcode 15.4 selected, build without an Apple account:
 pnpm install --frozen-lockfile --ignore-scripts
 pnpm exec vite build --config apps/ios12-test/vite.config.ts
 python3 scripts/build-ios12-test.py
-python3 scripts/check-ios12-candidate.py .local/ios12/artifacts/RITVIO-iOS12-PC-Test-0.1.0-unsigned.ipa
+python3 scripts/check-ios12-candidate.py .local/ios12/artifacts/RITVIO-iOS12-PC-Test-0.1.1-unsigned.ipa
 ```
 
-Output is an **unsigned IPA**, requiring personal signing/install with Sideloadly on Windows or macOS. Follow [Sideloadly's official Windows prerequisites and setup](https://sideloadly.io/) and [signing/renewal instructions](https://sideloadly.io/faq.html). No Apple credentials belong in this app, source files or a support message. Free-account signing requires renewal after seven days; automatic renewal still requires the configured computer/device connection.
+Output has verified ad-hoc signature placeholders (no personal provisioning profile) and uncompressed bundle metadata for re-signing compatibility. It is **not personally signed or installable yet**, and requires personal signing/install with Sideloadly on Windows or macOS. Follow [Sideloadly's official Windows prerequisites and setup](https://sideloadly.io/) and [signing/renewal instructions](https://sideloadly.io/faq.html). No Apple credentials belong in this app, source files or a support message. Free-account signing requires renewal after seven days; automatic renewal still requires the configured computer/device connection.
 
 `--simulator` builds an independently labelled arm64 simulator app (minimum simulator OS 14.0); this is not an IPA for an iPhone. `capture-ios12-test.py` captures its actual WKWebView connection screen on an available simulator. A current simulator capture is not evidence of iOS 12 physical compatibility. The macos-14 runner/toolchain is an intentionally temporary development dependency, not a long-term legacy-support promise.
 

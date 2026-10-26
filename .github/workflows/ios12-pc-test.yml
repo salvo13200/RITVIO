@@ -26,9 +26,10 @@ jobs:
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - run: pnpm exec tsc --noEmit
       - run: pnpm exec tsx --test tests/ios12-pc-service.test.ts
+      - run: python3 tests/ios12-packaging.test.py
       - run: pnpm exec vite build --config apps/ios12-test/vite.config.ts
       - run: python3 scripts/build-ios12-test.py
-      - run: python3 scripts/check-ios12-candidate.py .local/ios12/artifacts/RITVIO-iOS12-PC-Test-0.1.0-unsigned.ipa .local/ios12/artifacts/compatibility.json
+      - run: python3 scripts/check-ios12-candidate.py .local/ios12/artifacts/RITVIO-iOS12-PC-Test-0.1.1-unsigned.ipa .local/ios12/artifacts/compatibility.json
       - run: python3 scripts/build-ios12-test.py --simulator
       - run: python3 scripts/capture-ios12-test.py
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
