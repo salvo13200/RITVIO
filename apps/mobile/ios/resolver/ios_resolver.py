@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 import math
 import os
+import re
 import ssl
 import sys
 import time
@@ -25,6 +26,7 @@ shared.initialize(native)
 _Session = requests.Session
 _sessions = []
 _search_cache = OrderedDict()
+_catalog_cache = OrderedDict()
 _stream_cache = OrderedDict()
 _cooldown_until = 0.0
 _provider_signals = set()
@@ -134,6 +136,63 @@ def search(query):
     return {**result, 'cacheHit': False}
 
 
+def catalog(payload):
+    operation, kind = payload.get('operation'), payload.get('kind')
+    if operation not in ('catalog-search', 'detail') or kind not in ('artist', 'album'):
+        raise ResolverError('INVALID_ARGUMENT')
+    request = {'operation': operation, 'kind': kind}
+    if operation == 'catalog-search':
+        query = payload.get('query')
+        if not isinstance(query, str) or not 3 <= len(query.strip()) <= 200:
+            raise ResolverError('INVALID_QUERY')
+        request['query'] = ' '.join(query.split())
+        identity = request['query'].casefold()
+    else:
+        identifier = payload.get('id')
+        if not isinstance(identifier, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', identifier):
+            raise ResolverError('INVALID_RESOURCE')
+        request['id'] = identity = identifier
+    key = json.dumps([operation, kind, identity])
+    cached = cache_read(_catalog_cache, key, time.monotonic())
+    if cached is not None:
+        return {**cached, 'cached': True}
+    if time.monotonic() < _cooldown_until:
+        raise ResolverError('RATE_LIMITED')
+    # Only validated metadata fields reach the common adapter. Caller-supplied
+    # endpoints, headers, or alternate operations never cross this boundary.
+    result = json.loads(shared.catalog(json.dumps(request, ensure_ascii=False)))
+    checkpoint()
+    if not isinstance(result, dict):
+        raise ResolverError('NATIVE_RESPONSE_INVALID')
+    if operation == 'detail' and (result.get('id') != identity or result.get('kind') != kind):
+        raise ResolverError('NATIVE_RESPONSE_INVALID')
+    result = public_catalog(result)
+    cache_write(_catalog_cache, key, result, time.monotonic() + (120 if operation == 'catalog-search' else 600), 8)
+    return {**result, 'cached': False}
+
+
+_CATALOG_FIELDS = frozenset(('items', 'candidates', 'tracks', 'entries', 'albums', 'singles',
+    'id', 'name', 'kind', 'artwork', 'description', 'artists', 'year', 'releaseType',
+    'number', 'title', 'duration', 'videoId', 'artist', 'thumbnail', 'album', 'track',
+    'reportedCount', 'incomplete', 'moreAlbums', 'moreSingles', 'truncated'))
+
+
+def public_catalog(value, depth=0):
+    if depth > 8:
+        raise ResolverError('RESULT_TOO_LARGE')
+    if isinstance(value, dict):
+        return {key: public_catalog(item, depth + 1) for key, item in value.items() if key in _CATALOG_FIELDS}
+    if isinstance(value, list):
+        if len(value) > 1000:
+            raise ResolverError('RESULT_TOO_LARGE')
+        return [public_catalog(item, depth + 1) for item in value]
+    if isinstance(value, str) and len(value) > 24000:
+        raise ResolverError('RESULT_TOO_LARGE')
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ResolverError('NATIVE_RESPONSE_INVALID')
+    return value
+
+
 def valid_stream(value):
     if not isinstance(value, dict):
         raise ResolverError('INVALID_STREAM')
@@ -228,6 +287,8 @@ def invoke(payload_json):
             value = status()
         elif operation == 'search':
             value = search(payload.get('query'))
+        elif operation in ('catalog-search', 'detail'):
+            value = catalog(payload)
         elif operation == 'resolve':
             value = resolve(payload.get('videoId'), payload.get('refresh', False))
         elif operation == 'engine-check':

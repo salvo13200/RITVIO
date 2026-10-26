@@ -14,6 +14,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "languageWrite", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resolverStatus", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "search", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "catalog", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "resolverInspect", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelResolver", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "snapshot", returnType: CAPPluginReturnPromise),
@@ -104,6 +105,26 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
     @objc func resolverInspect(_ call: CAPPluginCall) {
         guard let videoID = call.getString("videoId") else { call.reject("Missing track", "INVALID_VIDEO_ID"); return }
         resolve(call, payload: ["operation": "resolve", "videoId": videoID], transform: ResolverWorker.inspection)
+    }
+
+    @objc func catalog(_ call: CAPPluginCall) {
+        guard let operation = call.getString("operation"), ["catalog-search", "detail"].contains(operation),
+              let kind = call.getString("kind"), ["artist", "album"].contains(kind) else {
+            call.reject("Invalid catalog operation", "INVALID_ARGUMENT"); return
+        }
+        var payload: [String: Any] = ["operation":operation, "kind":kind]
+        if operation == "catalog-search" {
+            guard let query = call.getString("query"), (3...200).contains(query.trimmingCharacters(in:.whitespacesAndNewlines).count) else {
+                call.reject("Invalid catalog query", "INVALID_QUERY"); return
+            }
+            payload["query"] = query
+        } else {
+            guard let id = call.getString("id"), id.range(of:"\\A[A-Za-z0-9_-]{1,160}\\z",options:.regularExpression) != nil else {
+                call.reject("Invalid catalog resource", "INVALID_RESOURCE"); return
+            }
+            payload["id"] = id
+        }
+        resolve(call, payload:payload)
     }
 
     @objc func cancelResolver(_ call: CAPPluginCall) {

@@ -6,6 +6,7 @@ interface FoundationPlugin {
  foundationCheck(options:{nonce:string}):Promise<unknown>;
  snapshot():Promise<MobilePlayback>;
  search(options:{query:string;requestId:string}):Promise<{items:NativeTrack[];cached:boolean}>;
+ catalog(options:({operation:'catalog-search';kind:'artist'|'album';query:string}|{operation:'detail';kind:'artist'|'album';id:string})&{requestId:string}):Promise<unknown>;
  cancelResolver(options:{requestId:string}):Promise<{cancelled:boolean}>;
  playTracks(options:{items:NativeTrack[];index:number}):Promise<MobilePlayback>;
  enqueue(options:{track:NativeTrack;next?:boolean}):Promise<MobilePlayback>;

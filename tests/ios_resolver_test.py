@@ -21,7 +21,7 @@ spec.loader.exec_module(resolver)
 class IOSResolverTests(unittest.TestCase):
     def setUp(self):
         native.abort_reason.return_value = None
-        resolver._search_cache.clear(); resolver._stream_cache.clear(); resolver._cooldown_until = 0
+        resolver._search_cache.clear(); resolver._stream_cache.clear(); resolver._catalog_cache.clear(); resolver._cooldown_until = 0
         self.stream = {'url': 'https://r1.googlevideo.com/audio?expire=9999999999&signature=private-value',
                        'expires': time.time() + 600, 'headers': {'User-Agent': 'Agent'},
                        'container': 'm4a', 'codec': 'mp4a.40.2', 'protocol': 'https', 'duration': 180}
@@ -108,6 +108,54 @@ class IOSResolverTests(unittest.TestCase):
         session = MagicMock(); resolver._sessions.append(session)
         self.call(operation='not-an-operation')
         session.close.assert_called_once(); self.assertFalse(resolver._sessions)
+
+    def test_catalog_rejects_invalid_resources_before_provider_access(self):
+        invalid = [{'operation': 'detail', 'kind': 'album', 'id': '../outside'},
+                   {'operation': 'detail', 'kind': 'artist', 'id': True},
+                   {'operation': 'catalog-search', 'kind': 'album', 'query': 'ab'},
+                   {'operation': 'catalog-search', 'kind': 'video', 'query': 'Luna Vale'}]
+        with patch.object(resolver.shared, 'catalog') as provider:
+            for payload in invalid:
+                self.assertFalse(self.call(**payload)['ok'])
+            provider.assert_not_called()
+
+    def test_catalog_cache_is_normalized_independent_and_separate_from_audio(self):
+        raw = {'items': [{'id': 'artist-1', 'kind': 'artist', 'name': 'Luna Vale'}]}
+        with patch.object(resolver.shared, 'catalog', return_value=json.dumps(raw)) as provider:
+            first = self.call(operation='catalog-search', kind='artist', query='  Luna   Vale ')
+            first['value']['items'].clear()
+            second = self.call(operation='catalog-search', kind='artist', query='luna vale')
+            self.assertTrue(second['value']['cached']); self.assertEqual(len(second['value']['items']), 1)
+            request = json.loads(provider.call_args[0][0])
+            self.assertEqual(request, {'operation': 'catalog-search', 'kind': 'artist', 'query': 'Luna Vale'})
+            provider.assert_called_once(); self.assertFalse(resolver._stream_cache)
+
+    def test_catalog_uses_only_public_metadata_and_expected_resource_identity(self):
+        raw = {'id': 'album-1', 'kind': 'album', 'name': 'Night scenes', 'headers': {'Cookie': 'private'},
+               'entries': [{'number': 1, 'track': {'videoId': 'abcdefghijk', 'title': 'Original fixture', 'url': self.stream['url']}}]}
+        with patch.object(resolver.shared, 'catalog', return_value=json.dumps(raw)) as provider:
+            text = resolver.invoke(json.dumps({'operation': 'detail', 'kind': 'album', 'id': 'album-1', 'url': 'https://ignored.invalid'}))
+            self.assertTrue(json.loads(text)['ok']); self.assertNotIn('signature', text); self.assertNotIn('Cookie', text)
+            self.assertNotIn('url', json.loads(provider.call_args[0][0]))
+        with patch.object(resolver.shared, 'catalog', return_value=json.dumps({**raw, 'id': 'different-album'})):
+            self.assertEqual(self.call(operation='detail', kind='album', id='album-2')['error'], 'NATIVE_RESPONSE_INVALID')
+
+    def test_catalog_cancellation_and_cooldown_do_not_cache_or_repeat_requests(self):
+        def provider(_):
+            native.abort_reason.return_value = 'cancelled'
+            return '{"items":[]}'
+        with patch.object(resolver.shared, 'catalog', side_effect=provider):
+            self.assertEqual(self.call(operation='catalog-search', kind='album', query='Luna Vale')['error'], 'CANCELLED')
+        self.assertFalse(resolver._catalog_cache); native.abort_reason.return_value = None; resolver._cooldown_until = time.monotonic() + 30
+        with patch.object(resolver.shared, 'catalog') as blocked:
+            self.assertEqual(self.call(operation='detail', kind='album', id='album-1')['error'], 'RATE_LIMITED'); blocked.assert_not_called()
+
+    def test_catalog_cache_count_and_nested_results_are_bounded(self):
+        with patch.object(resolver.shared, 'catalog', side_effect=lambda raw: json.dumps({'id': json.loads(raw)['id'], 'kind': 'album'})):
+            for index in range(10): self.assertTrue(self.call(operation='detail', kind='album', id=f'album-{index}')['ok'])
+        self.assertEqual(len(resolver._catalog_cache), 8)
+        with patch.object(resolver.shared, 'catalog', return_value=json.dumps({'items': [{}] * 1001})):
+            self.assertEqual(self.call(operation='catalog-search', kind='album', query='Large fixture')['error'], 'RESULT_TOO_LARGE')
 
     def test_provider_diagnostics_use_fixed_codes_without_error_text(self):
         for message, code in [('Sign in to confirm you are not a bot', 'PROVIDER_SIGN_IN_REQUIRED'), ('Requested format is not available', 'FORMAT_UNAVAILABLE'), ('challenge solving failed', 'JS_CHALLENGE_FAILED'), ('HTTP Error 429: Too Many Requests', 'RATE_LIMITED')]:
