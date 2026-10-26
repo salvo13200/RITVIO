@@ -32,17 +32,18 @@ export function Empty({title,body,children}:{title:string;body:string;children?:
 }
 /** A custom dialog keeps iOS 15 support; HTMLDialogElement.showModal requires iOS 15.4. */
 const dialogStack:symbol[]=[];
+const firstVisibleButton=(element:ParentNode|null)=>Array.from(element?.querySelectorAll<HTMLElement>('button:not(:disabled)')??[]).find(button=>button.getClientRects().length>0);
 export function Sheet({title,closeLabel,onClose,children,className='',closeText=false}:{title:string;closeLabel:string;onClose:()=>void;children:ReactNode;className?:string;closeText?:boolean}){
  const ref=useRef<HTMLElement>(null),close=useRef(onClose);close.current=onClose;
  useEffect(()=>{
   const prior=document.activeElement as HTMLElement|null;
   const token=Symbol('ios-dialog');dialogStack.push(token);
-  const frame=requestAnimationFrame(()=>{const target=ref.current?.querySelector<HTMLElement>('button:not(:disabled)')??ref.current;target?.focus({preventScroll:true});});
+  const frame=requestAnimationFrame(()=>{const target=firstVisibleButton(ref.current)??ref.current;target?.focus({preventScroll:true});});
   function key(event:KeyboardEvent){
    if(dialogStack[dialogStack.length-1]!==token)return;
    if(event.key==='Escape'){event.preventDefault();close.current();return;}
    if(event.key!=='Tab')return;
-   const nodes=Array.from(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),[tabindex="0"]')??[]).filter(node=>node.getClientRects().length);
+   const nodes=Array.from(ref.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),textarea:not(:disabled),select:not(:disabled),[tabindex="0"]')??[]).filter(node=>node.getClientRects().length);
    if(!nodes.length){event.preventDefault();return;}
    const first=nodes[0],last=nodes[nodes.length-1];
    if(event.shiftKey&&(document.activeElement===first||document.activeElement===ref.current)){last.focus();event.preventDefault();}
@@ -55,11 +56,12 @@ export function Sheet({title,closeLabel,onClose,children,className='',closeText=
    // focus synchronously can leave WebKit's native accessibility tree empty.
    requestAnimationFrame(()=>requestAnimationFrame(()=>{
     if(prior?.isConnected&&!prior.closest('[aria-hidden="true"]')){
-     const target=prior.matches('button,input,select,a[href]')?prior:prior.querySelector<HTMLElement>('button:not(:disabled)')??prior;
+     const target=prior.matches('button,input,textarea,select,a[href]')&&prior.getClientRects().length?prior:firstVisibleButton(prior)??prior;
      target.focus({preventScroll:true});
     }else{
      const sheets=Array.from(document.querySelectorAll<HTMLElement>('.ios-sheet[aria-modal="true"]')).filter(element=>!element.closest('[aria-hidden="true"]'));
-     sheets[sheets.length-1]?.querySelector<HTMLElement>('button:not(:disabled)')?.focus({preventScroll:true});
+     const target=firstVisibleButton(sheets[sheets.length-1]??null)??document.querySelector<HTMLElement>('.ios-shell:not([aria-hidden="true"]) .ios-content h1[tabindex="-1"]')??firstVisibleButton(document.querySelector('.ios-shell:not([aria-hidden="true"])'));
+     target?.focus({preventScroll:true});
     }
    }));
   };

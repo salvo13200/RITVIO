@@ -44,7 +44,9 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      - run: pnpm exec tsx --test tests/ios-foundation.test.ts
+      - run: pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-library.test.ts
+      - run: pnpm exec playwright install chromium
+      - run: pnpm exec playwright test --config tests/config/playwright.ios5.config.ts
       - run: node scripts/prepare-ios-resolver.mjs
       - run: python3 tests/ios_resolver_test.py
       - run: xcodebuild -version

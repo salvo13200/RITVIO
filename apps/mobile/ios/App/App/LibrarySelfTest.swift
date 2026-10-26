@@ -1,4 +1,7 @@
 import Foundation
+import UIKit
+import ImageIO
+import UniformTypeIdentifiers
 
 enum LibrarySelfTest {
     #if DEBUG
@@ -6,7 +9,7 @@ enum LibrarySelfTest {
         let folder = FileManager.default.temporaryDirectory.appendingPathComponent("library-check-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: folder) }
         let path = folder.appendingPathComponent("library.json"), store = NativeLibraryStore(file: path)
-        func require(_ condition: Bool) throws { if !condition { throw ResolverFailure.code("LIBRARY_SELF_TEST_FAILED") } }
+        func require(_ condition: Bool, line: Int = #line) throws { if !condition { throw ResolverFailure.code("LIBRARY_SELF_TEST_FAILED_\(line)") } }
         func rejects(_ code: String, _ action: () throws -> Void) throws {
             do { try action(); throw ResolverFailure.code("LIBRARY_SELF_TEST_FAILED") }
             catch let error as ResolverFailure { try require(error.identifier == code) }
@@ -60,9 +63,34 @@ enum LibrarySelfTest {
         let huge = folder.appendingPathComponent("huge.json")
         try Data(repeating: 32, count: NativeLibraryStore.maxBytes + 1).write(to: huge)
         try rejects("LIBRARY_TOO_LARGE") { _ = try NativeLibraryStore(file: huge).read() }
+        let format = UIGraphicsImageRendererFormat(); format.scale = 1
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width:2000, height:1000), format:format)
+        let image = renderer.image { context in UIColor.purple.setFill(); context.fill(CGRect(x:0,y:0,width:2000,height:1000)) }.cgImage!
+        let input = NSMutableData(), destination = CGImageDestinationCreateWithData(input, UTType.jpeg.identifier as CFString, 1, nil)!
+        CGImageDestinationAddImage(destination, image, [kCGImagePropertyGPSDictionary:[kCGImagePropertyGPSLatitude:1.0, kCGImagePropertyGPSLatitudeRef:"N", kCGImagePropertyGPSLongitude:1.0, kCGImagePropertyGPSLongitudeRef:"E"]] as CFDictionary)
+        try require(CGImageDestinationFinalize(destination))
+        let taggedSource = CGImageSourceCreateWithData(input as CFData, nil)!
+        try require((CGImageSourceCopyPropertiesAtIndex(taggedSource, 0, nil)! as NSDictionary)[kCGImagePropertyGPSDictionary] != nil)
+        let encoded = try LibraryArtworkPicker.encode(input as Data)
+        let source = CGImageSourceCreateWithData(encoded as CFData, nil)!
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil)! as NSDictionary
+        try require((properties[kCGImagePropertyPixelWidth] as? Int) == 1024 && (properties[kCGImagePropertyPixelHeight] as? Int) == 512)
+        try require(properties[kCGImagePropertyGPSDictionary] == nil)
+        try rejects("ARTWORK_INVALID") { _ = try LibraryArtworkPicker.encode(Data([0,1,2])) }
+        var full = LibraryState()
+        for index in 0..<NativeLibraryStore.maxTracks { var item = track; item["videoId"] = String(format:"limit%06d",index); full.likes.append(try PlaybackTrack.decode(item)) }
+        let limitFile = folder.appendingPathComponent("limit.json")
+        try JSONEncoder().encode(full).write(to:limitFile)
+        let bounded = NativeLibraryStore(file:limitFile), limitBefore = try Data(contentsOf:limitFile)
+        try rejects("LIBRARY_TRACK_LIMIT") { _ = try bounded.command(["type":"like", "track":track, "liked":true]) }
+        try require(Data(contentsOf:limitFile) == limitBefore)
+        let single = try store.command(["type":"create", "name":"Single-song create", "track":track])
+        try require(single.playlists[0].items.count == 1)
         return ["status":"passed", "atomicFailurePreservesData":true, "damagedFilePreserved":true, "unknownSchemaRejected":true,
             "restartPersistence":true, "duplicateOccurrenceEdits":true, "staleRevisionRejected":true, "strictBooleanAndIndex":true,
-            "historyDeduplicated":true, "noSignedDescriptors":true, "managedCoverCleanup":true, "boundedDocument":true]
+            "historyDeduplicated":true, "noSignedDescriptors":true, "managedCoverCleanup":true, "boundedDocument":true,
+            "artworkDownsampled":true, "artworkMetadataRemoved":true, "invalidImageRejected":true,
+            "trackLimitPreservesData":true, "singleSongCreateAtomic":true]
     }
     #endif
 }

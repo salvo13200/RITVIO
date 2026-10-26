@@ -79,7 +79,7 @@ The three shared Python catalogue modules are copied from canonical `scripts/` s
 
 ## iOS embedded resolver (technical build)
 
-The unreleased iOS technical build has an independent version in `apps/mobile/ios-version.json`. IOS-4 adds Home and Search tabs, a persistent mini-player, fixed expanded player, editable queue and language/motion settings to the IOS-3 AVPlayer owner and embedded Python/QuickJS resolver. Library, lyrics and image sharing remain later increments. Real-provider iOS streaming remains an open acceptance check. Android and Windows retain their existing versions and release channels.
+The unreleased iOS technical build has an independent version in `apps/mobile/ios-version.json`. IOS-4 adds Home and Search tabs, a persistent mini-player, fixed expanded player, editable queue and language/motion settings to the IOS-3 AVPlayer owner and embedded Python/QuickJS resolver. IOS-5A adds local Library, likes, personal playlists/photos, history and queue saving. Lyrics, image sharing and discovery remain later IOS-5 blocks. Real-provider iOS streaming remains an open acceptance check. Android and Windows retain their existing versions and release channels.
 
 On Windows, prepare the bundled assets and sync only the iOS project:
 

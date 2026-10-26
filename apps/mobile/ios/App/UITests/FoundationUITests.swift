@@ -3,6 +3,86 @@ import XCTest
 /// WKWebView gestures -> Capacitor -> native queue and AVPlayer.
 /// Debug fixtures use original tones, never real-provider acceptance evidence.
 final class FoundationUITests: XCTestCase {
+    func testLibraryPersistenceAndPersonalArtwork() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let settings = app.webViews.buttons.matching(NSPredicate(format:"label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout:45)); settings.tap(); chooseLanguage(app,"English"); button(app,"Done").tap()
+        wait(app) { !self.button(app,"Done").exists }
+        XCTAssertTrue(button(app,"Library").waitForExistence(timeout:15)); button(app,"Library").tap()
+        XCTAssertTrue(app.webViews.staticTexts["Your playlists"].waitForExistence(timeout:10)); capture(app,"ios5-library-empty")
+        button(app,"Home").tap()
+        let resume = button(app,"Open player: After the rain")
+        XCTAssertTrue(resume.waitForExistence(timeout:30)); resume.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).tap()
+        let like = app.webViews.descendants(matching:.any).matching(identifier:"Like song").firstMatch
+        XCTAssertTrue(like.waitForExistence(timeout:10)); like.tap()
+        XCTAssertTrue(app.webViews.descendants(matching:.any).matching(identifier:"Unlike song").firstMatch.waitForExistence(timeout:10))
+        capture(app,"ios5-player-liked")
+        button(app,"More options").tap(); button(app,"Add to playlist").tap(); button(app,"Create playlist").tap()
+        let name = app.webViews.textFields["Name"]
+        XCTAssertTrue(name.waitForExistence(timeout:10)); name.tap(); name.typeText("Native mix")
+        capture(app,"ios5-playlist-create"); button(app,"Save").tap()
+        XCTAssertTrue(button(app,"Close player").waitForExistence(timeout:10)); button(app,"Close player").tap()
+        button(app,"Search").tap()
+        let search = app.webViews.searchFields["Songs or artists"]
+        XCTAssertTrue(search.waitForExistence(timeout:10)); search.tap(); search.typeText("luna\n")
+        XCTAssertTrue(button(app,"More options: Slow motion").waitForExistence(timeout:10)); button(app,"More options: Slow motion").tap(); button(app,"Add to playlist").tap()
+        let target = app.webViews.buttons.matching(NSPredicate(format:"label CONTAINS %@", "Native mix")).firstMatch
+        XCTAssertTrue(target.waitForExistence(timeout:10)); target.tap()
+        wait(app) { !self.button(app,"Create playlist").exists }
+        button(app,"Library").tap()
+        XCTAssertTrue(button(app,"Native mix, 2 songs").waitForExistence(timeout:10)); button(app,"Native mix, 2 songs").tap()
+        XCTAssertTrue(button(app,"Reorder: Slow motion").waitForExistence(timeout:10))
+        let slow = button(app,"Reorder: Slow motion"), rain = button(app,"Reorder: After the rain")
+        slow.press(forDuration:0.25, thenDragTo:rain)
+        wait(app) { slow.frame.minY < rain.frame.minY }
+        capture(app,"ios5-playlist-detail")
+        button(app,"Play collection").tap()
+        XCTAssertTrue(button(app,"Open player: Slow motion").waitForExistence(timeout:15)); button(app,"Open player: Slow motion").tap()
+        XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15)); button(app,"Next song").tap()
+        XCTAssertTrue(app.webViews.staticTexts["After the rain"].waitForExistence(timeout:15)); button(app,"Pause").tap(); button(app,"Close player").tap()
+        button(app,"Back to library").tap(); button(app,"Playlist options: Native mix").tap(); button(app,"Edit details").tap()
+        XCTAssertTrue(name.waitForExistence(timeout:10)); replace(name, with:"Native mix updated")
+        capture(app,"ios5-playlist-edit"); button(app,"Save").tap()
+        XCTAssertTrue(button(app,"Native mix updated, 2 songs").waitForExistence(timeout:10))
+        button(app,"Open player: After the rain").tap(); button(app,"Queue").tap(); button(app,"Save queue as playlist").tap()
+        XCTAssertTrue(name.waitForExistence(timeout:10)); name.tap(); name.typeText("Queued mix"); button(app,"Save").tap()
+        XCTAssertTrue(button(app,"Play: After the rain").waitForExistence(timeout:10)); XCTAssertTrue(button(app,"Done").exists); capture(app,"ios5-queue-saved")
+        button(app,"Done").tap(); button(app,"Close player").tap()
+        app.terminate(); app.launchArguments.removeAll { $0 == "--ritvio-ui-library-reset" }; app.launch()
+        XCTAssertTrue(button(app,"Library").waitForExistence(timeout:35)); button(app,"Library").tap()
+        XCTAssertTrue(button(app,"Native mix updated, 2 songs").waitForExistence(timeout:10)); XCTAssertTrue(button(app,"Queued mix, 2 songs").exists)
+        capture(app,"ios5-library-restarted")
+        button(app,"Recently played").tap(); XCTAssertTrue(button(app,"Play: After the rain").waitForExistence(timeout:10)); capture(app,"ios5-library-history"); button(app,"Back to library").tap()
+        button(app,"Play").tap(); XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15))
+        button(app,"Playlist options: Queued mix").tap(); button(app,"Choose playlist photo").tap()
+        let cancelPhoto = app.buttons.matching(identifier:"Cancel").firstMatch
+        XCTAssertTrue(cancelPhoto.waitForExistence(timeout:20)); capture(app,"ios5-library-photo-picker"); cancelPhoto.tap()
+        XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15), "Cancelling the system photo picker must preserve the native playback intent")
+        button(app,"Pause").tap(); capture(app,"ios5-library-photo-cancelled")
+        button(app,"Playlist options: Native mix updated").tap(); button(app,"Delete playlist").tap()
+        capture(app,"ios5-library-delete"); button(app,"Delete").tap()
+        wait(app) { !self.button(app,"Native mix updated, 2 songs").exists }
+        XCTAssertTrue(button(app,"Queued mix, 2 songs").exists)
+        app.terminate(); app.launchArguments.append(contentsOf:["--ritvio-ui-library-reset","--ritvio-ui-library-seed"]); app.launch()
+        XCTAssertTrue(button(app,"Library").waitForExistence(timeout:35)); button(app,"Library").tap()
+        XCTAssertTrue(button(app,"Night drive, 18 songs").waitForExistence(timeout:10))
+        if button(app,"Grid view").exists { button(app,"Grid view").tap() }
+        capture(app,"ios5-library-grid"); button(app,"List view").tap(); capture(app,"ios5-library-list")
+        let likedCollection = app.webViews.buttons.matching(NSPredicate(format:"label BEGINSWITH %@", "Liked songs")).firstMatch
+        likedCollection.tap(); XCTAssertTrue(button(app,"Play: Golden hour").waitForExistence(timeout:10)); capture(app,"ios5-liked-songs")
+    }
+    private func wait(_ app: XCUIApplication, until condition: @escaping () -> Bool) {
+        expectation(for:NSPredicate { _, _ in condition() }, evaluatedWith:app); waitForExpectations(timeout:15)
+    }
+    private func replace(_ field: XCUIElement, with value: String) {
+        let old = String(describing:field.value ?? "")
+        field.coordinate(withNormalizedOffset:CGVector(dx:0.95,dy:0.5)).tap()
+        field.typeText(String(repeating:XCUIKeyboardKey.delete.rawValue,count:old.count)); field.typeText(value)
+        XCTAssertEqual(String(describing:field.value ?? ""),value)
+    }
     func testListeningInterfaceAndNativeQueue() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -11,10 +91,11 @@ final class FoundationUITests: XCTestCase {
         let settings = app.webViews.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
         XCTAssertTrue(settings.waitForExistence(timeout: 45)); settings.tap()
         chooseLanguage(app, "English"); button(app, "Done").tap()
+        expectation(for: NSPredicate { _, _ in !self.button(app, "Done").exists }, evaluatedWith: app); waitForExpectations(timeout: 10)
         let resume = button(app, "Open player: After the rain")
         XCTAssertTrue(resume.waitForExistence(timeout: 30))
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 15))
-        capture(app, "ios4-home-native-fixture"); resume.tap()
+        capture(app, "ios4-home-native-fixture"); resume.coordinate(withNormalizedOffset: CGVector(dx:0.5,dy:0.5)).tap()
         let slider = app.webViews.sliders["Playback position"]
         XCTAssertTrue(slider.waitForExistence(timeout: 10))
         let queue = button(app, "Queue"), origin = queue.frame
@@ -77,7 +158,7 @@ final class FoundationUITests: XCTestCase {
         button(app, "Clear search").tap(); field.typeText("empty\n")
         XCTAssertTrue(app.webViews.staticTexts["No songs found"].waitForExistence(timeout: 10))
         button(app, "Settings").tap()
-        XCTAssertTrue(app.webViews.staticTexts["IOS-4"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.webViews.staticTexts["IOS-5"].waitForExistence(timeout: 10))
         let done = button(app, "Done"), headerTop = done.frame.minY
         XCTAssertGreaterThanOrEqual(headerTop, app.frame.height > 800 ? 44 : 16, "Settings must remain below the portrait system region after keyboard dismissal")
         let motion = app.webViews.switches["Reduce motion"]

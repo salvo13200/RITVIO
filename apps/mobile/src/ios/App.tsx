@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState,useSyncExternalStore,type CSSProperties} from 'react';
-import {ArrowRight,Check,Home,LoaderCircle,Search,Settings,X} from 'lucide-react';
+import {ArrowRight,Check,Heart,Home,LibraryBig,LoaderCircle,MoreHorizontal,Search,Settings,X} from 'lucide-react';
 import {emptyMobilePlayback,type MobileCommand,type MobilePlayback,type NativeTrack} from '../../../../packages/domain/mobile';
 import {acceptPlaybackSnapshot} from '../../../../packages/domain/playback-snapshot';
 import {localization} from '../../../../packages/i18n/mobile';
@@ -10,18 +10,26 @@ import {iosCopy,friendlyError} from './copy';
 import {Artwork,Empty,IconButton,MiniPlayer,Sheet,SongRow,Toggle} from './components';
 import {Player} from './player';
 import {Queue,upcoming} from './queue';
+import {LibraryPane,PlaylistForm,AddToPlaylist,type PlaylistContext} from './library';
+import {libraryCopy} from './library-copy';
+import {useLibrary} from './use-library';
 import './app.css';
 
-type Menu={track:NativeTrack;index?:number;revision:number;current:number};
+type Menu={track:NativeTrack;index?:number;revision:number;current:number;playlist?:PlaylistContext};
 export function App({controller}:{controller:LanguageController}){
  const language=useSyncExternalStore(localization.subscribe,localization.getSnapshot),text=iosCopy[language.language==='it'?'it':'en'];
- const [state,setState]=useState<MobilePlayback>(emptyMobilePlayback),[connected,setConnected]=useState(false),[tab,setTab]=useState<'home'|'search'>('home'),[overlay,setOverlay]=useState<'player'|'queue'|'settings'|null>(null),[menu,setMenu]=useState<Menu|null>(null),[status,setStatus]=useState<FoundationStatus|null>(null),[message,setMessage]=useState('');
+ const [state,setState]=useState<MobilePlayback>(emptyMobilePlayback),[connected,setConnected]=useState(false),[tab,setTab]=useState<'home'|'search'|'library'>('home'),[overlay,setOverlay]=useState<'player'|'queue'|'settings'|null>(null),[menu,setMenu]=useState<Menu|null>(null),[status,setStatus]=useState<FoundationStatus|null>(null),[message,setMessage]=useState('');
+ const [libraryModal,setLibraryModal]=useState(false),[addTrack,setAddTrack]=useState<NativeTrack|null>(null),[queueForm,setQueueForm]=useState<number|null>(null),playIntent=useRef(0);
+ const libraryText=libraryCopy[language.language==='it'?'it':'en'];
  const [query,setQuery]=useState(''),[results,setResults]=useState<NativeTrack[]>([]),[searchState,setSearchState]=useState<'idle'|'loading'|'ready'|'error'>('idle'),[searchError,setSearchError]=useState(''),[searchAttempt,setSearchAttempt]=useState(0);
  const [motion,setMotion]=useState(()=>{try{return localStorage.getItem('ritvio.ios.reduce-motion')==='true';}catch{return false;}}),[languageBusy,setLanguageBusy]=useState(false);
  const current=state.items[state.index],future=upcoming(state),searchRef=useRef<HTMLInputElement>(null),request=useRef(0),notice=useRef(0),root=useRef<HTMLDivElement>(null);
  const apply=useCallback((value:MobilePlayback)=>{setState(previous=>acceptPlaybackSnapshot(previous,value));setConnected(true);},[]);
  useEffect(()=>{document.documentElement.lang=language.language;},[language.language]);
  function announce(value:string){window.clearTimeout(notice.current);setMessage(value);notice.current=window.setTimeout(()=>setMessage(''),5000);}
+ const library=useLibrary(Boolean(status?.capabilities.library),libraryText,announce);
+ const liked=(track:NativeTrack)=>Boolean(library.value?.likes.some(item=>item.videoId===track.videoId));
+ function toggleLike(track:NativeTrack){const next=!liked(track);void library.command({type:'like',track,liked:next},next?libraryText.savedSong:libraryText.unsavedSong);}
  useEffect(()=>{
   let disposed=false,listener:{remove:()=>Promise<void>}|undefined;
   void bridge.addListener('playback',value=>{if(!disposed)apply(value);}).then(value=>{if(disposed)void value.remove();else listener=value;}).catch(()=>{if(!disposed)setConnected(false);});
@@ -40,17 +48,21 @@ export function App({controller}:{controller:LanguageController}){
   return()=>{active=false;window.clearTimeout(timer);void bridge.cancelResolver({requestId}).catch(()=>{});};
  },[query,searchAttempt]);
  useEffect(()=>{if(menu&&(menu.revision!==state.queueRevision||menu.current!==state.index))setMenu(null);},[state.queueRevision,state.index,menu]);
+ useEffect(()=>{if(menu?.playlist&&library.value?.playlists.find(item=>item.id===menu.playlist!.id)?.revision!==menu.playlist.revision)setMenu(null);},[menu,library.value]);
  useEffect(()=>{if(overlay==='player'&&!current)setOverlay(null);},[overlay,current]);
  async function send(command:MobileCommand){try{apply(await bridge.command(command));return true;}catch(error){announce(friendlyError(error,text));if(String((error as {code?:string})?.code).includes('QUEUE_CHANGED'))void bridge.snapshot().then(apply).catch(()=>{});return false;}}
- async function play(track:NativeTrack){try{apply(await bridge.playTracks({items:[track],index:0}));}catch(error){announce(friendlyError(error,text));}}
+ async function play(track:NativeTrack){playIntent.current++;try{apply(await bridge.playTracks({items:[track],index:0}));}catch(error){announce(friendlyError(error,text));}}
+ async function playCollection(items:NativeTrack[],index:number,shuffle=false){const intent=++playIntent.current;try{apply(await bridge.playTracks({items,index}));if(intent===playIntent.current)apply(await bridge.command({type:'shuffle',value:shuffle}));}catch(error){announce(friendlyError(error,text));}}
  async function enqueue(track:NativeTrack,next:boolean){try{apply(await bridge.enqueue({track,next}));announce(text.added);}catch(error){announce(friendlyError(error,text));}}
- function showMenu(track:NativeTrack,index?:number){setMenu({track,index,revision:state.queueRevision??0,current:state.index});}
+ function showMenu(track:NativeTrack,index?:number,playlist?:PlaylistContext){setMenu({track,index,revision:state.queueRevision??0,current:state.index,playlist});}
  function toggle(){void send({type:state.playing||state.loading?'pause':'play'});}
  async function changeLanguage(value:'en'|'it'|'system'){setLanguageBusy(true);try{await controller.setPreference(value);}catch{announce(text.languageError);}finally{setLanguageBusy(false);}}
  function openSearch(){setTab('search');requestAnimationFrame(()=>searchRef.current?.focus());}
  function moveMenu(direction:number){if(menu?.index===undefined)return;const at=future.indexOf(menu.index),to=future[at+direction];if(to!==undefined)void send({type:'move',value:{from:menu.index,to,revision:menu.revision}});setMenu(null);}
- const backgroundHidden=Boolean(overlay||menu);
- return <div ref={root} className={`ios-app${motion?' ios-reduce-motion':''}`} style={{'--ios-text-scale':status?.textScale??1,'--ios-native-safe-top':`${status?.safeArea?.top??0}px`,'--ios-native-safe-right':`${status?.safeArea?.right??0}px`,'--ios-native-safe-bottom':`${status?.safeArea?.bottom??0}px`,'--ios-native-safe-left':`${status?.safeArea?.left??0}px`,'--ios-notice-bottom':`${overlay==='queue'?104:overlay?20:current?154:84}px`} as CSSProperties}>
+ const backgroundHidden=Boolean(overlay||menu||libraryModal||addTrack||queueForm!==null),coveringPlayer=Boolean(menu||addTrack||queueForm!==null);
+ const menuPlaylist=menu?.playlist?library.value?.playlists.find(item=>item.id===menu.playlist!.id):undefined;
+ function movePlaylist(direction:number){const context=menu?.playlist;if(!context)return;void library.command({type:'move',id:context.id,revision:context.revision,from:context.index,to:context.index+direction});setMenu(null);}
+ return <div ref={root} data-large-text={(status?.textScale??1)>1.4||undefined} className={`ios-app${motion?' ios-reduce-motion':''}`} style={{'--ios-text-scale':status?.textScale??1,'--ios-native-safe-top':`${status?.safeArea?.top??0}px`,'--ios-native-safe-right':`${status?.safeArea?.right??0}px`,'--ios-native-safe-bottom':`${status?.safeArea?.bottom??0}px`,'--ios-native-safe-left':`${status?.safeArea?.left??0}px`,'--ios-notice-bottom':`${overlay==='queue'?104:overlay?20:current?154:84}px`} as CSSProperties}>
   <div className="ios-shell" aria-hidden={backgroundHidden||undefined}>
    <header className="ios-header"><span className="ios-brand">RITVIO</span><IconButton label={text.settings} onClick={()=>setOverlay('settings')}><Settings/></IconButton></header>
    <main className="ios-content" key={tab}>
@@ -62,19 +74,25 @@ export function App({controller}:{controller:LanguageController}){
       {future.length?future.slice(0,3).map(index=><SongRow key={`${state.queueRevision}:${index}`} track={state.items[index]} text={text} onPlay={()=>void send({type:'jump',value:index})} onMore={()=>showMenu(state.items[index],index)}/>):<p className="ios-muted">{text.emptyQueueBody}</p>}
       <button className="ios-find" onClick={openSearch}><Search size={20}/>{text.find}<ArrowRight size={18}/></button>
      </>:<Empty title={text.emptyTitle} body={text.emptyBody}><button className="ios-primary" onClick={openSearch}>{text.search}<ArrowRight size={18}/></button></Empty>}
-    </>:<>
+    </>:tab==='search'?<>
      <h1>{text.search}</h1><div className="ios-search-field"><Search aria-hidden="true"/><input ref={searchRef} type="search" aria-label={text.searchHint} placeholder={text.searchHint} value={query} onChange={event=>setQuery(event.target.value)} maxLength={200} autoComplete="off" enterKeyHint="search" onKeyDown={event=>{if(event.key==='Enter')event.currentTarget.blur();}}/>{query&&<IconButton label={text.clearSearch} onClick={()=>{setQuery('');searchRef.current?.focus();}}><X size={20}/></IconButton>}</div>
      {searchState==='idle'?<Empty title={text.searchIntro} body={query.trim()?text.minimum:text.searchBody}/>:searchState==='loading'?<div className="ios-search-loading" role="status"><LoaderCircle className="ios-spinner"/>{text.searching}<div className="ios-skeletons" aria-hidden="true">{[0,1,2,3].map(i=><span key={i}/>)}</div></div>:searchState==='error'?<Empty title={searchError} body=""><button className="ios-primary" onClick={()=>setSearchAttempt(value=>value+1)}>{text.retry}</button></Empty>:results.length?<section><h2 className="ios-results-heading">{text.songs}</h2>{results.map((track,index)=><SongRow key={`${track.videoId}:${index}`} track={track} text={text} active={current?.videoId===track.videoId} onPlay={()=>void play(track)} onMore={()=>showMenu(track)}/>)}</section>:<Empty title={text.noResults} body={text.tryQuery}/>}
-    </>}
+    </>:<LibraryPane library={library} t={libraryText} text={text} currentId={current?.videoId} active={!overlay&&!menu&&!addTrack&&queueForm===null} onModalChange={setLibraryModal} onFind={openSearch} onPlay={(items,index,shuffle)=>void playCollection(items,index,shuffle)} onMore={(track,context)=>showMenu(track,undefined,context)} announce={announce}/>}
    </main>
    {current&&<MiniPlayer state={state} text={text} onOpen={()=>setOverlay('player')} onToggle={toggle} onNext={()=>void send({type:'next'})}/>}
-   <nav className="ios-tabs" aria-label="RITVIO"><button aria-current={tab==='home'?'page':undefined} onClick={()=>setTab('home')}><Home fill={tab==='home'?'currentColor':'none'}/><span>{text.home}</span></button><button aria-current={tab==='search'?'page':undefined} onClick={()=>setTab('search')}><Search/><span>{text.search}</span></button></nav>
+   <nav className="ios-tabs" aria-label="RITVIO"><button aria-current={tab==='home'?'page':undefined} onClick={()=>setTab('home')}><Home fill={tab==='home'?'currentColor':'none'}/><span>{text.home}</span></button><button aria-current={tab==='search'?'page':undefined} onClick={()=>setTab('search')}><Search/><span>{text.search}</span></button>{status?.capabilities.library&&<button aria-current={tab==='library'?'page':undefined} onClick={()=>setTab('library')}><LibraryBig/><span>{libraryText.library}</span></button>}</nav>
   </div>
-  {overlay==='player'&&current&&<div aria-hidden={menu?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')}/></div>}
-  {overlay==='queue'&&<div aria-hidden={menu?true:undefined}><Queue state={state} text={text} send={send} onClose={()=>setOverlay(current?'player':null)} onMore={index=>showMenu(state.items[index],index)} onOpenPlayer={()=>setOverlay('player')} announce={announce}/></div>}
+  {overlay==='player'&&current&&<div aria-hidden={coveringPlayer?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')} libraryActions={library.value?<><IconButton label={liked(current)?libraryText.unlike:libraryText.like} disabled={library.busy} pressed={liked(current)} className={liked(current)?'is-liked':''} onClick={()=>toggleLike(current)}><Heart fill={liked(current)?'currentColor':'none'}/></IconButton><IconButton label={text.more} onClick={()=>showMenu(current)}><MoreHorizontal/></IconButton></>:undefined}/></div>}
+  {overlay==='queue'&&<div aria-hidden={coveringPlayer?true:undefined}><Queue state={state} text={text} send={send} onClose={()=>setOverlay(current?'player':null)} onMore={index=>showMenu(state.items[index],index)} onOpenPlayer={()=>setOverlay('player')} announce={announce} onSave={library.value&&state.items.length?()=>setQueueForm(state.queueRevision??0):undefined} saveLabel={libraryText.queueSave}/></div>}
   {overlay==='settings'&&<Sheet title={text.settings} closeLabel={text.done} closeText onClose={()=>setOverlay(null)} className="ios-settings"><div className="ios-settings-scroll"><section><h3>{text.language}</h3>{(['en','it','system'] as const).map(value=><button key={value} className="ios-setting-row" aria-pressed={language.preference===value} disabled={languageBusy} onClick={()=>void changeLanguage(value)}><span>{value==='en'?'English':value==='it'?'Italiano':text.system}</span>{language.preference===value&&<Check/>}</button>)}</section><section><h3>{text.motion}</h3><label className="ios-setting-row"><span>{text.motion}</span><input className="ios-switch" type="checkbox" role="switch" checked={motion} onChange={event=>{setMotion(event.target.checked);try{localStorage.setItem('ritvio.ios.reduce-motion',String(event.target.checked));}catch{}}}/></label><p>{text.motionBody}</p></section><section><h3>{text.about}</h3><dl><div><dt>{text.version}</dt><dd>{status?`${status.version} (${status.build})`:'—'}</dd></div><div><dt>{text.stage}</dt><dd>{status?.phase??'—'}</dd></div><div><dt>{text.connection}</dt><dd>{connected?text.ready:text.unavailable}</dd></div></dl><p>{text.scope}</p></section><section><h3>{text.sources}</h3><p>{text.sourceBody}</p></section></div></Sheet>}
-  {menu&&<Sheet title={menu.track.title} closeLabel={text.cancel} onClose={()=>setMenu(null)} className="ios-menu"><p className="ios-menu-artist">{menu.track.artist}</p>{menu.index===undefined?<><button onClick={()=>{void enqueue(menu.track,true);setMenu(null);}}>{text.playNext}</button><button onClick={()=>{void enqueue(menu.track,false);setMenu(null);}}>{text.addQueue}</button></>:<><button onClick={()=>moveMenu(-1)} disabled={future.indexOf(menu.index)<=0}>{text.moveUp}</button><button onClick={()=>moveMenu(1)} disabled={future.indexOf(menu.index)<0||future.indexOf(menu.index)>=future.length-1}>{text.moveDown}</button><button onClick={()=>{void send({type:'remove',value:{index:menu.index!,revision:menu.revision}});setMenu(null);}}>{text.remove}</button></>}</Sheet>}
+  {menu&&<Sheet title={menu.track.title} closeLabel={text.cancel} onClose={()=>setMenu(null)} className="ios-menu"><p className="ios-menu-artist">{menu.track.artist}</p>
+   {library.value&&<><button disabled={library.busy} onClick={()=>{toggleLike(menu.track);setMenu(null);}}><Heart aria-hidden="true" size={20} fill={liked(menu.track)?'currentColor':'none'}/>{liked(menu.track)?libraryText.unlike:libraryText.like}</button><button onClick={()=>{setAddTrack(menu.track);setMenu(null);}}>{libraryText.add}</button></>}
+   {menu.index===undefined?<><button onClick={()=>{void enqueue(menu.track,true);setMenu(null);}}>{text.playNext}</button><button onClick={()=>{void enqueue(menu.track,false);setMenu(null);}}>{text.addQueue}</button></>:<><button onClick={()=>moveMenu(-1)} disabled={future.indexOf(menu.index)<=0}>{text.moveUp}</button><button onClick={()=>moveMenu(1)} disabled={future.indexOf(menu.index)<0||future.indexOf(menu.index)>=future.length-1}>{text.moveDown}</button><button onClick={()=>{void send({type:'remove',value:{index:menu.index!,revision:menu.revision}});setMenu(null);}}>{text.remove}</button></>}
+   {menu.playlist&&menuPlaylist&&<><button disabled={library.busy||menu.playlist.index<=0} onClick={()=>movePlaylist(-1)}>{libraryText.moveUp}</button><button disabled={library.busy||menu.playlist.index>=menuPlaylist.items.length-1} onClick={()=>movePlaylist(1)}>{libraryText.moveDown}</button><button disabled={library.busy} onClick={()=>{const context=menu.playlist!;void library.command({type:'remove',id:context.id,revision:context.revision,index:context.index},libraryText.removed);setMenu(null);}}>{libraryText.removeSong}</button></>}
+  </Sheet>}
   {current&&state.error&&<aside className="ios-playback-error" role="alert"><span>{/RATE_LIMIT/.test(state.error)?text.rateLimit:text.playbackError}</span><button onClick={()=>void send({type:'retry'})}>{text.retryPlayback}</button></aside>}
+  {addTrack&&<AddToPlaylist track={addTrack} library={library} t={libraryText} onClose={()=>setAddTrack(null)}/>}
+  {queueForm!==null&&<PlaylistForm library={library} t={libraryText} queueRevision={queueForm} onClose={()=>setQueueForm(null)}/>}
   <div className={`ios-notice${message?' is-visible':''}`} role="status" aria-live="polite">{message}</div>
  </div>;
 }

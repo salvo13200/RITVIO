@@ -141,7 +141,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 safeArea.top = max(safeArea.top, window.windowScene?.statusBarManager?.statusBarFrame.height ?? 0)
             }
             call.resolve([
-                "platform": "ios", "phase": "IOS-4",
+                "platform": "ios", "phase": "IOS-5",
                 "version": bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown",
                 "build": bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "unknown",
                 "bundleId": bundle.bundleIdentifier ?? "unknown",
@@ -150,7 +150,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": false, "lyrics": false, "sharing": false]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": false, "sharing": false]
             ])
         }
     }

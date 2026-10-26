@@ -1,12 +1,12 @@
 import {useEffect,useRef,useState,type PointerEvent as ReactPointerEvent} from 'react';
-import {GripVertical,MoreHorizontal} from 'lucide-react';
+import {GripVertical,MoreHorizontal,ListPlus} from 'lucide-react';
 import type {MobileCommand,MobilePlayback} from '../../../../packages/domain/mobile';
 import {Empty,IconButton,MiniPlayer,Sheet,SongRow} from './components';
 import type {IOSCopy} from './copy';
 
 export function upcoming(state:MobilePlayback){const order=state.order??state.items.map((_,i)=>i);return order.slice(Math.max(0,order.indexOf(state.index)+1));}
 type Drag={from:number;to:number;pointer:number;y:number;startY:number;startScroll:number;moved:boolean;revision:number;current:number};
-export function Queue({state,text,send,onClose,onMore,onOpenPlayer,announce}:{state:MobilePlayback;text:IOSCopy;send:(command:MobileCommand)=>Promise<boolean>;onClose:()=>void;onMore:(index:number)=>void;onOpenPlayer:()=>void;announce:(message:string)=>void}){
+export function Queue({state,text,send,onClose,onMore,onOpenPlayer,announce,onSave,saveLabel}:{state:MobilePlayback;text:IOSCopy;send:(command:MobileCommand)=>Promise<boolean>;onClose:()=>void;onMore:(index:number)=>void;onOpenPlayer:()=>void;announce:(message:string)=>void;onSave?:()=>void;saveLabel?:string}){
  const list=useRef<HTMLDivElement>(null),drag=useRef<Drag|null>(null),[view,setView]=useState<Drag|null>(null),[busy,setBusy]=useState(false),[confirm,setConfirm]=useState(false);
  const entries=upcoming(state),track=state.items[state.index];
  function reset(){const value=drag.current;if(value){const source=list.current?.querySelector<HTMLElement>(`[data-queue-entry="${value.from}"]`);if(source)source.style.transform='';}drag.current=null;setView(null);}
@@ -31,7 +31,7 @@ export function Queue({state,text,send,onClose,onMore,onOpenPlayer,announce}:{st
  async function end(event:ReactPointerEvent<HTMLButtonElement>,commit:boolean){const value=drag.current;if(!value||value.pointer!==event.pointerId)return;reset();if(commit&&value.from!==value.to){setBusy(true);const ok=await send({type:'move',value:{from:value.from,to:value.to,revision:value.revision}});setBusy(false);if(ok)announce(text.reordered);}else if(commit&&!value.moved){event.currentTarget.focus({preventScroll:true});onMore(value.from);}}
  return <Sheet title={text.queue} closeLabel={text.done} closeText onClose={onClose} className="ios-queue">
   <div className="ios-queue-current"><h3>{text.nowPlaying}</h3>{track&&<SongRow track={track} text={text} active onPlay={onOpenPlayer}/>}</div>
-  <div className="ios-section-title"><h3>{text.upNext}</h3><button disabled={!state.items.length||busy||Boolean(view)} onClick={()=>setConfirm(true)}>{text.clear}</button></div>
+  <div className="ios-section-title"><h3>{text.upNext}</h3>{onSave&&<IconButton label={saveLabel??'Save queue'} onClick={onSave} disabled={busy||Boolean(view)}><ListPlus/></IconButton>}<button disabled={!state.items.length||busy||Boolean(view)} onClick={()=>setConfirm(true)}>{text.clear}</button></div>
   <p className="ios-drag-hint" id="ios-queue-hint">{text.dragHint}</p>
   <div className={`ios-queue-list${view?' is-dragging':''}`} ref={list}>
    {!entries.length&&<Empty title={text.emptyQueue} body={text.emptyQueueBody}/>}

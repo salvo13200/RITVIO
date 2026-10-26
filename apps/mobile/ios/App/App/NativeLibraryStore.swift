@@ -26,7 +26,13 @@ final class NativeLibraryStore {
     static let shared: NativeLibraryStore = {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         #if DEBUG
-        if NativeUIFixture.enabled { return NativeLibraryStore(file: base.appendingPathComponent("RITVIO/UITestLibrary/library-v1.json")) }
+        if NativeUIFixture.enabled {
+            let file = base.appendingPathComponent("RITVIO/UITestLibrary/library-v1.json")
+            if ProcessInfo.processInfo.arguments.contains("--ritvio-ui-library-reset") { try? FileManager.default.removeItem(at:file) }
+            let store = NativeLibraryStore(file:file)
+            if ProcessInfo.processInfo.arguments.contains("--ritvio-ui-library-seed") { do { try NativeUIFixture.seedLibrary(store) } catch { assertionFailure("Original library fixture failed") } }
+            return store
+        }
         #endif
         return NativeLibraryStore(file: base.appendingPathComponent("RITVIO/library-v1.json"))
     }()
@@ -110,7 +116,10 @@ final class NativeLibraryStore {
             guard value.playlists.count < 100 else { throw ResolverFailure.code("LIBRARY_PLAYLIST_LIMIT") }
             let name = try Self.title(input)
             let tracks: [PlaybackTrack]
-            if input["type"] as? String == "create" { tracks = [] } else { tracks = try Self.tracks(input["items"]) }
+            if input["type"] as? String == "create" {
+                if let raw = input["track"] { guard let track = raw as? [String: Any] else { throw ResolverFailure.code("INVALID_TRACK") }; tracks = [try PlaybackTrack.decode(track)] } else { tracks = [] }
+            } else { tracks = try Self.tracks(input["items"]) }
+            guard input["description"] == nil || input["description"] is String else { throw ResolverFailure.code("INVALID_DESCRIPTION") }
             let description = input["description"] as? String ?? ""
             guard description.count <= 1000 else { throw ResolverFailure.code("INVALID_DESCRIPTION") }
             value.playlists.insert(LibraryPlaylist(id: UUID().uuidString.lowercased(), name: name, description: description,
@@ -120,6 +129,7 @@ final class NativeLibraryStore {
             switch input["type"] as? String {
             case "rename":
                 value.playlists[index].name = try Self.title(input)
+                guard input["description"] == nil || input["description"] is String else { throw ResolverFailure.code("INVALID_DESCRIPTION") }
                 if let description = input["description"] as? String { guard description.count <= 1000 else { throw ResolverFailure.code("INVALID_DESCRIPTION") }; value.playlists[index].description = description }
             case "delete": value.playlists.remove(at: index)
             case "add":
@@ -133,6 +143,7 @@ final class NativeLibraryStore {
                 guard let from = Self.integer(input["from"]), let to = Self.integer(input["to"]), value.playlists[index].items.indices.contains(from), value.playlists[index].items.indices.contains(to) else { throw ResolverFailure.code("INVALID_PLAYLIST_ENTRY") }
                 value.playlists[index].items.insert(value.playlists[index].items.remove(at: from), at: to)
             case "cover":
+                guard input["file"] == nil || input["file"] is String else { throw ResolverFailure.code("INVALID_ARTWORK") }
                 let cover = input["file"] as? String
                 guard cover == nil || (Self.validCover(cover!) && FileManager.default.fileExists(atPath: artworkDirectory.appendingPathComponent(cover!).path)) else { throw ResolverFailure.code("INVALID_ARTWORK") }
                 value.playlists[index].coverFile = cover

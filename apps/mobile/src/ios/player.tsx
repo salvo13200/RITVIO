@@ -1,4 +1,4 @@
-import {useEffect,useLayoutEffect,useRef,useState,type CSSProperties} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState,type CSSProperties,type ReactNode} from 'react';
 import {ChevronDown,ListMusic,Repeat,Repeat1,Shuffle,SkipBack,SkipForward} from 'lucide-react';
 import {mobileTime,type MobileCommand,type MobilePlayback} from '../../../../packages/domain/mobile';
 import {Artwork,IconButton,ScrollText,Sheet,Toggle} from './components';
@@ -21,7 +21,7 @@ export function Seek({state,text,send}:{state:MobilePlayback;text:IOSCopy;send:(
   <div className="ios-time"><span>{mobileTime(value)}</span><span>{mobileTime(duration)}</span></div>
  </div>;
 }
-export function Player({state,text,send,onClose,onQueue}:{state:MobilePlayback;text:IOSCopy;send:(command:MobileCommand)=>void;onClose:()=>void;onQueue:()=>void}){
+export function Player({state,text,send,onClose,onQueue,libraryActions}:{state:MobilePlayback;text:IOSCopy;send:(command:MobileCommand)=>void;onClose:()=>void;onQueue:()=>void;libraryActions?:ReactNode}){
  const art=useRef<HTMLDivElement>(null);
  useLayoutEffect(()=>{const element=art.current;if(!element)return;const measure=()=>element.style.setProperty('--ios-cover',`${Math.max(0,Math.min(element.clientWidth,element.clientHeight-24))}px`);const observer=new ResizeObserver(measure);observer.observe(element);measure();return()=>observer.disconnect();},[]);
  const track=state.items[state.index];if(!track)return null;
@@ -29,7 +29,7 @@ export function Player({state,text,send,onClose,onQueue}:{state:MobilePlayback;t
  return <Sheet title={text.nowPlaying} closeLabel={text.hidePlayer} onClose={onClose} className="ios-player">
   <div className="ios-player-top"><IconButton label={text.hidePlayer} onClick={onClose}><ChevronDown/></IconButton><span>{text.nowPlaying}</span><IconButton label={text.queue} onClick={onQueue}><ListMusic/></IconButton></div>
   <div className="ios-player-art" data-testid="player-art" ref={art}><Artwork src={track.thumbnail} large eager/></div>
-  <div className="ios-player-details"><p className="ios-player-album" aria-hidden={!track.album?.name||undefined}>{track.album?.name??'\u00a0'}</p><h1><ScrollText>{track.title}</ScrollText></h1><p className="ios-player-artist"><ScrollText>{track.artist}</ScrollText></p></div>
+  <div className="ios-player-details"><p className="ios-player-album" aria-hidden={!track.album?.name||undefined}>{track.album?.name??'\u00a0'}</p><div className="ios-player-title-row"><h1><ScrollText>{track.title}</ScrollText></h1>{libraryActions&&<div className="ios-player-library-actions">{libraryActions}</div>}</div><p className="ios-player-artist"><ScrollText>{track.artist}</ScrollText></p></div>
   <Seek state={state} text={text} send={send}/>
   <div className="ios-transport">
    <IconButton label={text.shuffle} pressed={state.shuffle} onClick={()=>send({type:'shuffle',value:!state.shuffle})}><Shuffle/></IconButton>

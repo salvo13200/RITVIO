@@ -12,7 +12,7 @@ enum PlaybackSelfTest {
         Task { @MainActor in await run() }
     }
     @MainActor private static func run() async {
-        var report: [String: Any] = ["schema": 1, "phase": "IOS-4", "nativeAVPlayer": true, "syntheticTransport": true,
+        var report: [String: Any] = ["schema": 1, "phase": "IOS-5", "nativeAVPlayer": true, "syntheticTransport": true,
             "source": "original-generated-tone", "providerStreaming": "pending", "audibleOutput": "not-measured", "physicalTests": "pending"]
         var stage = "queue-policy"
         func progress(_ value: String) { stage = value; report["stage"] = stage; report["status"] = "running"; write(report) }
@@ -21,7 +21,7 @@ enum PlaybackSelfTest {
         defer { owner?.shutdown(); FixtureMediaProtocol.reset(); try? FileManager.default.removeItem(at: directory) }
         do {
             progress("library"); report["library"] = try LibrarySelfTest.run()
-            progress(stage)
+            progress("queue")
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let tracks = (1...3).map { ["videoId": "ritviotest\($0)", "title": "Original tone \($0)", "artist": "RITVIO native check", "thumbnail": "", "duration": fixtureSeconds] as [String: Any] }
             let decoded = try tracks.map(PlaybackTrack.decode)
@@ -265,6 +265,13 @@ enum NativeUIFixture {
                     callback(.success(["url": "https://fixture.googlevideo.com/audio.m4a", "headers": ["User-Agent": "RITVIO-native-test"], "expires": Date().timeIntervalSince1970 + 300, "container": "m4a", "codec": "mp4a.40.2", "protocol": "https", "duration": 90]))
                 }
             }, cancelResolve: { _ in })
+    }
+    static func seedLibrary(_ store: NativeLibraryStore) throws {
+        for track in tracks.prefix(3) { _ = try store.command(["type":"like", "liked":true, "track":track]) }
+        for (name,count,offset) in [("Somewhere quiet",9,3),("After hours",24,2),("Slow mornings",12,1),("Night drive",18,0)] {
+            let items = (0..<count).map { tracks[($0 + offset) % tracks.count] }
+            _ = try store.command(["type":"createFromTracks", "name":name, "items":items])
+        }
     }
     static func prepareIfRequested() {
         guard enabled, !preparing else { return }; preparing = true

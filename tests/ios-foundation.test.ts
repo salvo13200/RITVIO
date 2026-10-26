@@ -23,6 +23,8 @@ test('foundation accepts native metadata without inventing playback capabilities
  const playerBuild={...resolverBuild,phase:'IOS-3',capabilities:{...resolverBuild.capabilities,playback:true}};
  assert.equal(parseFoundationStatus(playerBuild).capabilities.playback,true);
  assert.equal(parseFoundationStatus({...playerBuild,phase:'IOS-4',textScale:1.65}).capabilities.playback,true);
+ assert.equal(parseFoundationStatus({...playerBuild,phase:'IOS-5',capabilities:{...playerBuild.capabilities,library:true}}).capabilities.library,true);
+ assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',capabilities:{...playerBuild.capabilities,library:true}}));
  for(const textScale of [0,NaN,Infinity,'1.5'])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',textScale}));
  assert.deepEqual(parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea:{top:62,right:0,bottom:34,left:0}}).safeArea,{top:62,right:0,bottom:34,left:0});
  for(const safeArea of [null,{}, {top:-1,right:0,bottom:0,left:0},{top:NaN,right:0,bottom:0,left:0}])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea}));
@@ -40,5 +42,5 @@ test('iOS build version remains independent from the existing Android release',a
  const ios=JSON.parse(await readFile(new URL('../apps/mobile/ios-version.json',import.meta.url),'utf8'));
  const android=JSON.parse(await readFile(new URL('../apps/mobile/package.json',import.meta.url),'utf8'));
  const gradle=await readFile(new URL('../apps/mobile/android/app/build.gradle',import.meta.url),'utf8');
- assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-4');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
+ assert.ok(gradle.includes(`versionName "${android.version}"`));assert.equal(ios.phase,'IOS-5');assert.equal(ios.minimumOS,'15.0');assert.ok(Number.isSafeInteger(ios.build)&&ios.build>0);assert.match(ios.version,/^\d+\.\d+\.\d+$/);assert.notEqual(ios.version,android.version);
 });
