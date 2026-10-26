@@ -9,7 +9,10 @@ final class FoundationUITests: XCTestCase {
         app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         let settings = app.webViews.buttons.matching(NSPredicate(format:"label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout:45)); settings.tap(); chooseLanguage(app,"English"); button(app,"Done").tap()
+        XCTAssertTrue(settings.waitForExistence(timeout:45))
+        let firstResume = app.webViews.buttons.matching(NSPredicate(format:"label CONTAINS %@", "After the rain")).firstMatch
+        XCTAssertTrue(firstResume.waitForExistence(timeout:30)); capture(app,"ios5-first-launch")
+        settings.tap(); chooseLanguage(app,"English"); button(app,"Done").tap()
         wait(app) { !self.button(app,"Done").exists }
         XCTAssertTrue(button(app,"Library").waitForExistence(timeout:15)); button(app,"Library").tap()
         XCTAssertTrue(app.webViews.staticTexts["Your playlists"].waitForExistence(timeout:10)); capture(app,"ios5-library-empty")

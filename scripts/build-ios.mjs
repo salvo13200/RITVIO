@@ -1,6 +1,6 @@
 import {spawn} from 'node:child_process';
 import {createRequire} from 'node:module';
-import {readFile,writeFile,mkdir,stat,rm} from 'node:fs/promises';
+import {readFile,writeFile,mkdir,stat,rm,cp,readdir} from 'node:fs/promises';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
@@ -74,6 +74,16 @@ if(buildSimulator){
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0&&!options.has('--skip-live');
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();
+    if(!options.has('--resolver-only')){
+     const startup=path.join(artifacts,`startup-${index}`);
+     try{
+      await cp(path.join(container,'Documents/ui-startup'),startup,{recursive:true});
+      if(uiPassed)for(const file of await readdir(startup))if(file.endsWith('.json')){
+       const evidence=JSON.parse(await readFile(path.join(startup,file),'utf8'));
+       if(evidence.bridgeInstances!==1)throw Error(`Expected one UI bridge for ${device.name}, found ${evidence.bridgeInstances}`);
+      }
+     }catch(error){if(error.code!=='ENOENT')throw error;console.error('Startup fixture diagnostics were not produced.');}
+    }
     if(index===0&&['IOS-3','IOS-4','IOS-5'].includes(version.phase)&&!options.has('--resolver-only')){
      const playbackEvidence=path.join(container,'Documents/playback-evidence.json');
      await rm(playbackEvidence,{force:true});

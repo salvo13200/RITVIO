@@ -19,11 +19,14 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }
 
-        window = UIWindow(windowScene: windowScene)
-        window?.rootViewController = BridgeViewController()
-        window?.makeKeyAndVisible()
-
+        // UIKit supplies the storyboard window before this callback. Replacing
+        // it creates two bridges racing over first-install initialization.
+        if window == nil {
+            window = UIWindow(windowScene: windowScene)
+            window?.rootViewController = BridgeViewController()
+        }
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        window?.makeKeyAndVisible()
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
