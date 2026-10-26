@@ -124,6 +124,7 @@ final class ResolverWorker {
         let target = destination ?? (host,port)
         guard Self.privateHost(target.0), let url = URL(string:"http://\(target.0):\(target.1)\(path)") else { complete(.failure(.code("INVALID_PC_ADDRESS"))); return }
         var request = URLRequest(url:url); request.cachePolicy = .reloadIgnoringLocalCacheData
+        request.timeoutInterval = path == "/v1/status" ? 3 : path == "/v1/pair" ? 10 : 60
         request.httpMethod = body == nil ? "GET" : "POST"
         if let body { request.httpBody = try? JSONSerialization.data(withJSONObject:body); request.setValue("application/json",forHTTPHeaderField:"Content-Type") }
         if authorization != nil { request.setValue("Bearer \(token)",forHTTPHeaderField:"Authorization") }

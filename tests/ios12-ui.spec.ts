@@ -44,6 +44,7 @@ test('old-WebKit API fallbacks bootstrap; pairing errors recover without losing 
  await page.getByLabel('PC IP address').fill('192.168.1.10');await page.getByLabel('Pairing code').fill('000000');await page.getByRole('button',{name:'Connect',exact:true}).click();await expect(page.getByRole('alert')).toContainText('Incorrect');
  await pair(page);await expect(page.getByRole('button',{name:'Connection',exact:true})).toBeVisible();
  await expect(page.getByRole('button',{name:'Library',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Connection',exact:true}).click();await page.getByRole('button',{name:'Back to listening'}).click();await expect(page.getByRole('heading',{name:'Your listening'})).toBeVisible();
  expect(errors).toEqual([]);
 });
 test('queue handle reorders via the touch-to-pointer fallback',async({page})=>{

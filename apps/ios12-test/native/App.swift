@@ -50,13 +50,20 @@ final class PCTestController: UIViewController, WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor action: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         decisionHandler(action.request.url?.scheme == "ritvio12" && action.request.url?.host == "bundle" ? .allow : .cancel)
     }
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        // Older phones may discard the web process under memory pressure.
+        // Recreate only the interface; the native player and library stay alive.
+        webView.load(URLRequest(url:URL(string:"ritvio12://bundle/index.html")!))
+    }
     private func publish(_ value: [String: Any]) {
-        // Audio stays native while WKWebView is suspended. Do not accumulate
-        // four snapshot scripts/second during locked-screen listening.
-        if value["event"] != nil && UIApplication.shared.applicationState != .active { return }
-        guard let bytes = try? JSONSerialization.data(withJSONObject:value), let text = String(data:bytes,encoding:.utf8) else { return }
-        let safe = text.replacingOccurrences(of:"\u{2028}",with:"\\u2028").replacingOccurrences(of:"\u{2029}",with:"\\u2029")
-        DispatchQueue.main.async { self.web.evaluateJavaScript("window.__ritvioReceive && window.__ritvioReceive(\(safe))",completionHandler:nil) }
+        DispatchQueue.main.async {
+            // Audio stays native while WKWebView is suspended. Do not accumulate
+            // four snapshot scripts/second during locked-screen listening.
+            if value["event"] != nil && UIApplication.shared.applicationState != .active { return }
+            guard let bytes = try? JSONSerialization.data(withJSONObject:value), let text = String(data:bytes,encoding:.utf8) else { return }
+            let safe = text.replacingOccurrences(of:"\u{2028}",with:"\\u2028").replacingOccurrences(of:"\u{2029}",with:"\\u2029")
+            self.web.evaluateJavaScript("window.__ritvioReceive && window.__ritvioReceive(\(safe))",completionHandler:nil)
+        }
     }
     private func reply(_ id: String, _ result: Result<[String: Any], ResolverFailure>) {
         switch result {
