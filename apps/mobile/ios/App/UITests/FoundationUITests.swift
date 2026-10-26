@@ -12,7 +12,7 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(settings.waitForExistence(timeout:45))
         let firstResume = app.webViews.buttons.matching(NSPredicate(format:"label CONTAINS %@", "After the rain")).firstMatch
         XCTAssertTrue(firstResume.waitForExistence(timeout:30)); capture(app,"ios5-first-launch")
-        settings.tap(); chooseLanguage(app,"English"); button(app,"Done").tap()
+        tapCenter(button(app,"Settings")); chooseLanguage(app,"English"); button(app,"Done").tap()
         wait(app) { !self.button(app,"Done").exists }
         XCTAssertTrue(button(app,"Library").waitForExistence(timeout:15)); button(app,"Library").tap()
         XCTAssertTrue(app.webViews.staticTexts["Your playlists"].waitForExistence(timeout:10)); capture(app,"ios5-library-empty")
@@ -46,7 +46,10 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app,"Open player: Slow motion").waitForExistence(timeout:15)); button(app,"Open player: Slow motion").tap()
         XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15)); button(app,"Next song").tap()
         XCTAssertTrue(app.webViews.staticTexts["After the rain"].waitForExistence(timeout:15)); button(app,"Pause").tap(); button(app,"Close player").tap()
-        button(app,"Back to library").tap(); button(app,"Playlist options: Native mix").tap(); button(app,"Edit details").tap()
+        tapCenter(button(app,"Back to library"))
+        XCTAssertTrue(app.webViews.staticTexts["Your library"].waitForExistence(timeout:10))
+        openPlaylistOptions(app,"Native mix")
+        XCTAssertTrue(button(app,"Edit details").waitForExistence(timeout:10)); button(app,"Edit details").tap()
         XCTAssertTrue(name.waitForExistence(timeout:10)); replace(name, with:"Native mix updated")
         capture(app,"ios5-playlist-edit"); button(app,"Save").tap()
         XCTAssertTrue(button(app,"Native mix updated, 2 songs").waitForExistence(timeout:10))
@@ -60,12 +63,12 @@ final class FoundationUITests: XCTestCase {
         capture(app,"ios5-library-restarted")
         button(app,"Recently played").tap(); XCTAssertTrue(button(app,"Play: After the rain").waitForExistence(timeout:10)); capture(app,"ios5-library-history"); button(app,"Back to library").tap()
         button(app,"Play").tap(); XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15))
-        button(app,"Playlist options: Queued mix").tap(); button(app,"Choose playlist photo").tap()
+        openPlaylistOptions(app,"Queued mix"); button(app,"Choose playlist photo").tap()
         let cancelPhoto = app.buttons.matching(identifier:"Cancel").firstMatch
         XCTAssertTrue(cancelPhoto.waitForExistence(timeout:20)); capture(app,"ios5-library-photo-picker"); cancelPhoto.tap()
         XCTAssertTrue(button(app,"Pause").waitForExistence(timeout:15), "Cancelling the system photo picker must preserve the native playback intent")
         button(app,"Pause").tap(); capture(app,"ios5-library-photo-cancelled")
-        button(app,"Playlist options: Native mix updated").tap(); button(app,"Delete playlist").tap()
+        openPlaylistOptions(app,"Native mix updated"); button(app,"Delete playlist").tap()
         capture(app,"ios5-library-delete"); button(app,"Delete").tap()
         wait(app) { !self.button(app,"Native mix updated, 2 songs").exists }
         XCTAssertTrue(button(app,"Queued mix, 2 songs").exists)
@@ -79,6 +82,26 @@ final class FoundationUITests: XCTestCase {
     }
     private func wait(_ app: XCUIApplication, until condition: @escaping () -> Bool) {
         expectation(for:NSPredicate { _, _ in condition() }, evaluatedWith:app); waitForExpectations(timeout:15)
+    }
+    private func tapCenter(_ element: XCUIElement) {
+        XCTAssertTrue(element.waitForExistence(timeout:10)); XCTAssertTrue(element.isHittable)
+        element.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).tap()
+    }
+    private func openPlaylistOptions(_ app: XCUIApplication, _ name: String) {
+        let target = button(app,"Playlist options: \(name)")
+        let content = app.webViews.otherElements.matching(identifier:"main").firstMatch
+        XCTAssertTrue(target.waitForExistence(timeout:10)); XCTAssertTrue(content.exists)
+        // WebKit may report a partially clipped control as hittable. Reveal the
+        // whole control inside the actual scrollport, above the fixed mini-player.
+        for _ in 0..<3 {
+            if content.frame.contains(target.frame) { break }
+            let up = target.frame.maxY > content.frame.maxY
+            let start = content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.75 : 0.25))
+            let finish = content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.25 : 0.75))
+            start.press(forDuration:0.05,thenDragTo:finish)
+        }
+        XCTAssertTrue(content.frame.contains(target.frame),"Playlist menu must be inside the content viewport before tapping")
+        tapCenter(target)
     }
     private func replace(_ field: XCUIElement, with value: String) {
         let old = String(describing:field.value ?? "")
