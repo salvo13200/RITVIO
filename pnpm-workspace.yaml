@@ -5,6 +5,7 @@ allowBuilds:
   esbuild: true
   electron: true
   electron-winstaller: false
+  core-js: false
 minimumReleaseAgeExclude:
   - i18next@26.4.7
   - react-i18next@17.0.20
