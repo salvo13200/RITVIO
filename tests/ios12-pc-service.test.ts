@@ -6,7 +6,7 @@ const info={id:track.videoId,url:'https://rr1.googlevideo.com/videoplayback?expi
 async function fixture(){
  const calls:string[]=[];let closed=false,now=1000000;
  const {app}=await createPCTestService({search:async q=>{calls.push(q);return {items:[track]};},resolve:async id=>{calls.push(id);return info;},close:async()=>{closed=true;}},{pin:'123456',hosts:['127.0.0.1','192.168.1.10'],now:()=>now});
- const request=(url:string,payload?:unknown,token?:string,extra:Record<string,string>={})=>app.inject({method:payload===undefined?'GET':'POST',url,headers:{host:'127.0.0.1:59212',...(token?{authorization:`Bearer ${token}`}:{}) ,...extra},...(payload===undefined?{}:{payload})});
+ const request=(url:string,payload?:Record<string,unknown>,token?:string,extra:Record<string,string>={})=>app.inject({method:payload===undefined?'GET':'POST',url,headers:{host:'127.0.0.1:59212',...(token?{authorization:`Bearer ${token}`}:{}) ,...extra},...(payload===undefined?{}:{payload})});
  const pair=async()=>{const response=await request('/v1/pair',{pin:'123456'});assert.equal(response.statusCode,200);return response.json().token as string;};
  return {app,request,pair,calls,advance:()=>now+=60001,closed:()=>closed};
 }
