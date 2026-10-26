@@ -36,6 +36,8 @@ test('two-song playlist reorders through a held touchscreen gesture',async({page
  await page.setViewportSize({width:375,height:667});const value=seed();value.playlists[0].items=value.playlists[0].items.slice(0,2);
  await fixture(page,{withLibrary:true,librarySeed:value});await library(page);await page.getByRole('button',{name:'Night drive, 2 songs',exact:true}).click();
  const slow=page.getByRole('button',{name:'Reorder: Slow motion',exact:true}),rain=page.getByRole('button',{name:'Reorder: After the rain',exact:true});
+ await slow.scrollIntoViewIfNeeded();
+ expect(await slow.evaluate(element=>{const box=element.getBoundingClientRect();return document.elementFromPoint(box.x+box.width/2,box.y+box.height/2)?.closest('button')===element;})).toBe(true);
  const source=(await slow.boundingBox())!,target=(await rain.boundingBox())!,x=source.x+source.width/2,y=source.y+source.height/2,end=target.y+target.height/2;
  const input=await page.context().newCDPSession(page);await input.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});await page.waitForTimeout(250);
  expect(Math.abs((await slow.boundingBox())!.y-source.y)).toBeLessThan(2);
