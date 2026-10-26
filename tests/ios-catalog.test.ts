@@ -19,10 +19,11 @@ test('artist detail retains discography order and rejects another artist identit
 test('search resources retain their kinds and metadata flags cannot fake success',()=>{
  const request={operation:'catalog-search',kind:'album',query:'Luna Vale'} as const,raw={items:[album],candidates:[{id:'artist-1',kind:'artist',name:'Luna Vale',artwork}],cached:true,truncated:true};
  const value=parseCatalog(raw,request) as CatalogSearch;assert.equal(value.cached,true);assert.equal(value.candidates[0].kind,'artist');assert.equal(value.truncated,true);
- for(const invalid of [{...raw,cached:'true'},{...raw,items:raw.candidates},{...raw,items:[{...album,artwork:'https://user:password@lh3.googleusercontent.com/private'}]}])assert.throws(()=>parseCatalog(invalid,request));
+ for(const invalid of [{...raw,cached:'true'},{...raw,items:raw.candidates},{...raw,items:[{...album,id:'album-1\n'}]},{...raw,items:[{...album,artwork:'https://user:password@lh3.googleusercontent.com/private'}]}])assert.throws(()=>parseCatalog(invalid,request));
 });
 test('malformed and oversized catalog results cannot produce playable metadata',()=>{
  const request={operation:'detail',kind:'album',id:'album-1'} as const;
  for(const raw of [null,{...album,entries:[{...album.entries[0],number:0}]},{...album,entries:[{...album.entries[0],track:{...song,videoId:'../bad'}}]},
+  {...album,entries:[{...album.entries[0],track:{...song,videoId:'abcdefghijk\n'}}]},
   {...album,entries:Array.from({length:1001},(_,index)=>({...album.entries[0],number:index+1}))},{...album,reportedCount:-1},{...album,entries:[{...album.entries[0],duration:Infinity}]}])assert.throws(()=>parseCatalog(raw,request));
 });

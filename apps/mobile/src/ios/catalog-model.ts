@@ -12,7 +12,7 @@ export type ArtistDetail=Detail&{kind:'artist';tracks:NativeTrack[];albums:Mobil
 const record=(value:unknown):value is Record<string,unknown>=>Boolean(value)&&typeof value==='object'&&!Array.isArray(value);
 function fail():never{throw Error('Invalid catalog metadata');}
 function text(value:unknown,max:number,empty=false){if(typeof value!=='string'||value.length>max||(!empty&&!value.trim()))return fail();return value;}
-function id(value:unknown){const result=text(value,160);if(!/^[A-Za-z\d_-]+$/.test(result))return fail();return result;}
+function id(value:unknown){const result=text(value,160);if(/[^A-Za-z\d_-]/.test(result))return fail();return result;}
 function flag(value:unknown){if(value!==undefined&&typeof value!=='boolean')return fail();return value===true;}
 function year(value:unknown){return typeof value==='number'&&Number.isInteger(value)&&value>=1000&&value<=9999?String(value):text(value,16);}
 function list<T>(value:unknown,max:number,parse:(item:unknown,index:number)=>T):T[]{if(!Array.isArray(value)||value.length>max)return fail();return value.map(parse);}
@@ -30,7 +30,7 @@ function resource(value:unknown,kind?:'album'|'artist'):MobileResource{
   ...(value.artists!==undefined?{artists:list(value.artists,20,person)}:{}),...(value.year!=null?{year:year(value.year)}:{})};
 }
 function track(value:unknown):NativeTrack{
- if(!isNativeTrack(value))return fail();const thumbnail=image(value.thumbnail)??'';
+ if(!isNativeTrack(value)||value.videoId.length!==11)return fail();const thumbnail=image(value.thumbnail)??'';
  return {videoId:value.videoId,title:value.title,artist:value.artist,duration:value.duration,thumbnail,
   ...(value.artists!=null?{artists:list(value.artists,20,person)}:{}),...(value.album!=null?{album:person(value.album)}:{})};
 }
