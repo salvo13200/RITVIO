@@ -9,7 +9,10 @@ export function useCatalog(request:CatalogRequest|null,playbackLoading:boolean,e
  const serialized=request?JSON.stringify(request):'',[attempt,setAttempt]=useState(0),[state,setState]=useState<QueryState>({key:'',value:null,phase:'idle',error:null});
  const retryRefresh=useRef(false);
  useEffect(()=>{
-  if(!serialized||!enabled){setState({key:serialized,value:null,phase:'idle',error:null});return;}
+  if(!serialized){setState({key:serialized,value:null,phase:'idle',error:null});return;}
+  // A menu pauses new work, not the rendered collection. Keeping a completed
+  // value avoids collapsing the scrollport and losing the trigger's position.
+  if(!enabled){setState(previous=>previous.key===serialized&&previous.value?previous:{key:serialized,value:null,phase:'idle',error:null});return;}
   const input=JSON.parse(serialized) as CatalogRequest,key=JSON.stringify({...input,refresh:undefined}),previous=cache.get(key);
   const refresh=retryRefresh.current||Boolean(input.refresh);retryRefresh.current=false;
   if(!refresh&&previous&&previous.until>Date.now()){setState({key:serialized,value:previous.value,phase:'ready',error:null});return;}

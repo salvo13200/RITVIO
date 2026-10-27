@@ -6,6 +6,9 @@ test('unified search opens identity-bound album, preserves unavailable positions
  const errors=await fixture(page,{withLibrary:true});await search(page);await page.getByRole('button',{name:'Albums',exact:true}).click();await page.getByRole('button',{name:'Open album: Night scenes',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Night scenes',exact:true})).toBeVisible();await expect(page.locator('.ios-album-tracks li')).toHaveCount(4);await expect(page.locator('.ios-album-tracks li').nth(1)).toContainText('Unavailable');
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='playTracks').length)).toBe(0);
+ const more=page.getByRole('button',{name:'More options: After the rain',exact:true}).nth(1);await more.scrollIntoViewIfNeeded();const scroll=await page.locator('.ios-content').evaluate(element=>element.scrollTop);
+ await more.click();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.locator('.ios-album-tracks li')).toHaveCount(4);await page.getByRole('button',{name:'Cancel',exact:true}).click();
+ expect(Math.abs(await page.locator('.ios-content').evaluate(element=>element.scrollTop)-scroll)).toBeLessThan(2);
  await page.getByRole('button',{name:'Play: After the rain',exact:true}).nth(1).click();
  const operation=await page.evaluate(()=>(window as any).__iosOperations.findLast((op:any)=>op.method==='playTracks'));
  expect(operation.index).toBe(2);expect(operation.items.map((item:any)=>item.videoId)).toEqual(['ritviotest1','ritviotest2','ritviotest1']);
@@ -15,7 +18,7 @@ test('artist discography precedes songs, all releases retain artist ID, saved re
  await fixture(page,{withLibrary:true});await search(page);await page.getByRole('button',{name:'Open artist: Luna Vale',exact:true}).click();await expect(page.getByRole('heading',{name:'Luna Vale',exact:true})).toBeVisible();
  const heads=await page.locator('.ios-catalog-page h2').allTextContents();expect(heads.slice(0,3)).toEqual(['Albums','Singles & EPs','Songs']);
  await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.getByRole('button',{name:'Saved',exact:true})).toHaveAttribute('aria-pressed','true');
- await page.getByRole('button',{name:'See all',exact:true}).first().click();await expect(page.locator('.ios-resource')).toHaveCount(9);
+ await page.getByRole('button',{name:'See all',exact:true}).first().click();await expect(page.locator('.ios-catalog-page .ios-resource')).toHaveCount(9);
  expect(await page.evaluate(()=>(window as any).__iosOperations.findLast((op:any)=>op.operation==='releases').id)).toBe('fixture-artist');
  await page.getByRole('button',{name:'Open album: Night scenes',exact:true}).click();await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.getByRole('button',{name:'Saved',exact:true})).toBeVisible();
  await page.getByRole('button',{name:'Library',exact:true}).click();await expect(page.getByRole('button',{name:'Open artist: Luna Vale',exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'Open album: Night scenes',exact:true})).toBeVisible();await page.reload();await page.getByRole('button',{name:'Library',exact:true}).click();await expect(page.getByRole('button',{name:'Open artist: Luna Vale',exact:true})).toBeVisible();
