@@ -5,6 +5,7 @@ async function search(page:import('@playwright/test').Page,query='luna'){await p
 test('unified search opens identity-bound album, preserves unavailable positions and duplicate occurrences',async({page})=>{
  const errors=await fixture(page,{withLibrary:true});await search(page);await page.getByRole('button',{name:'Albums',exact:true}).click();await page.getByRole('button',{name:'Open album: Night scenes',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Night scenes',exact:true})).toBeVisible();await expect(page.locator('.ios-album-tracks li')).toHaveCount(4);await expect(page.locator('.ios-album-tracks li').nth(1)).toContainText('Unavailable');
+ const starts=await page.locator('.ios-album-song strong').evaluateAll(elements=>elements.map(element=>element.getBoundingClientRect().left));expect(Math.max(...starts)-Math.min(...starts)).toBeLessThan(1);
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='playTracks').length)).toBe(0);
  const more=page.getByRole('button',{name:'More options: After the rain',exact:true}).nth(1);await more.scrollIntoViewIfNeeded();const scroll=await page.locator('.ios-content').evaluate(element=>element.scrollTop);
  await more.click();await expect(page.getByRole('dialog')).toBeVisible();await expect(page.locator('.ios-album-tracks li')).toHaveCount(4);await page.getByRole('button',{name:'Cancel',exact:true}).click();

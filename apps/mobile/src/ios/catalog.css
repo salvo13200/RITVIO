@@ -42,3 +42,4 @@
 .ios-app[data-large-text] .ios-resource-shelf .ios-resource>.artwork{width:96px;height:96px;flex:0 0 96px}
 .ios-app[data-large-text] .ios-resource-shelf .ios-resource.is-artist>.artwork{width:72px;height:72px;flex-basis:72px}
 .ios-app[data-large-text] .ios-resource-shelf .ios-resource>.ios-identity{width:auto;flex:1;min-width:0}
+.ios-app .ios-album-song{align-items:flex-start;justify-content:center}
