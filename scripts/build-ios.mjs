@@ -9,11 +9,11 @@ import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
-for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only','--skip-live','--listening-ui-only'].includes(flag))throw Error(`Unknown option: ${flag}`);
+for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only','--skip-live','--listening-ui-only','--catalog-ui-only'].includes(flag))throw Error(`Unknown option: ${flag}`);
 if(!options.has('--prepare-only')&&process.platform!=='darwin')throw Error('Xcode builds require macOS. Use pnpm ios:prepare on Windows.');
 if(options.has('--smoke')&&options.has('--prepare-only'))throw Error('Smoke tests require a native build.');
 if(options.has('--resolver-only')&&!options.has('--smoke'))throw Error('Resolver-only mode requires --smoke');
-if(options.has('--listening-ui-only')&&(!options.has('--smoke')||options.has('--resolver-only')))throw Error('Listening-only UI verification requires --smoke and cannot skip UI tests');
+if((options.has('--listening-ui-only')||options.has('--catalog-ui-only'))&&(!options.has('--smoke')||options.has('--resolver-only')||(options.has('--listening-ui-only')&&options.has('--catalog-ui-only'))))throw Error('Focused UI verification requires --smoke and exactly one UI scope');
 const env={...process.env,RITVIO_MOBILE_PLATFORM:'ios'};
 function run(file,args,{cwd=root,capture=false}={}){
  return new Promise((resolve,reject)=>{let stdout='';const child=spawn(file,args,{cwd,env,windowsHide:true,stdio:capture?['ignore','pipe','inherit']:'inherit'});if(capture)child.stdout.on('data',chunk=>{stdout+=chunk;if(stdout.length>16*1024*1024)child.kill();});child.once('error',reject);child.once('exit',(code,signal)=>code===0?resolve(stdout):reject(Error(`${path.basename(file)} failed (${code??signal})`)));});
@@ -32,7 +32,7 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,uiTestScope:options.has('--listening-ui-only')?'listening-only':options.has('--resolver-only')?'not-run':'all',deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,uiTestScope:options.has('--listening-ui-only')?'listening-only':options.has('--catalog-ui-only')?'catalog-only':options.has('--resolver-only')?'not-run':'all',deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
 const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
@@ -69,9 +69,16 @@ if(buildSimulator){
     let uiPassed=true;
     if(!options.has('--resolver-only')){
     const result=path.join(results,`foundation-${index}.xcresult`);
-    try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO',...(options.has('--listening-ui-only')?['-only-testing:RitvioFoundationUITests/FoundationUITests/testListeningInterfaceAndNativeQueue']:[]),'test','CODE_SIGNING_ALLOWED=NO']);}
+    try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO',...(options.has('--listening-ui-only')?['-only-testing:RitvioFoundationUITests/FoundationUITests/testListeningInterfaceAndNativeQueue']:options.has('--catalog-ui-only')?['-only-testing:RitvioFoundationUITests/FoundationUITests/testCatalogAlbumArtistAndSavedResources']:[]),'test','CODE_SIGNING_ALLOWED=NO']);}
     catch(error){uiPassed=false;report.uiFailures.push({simulator:device.name,error:error.message});console.error(`Native UI failed on ${device.name}; continuing independent player/resolver and other-device checks.`);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
+    if(uiPassed&&(options.has('--listening-ui-only')||options.has('--catalog-ui-only'))){
+     const expected=options.has('--listening-ui-only')?'ios4-player-native-fixture_':'ios-catalog-album-b_';
+     try{
+      const manifest=JSON.parse(await readFile(path.join(artifacts,`screenshots-${index}`,'manifest.json'),'utf8'));
+      if(!manifest.flatMap(item=>item.attachments??[]).some(item=>String(item.suggestedHumanReadableName??'').startsWith(expected)))throw Error(`Focused UI scope did not produce its required capture: ${expected}`);
+     }catch(error){uiPassed=false;report.uiFailures.push({simulator:device.name,error:error.message});console.error(error.message);}
+    }
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
     const live=index===0&&!options.has('--skip-live');
     const container=(await run('xcrun',['simctl','get_app_container',device.udid,'it.ritvio.ios','data'],{capture:true})).trim();

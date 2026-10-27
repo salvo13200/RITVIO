@@ -43,3 +43,9 @@
 .ios-app[data-large-text] .ios-resource-shelf .ios-resource.is-artist>.artwork{width:72px;height:72px;flex-basis:72px}
 .ios-app[data-large-text] .ios-resource-shelf .ios-resource>.ios-identity{width:auto;flex:1;min-width:0}
 .ios-app .ios-album-song{align-items:flex-start;justify-content:center}
+
+/* Finish review: preserve Album B's capsule and a tighter Search scan rhythm. */
+.ios-app .ios-album-identity .ios-album-play{border-radius:999px}
+.ios-app .ios-catalog-search .ios-search-field{margin-bottom:0}
+.ios-app .ios-catalog-search .ios-catalog-filters{padding-top:8px}
+.ios-app .ios-catalog-search .ios-section-title{margin-top:10px}

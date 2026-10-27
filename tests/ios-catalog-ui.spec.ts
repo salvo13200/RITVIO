@@ -62,3 +62,10 @@ test('saved album and artist placeholders retain square bounds without a persona
  await expect(page.getByRole('heading',{name:'Make room for your music',exact:true})).toHaveCount(0);
  await expect(page.locator('.ios-new-playlist').getByText('Create playlist',{exact:true})).toBeVisible();
 });
+
+test('compact Search exposes its complete first song and Album Play retains the approved capsule',async({page})=>{
+ await page.setViewportSize({width:375,height:667});await fixture(page,{withLibrary:true});await search(page);
+ const song=await page.locator('.ios-catalog-search .ios-song').first().boundingBox(),content=await page.locator('.ios-content').boundingBox();expect(song!.y+song!.height).toBeLessThanOrEqual(content!.y+content!.height+1);
+ await page.getByRole('button',{name:'Albums',exact:true}).click();await page.getByRole('button',{name:'Open album: Night scenes',exact:true}).click();const play=page.locator('.ios-album-play');await expect(play).toBeVisible();
+ const geometry=await play.evaluate(element=>({height:element.getBoundingClientRect().height,radius:parseFloat(getComputedStyle(element).borderTopLeftRadius)}));expect(geometry.height).toBeGreaterThanOrEqual(44);expect(geometry.radius).toBeGreaterThanOrEqual(geometry.height/2);
+});

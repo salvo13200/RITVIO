@@ -36,6 +36,9 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:10))
         capture(app,"ios-catalog-saved-resources"); reveal(app,button(app,"Open artist: Luna Vale")); capture(app,"ios-catalog-saved-artists"); reveal(app,button(app,"Open album: Night scenes"))
         tapCenter(button(app,"Open album: Night scenes")); XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
+        tapCenter(button(app,"Open player: After the rain"))
+        XCTAssertTrue(button(app,"Close player").waitForExistence(timeout:10)); capture(app,"ios-catalog-current-player")
+        button(app,"Close player").tap(); XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
         if app.frame.height > 800 {
             // Keep the accessibility-size captures above. Add an independent
             // normal-size pass on the tall iPhone for the portrait design comp;
