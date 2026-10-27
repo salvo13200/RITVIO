@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState,useSyncExternalStore,type CSSProperties} from 'react';
-import {ArrowLeft,ArrowRight,Check,Heart,Home,LibraryBig,LoaderCircle,MoreHorizontal,Search,Settings,X} from 'lucide-react';
+import {ChevronLeft,ArrowRight,Check,Heart,Home,LibraryBig,LoaderCircle,MoreHorizontal,Search,Settings,X} from 'lucide-react';
 import {emptyMobilePlayback,type MobileCommand,type MobilePlayback,type MobileResource,type NativeTrack} from '../../../../packages/domain/mobile';
 import {acceptPlaybackSnapshot} from '../../../../packages/domain/playback-snapshot';
 import {localization} from '../../../../packages/i18n/mobile';
@@ -70,7 +70,7 @@ export function App({controller}:{controller:LanguageController}){
  function movePlaylist(direction:number){const context=menu?.playlist;if(!context)return;void library.command({type:'move',id:context.id,revision:context.revision,from:context.index,to:context.index+direction});setMenu(null);}
  return <div ref={root} data-large-text={(status?.textScale??1)>1.4||undefined} className={`ios-app${motion?' ios-reduce-motion':''}`} style={{'--ios-text-scale':status?.textScale??1,'--ios-native-safe-top':`${status?.safeArea?.top??0}px`,'--ios-native-safe-right':`${status?.safeArea?.right??0}px`,'--ios-native-safe-bottom':`${status?.safeArea?.bottom??0}px`,'--ios-native-safe-left':`${status?.safeArea?.left??0}px`,'--ios-notice-bottom':`${overlay==='queue'?104:overlay?20:current?154:84}px`} as CSSProperties}>
   <div className="ios-shell" aria-hidden={backgroundHidden||undefined}>
-   <header className={`ios-header${route?' has-catalog':''}`}>{route&&<IconButton label={catalogText.back} onClick={()=>history.back()}><ArrowLeft/></IconButton>}<span className="ios-brand">RITVIO</span><IconButton label={text.settings} onClick={()=>setOverlay('settings')}><Settings/></IconButton></header>
+   <header className={`ios-header${route?' has-catalog':''}`}>{route&&<IconButton label={catalogText.back} onClick={()=>history.back()}><ChevronLeft/></IconButton>}<span className="ios-brand">RITVIO</span>{!route&&<IconButton label={text.settings} onClick={()=>setOverlay('settings')}><Settings/></IconButton>}</header>
    <main className="ios-content">
     <div hidden={Boolean(route)} key={tab}>
     {tab==='home'?<>
