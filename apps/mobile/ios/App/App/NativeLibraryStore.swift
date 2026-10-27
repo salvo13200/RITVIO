@@ -11,12 +11,63 @@ struct LibraryPlaylist: Codable {
     var updatedAt: Int64
 }
 
+struct LibraryFollow: Codable {
+    var id: String
+    var name: String
+    var kind: String
+    var artwork: String?
+    var artists: [PlaybackResource]?
+    var year: String?
+    static func identifier(_ value: String) -> Bool { value.range(of: "\\A[A-Za-z0-9_-]{1,160}\\z", options: .regularExpression) != nil }
+    static func label(_ value: String, maximum: Int) -> Bool {
+        !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && value.utf8.count <= maximum &&
+        !value.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)
+    }
+    var valid: Bool {
+        guard Self.identifier(id), ["album", "artist"].contains(kind), Self.label(name, maximum: 4096), name.count <= 1024,
+              (artists?.count ?? 0) <= 20, (artists ?? []).allSatisfy({ Self.identifier($0.id) && Self.label($0.name, maximum: 2048) && $0.name.count <= 512 }),
+              year == nil || (year!.count <= 16 && year!.utf8.count <= 32 && !year!.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains)) else { return false }
+        guard let artwork else { return true }
+        guard artwork.utf8.count <= 4096, !artwork.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains),
+              let url = URLComponents(string: artwork), url.scheme == "https", url.user == nil, url.password == nil,
+              url.port == nil || url.port == 443, let host = url.host?.lowercased(),
+              [".googleusercontent.com", ".ytimg.com", ".ggpht.com"].contains(where: host.hasSuffix) else { return false }
+        return true
+    }
+    static func decode(_ value: [String: Any]) throws -> LibraryFollow {
+        guard let bytes = try? JSONSerialization.data(withJSONObject: value), bytes.count <= 16384,
+              let resource = try? JSONDecoder().decode(Self.self, from: bytes), resource.valid else { throw ResolverFailure.code("INVALID_RESOURCE") }
+        return resource
+    }
+    var json: [String: Any] {
+        var value = (try? JSONSerialization.jsonObject(with: JSONEncoder().encode(self)) as? [String: Any]) ?? [:]
+        value["artwork"] = artwork as Any? ?? NSNull()
+        return value
+    }
+}
+
 struct LibraryState: Codable {
-    var schema = 1
+    var schema = 2
     var revision = 0
     var likes: [PlaybackTrack] = []
     var playlists: [LibraryPlaylist] = []
     var recent: [PlaybackTrack] = []
+    var follows: [LibraryFollow] = []
+    init() {}
+    private enum CodingKeys: String, CodingKey { case schema, revision, likes, playlists, recent, follows }
+    init(from decoder: Decoder) throws {
+        let value = try decoder.container(keyedBy: CodingKeys.self)
+        let previous = try value.decode(Int.self, forKey: .schema)
+        guard previous == 1 || previous == 2 else { throw ResolverFailure.code("LIBRARY_VERSION_UNSUPPORTED") }
+        schema = 2
+        revision = try value.decode(Int.self, forKey: .revision)
+        likes = try value.decode([PlaybackTrack].self, forKey: .likes)
+        playlists = try value.decode([LibraryPlaylist].self, forKey: .playlists)
+        recent = try value.decode([PlaybackTrack].self, forKey: .recent)
+        // Only the legacy version may omit the new field. A damaged v2 document
+        // must never silently lose saved artists/albums on its next write.
+        follows = previous == 1 ? try value.decodeIfPresent([LibraryFollow].self, forKey: .follows) ?? [] : try value.decode([LibraryFollow].self, forKey: .follows)
+    }
 }
 
 /// Native repository boundary, independent of the web view and playback owner.
@@ -55,7 +106,7 @@ final class NativeLibraryStore {
         let bytes = try Data(contentsOf: file)
         guard let header = try? JSONSerialization.jsonObject(with: bytes) as? [String: Any],
               let schema = Self.integer(header["schema"]) else { throw ResolverFailure.code("LIBRARY_DAMAGED") }
-        guard schema == 1 else { throw ResolverFailure.code("LIBRARY_VERSION_UNSUPPORTED") }
+        guard schema == 1 || schema == 2 else { throw ResolverFailure.code("LIBRARY_VERSION_UNSUPPORTED") }
         guard let value = try? JSONDecoder().decode(LibraryState.self, from: bytes), Self.valid(value) else { throw ResolverFailure.code("LIBRARY_DAMAGED") }
         return value
     }
@@ -66,7 +117,9 @@ final class NativeLibraryStore {
         do { try write(data, file) } catch { throw ResolverFailure.code("LIBRARY_WRITE_FAILED") }
     }
     static func valid(_ state: LibraryState) -> Bool {
-        state.schema == 1 && state.revision >= 0 && state.revision < Int.max - 1 &&
+        state.schema == 2 && state.revision >= 0 && state.revision < Int.max - 1 &&
+        state.follows.count <= 500 && state.follows.allSatisfy(\.valid) &&
+        Set(state.follows.map { $0.kind + ":" + $0.id }).count == state.follows.count &&
         state.likes.count <= maxTracks && state.recent.count <= 40 && state.playlists.count <= 100 &&
         state.likes.allSatisfy(\.valid) && state.recent.allSatisfy(\.valid) &&
         Set(state.likes.map(\.videoId)).count == state.likes.count && Set(state.recent.map(\.videoId)).count == state.recent.count &&
@@ -107,6 +160,14 @@ final class NativeLibraryStore {
         var value = try load()
         let oldCovers = Set(value.playlists.compactMap(\.coverFile))
         switch input["type"] as? String {
+        case "follow":
+            guard let raw = input["resource"] as? [String: Any], let followed = Self.bool(input["followed"]) else { throw ResolverFailure.code("INVALID_LIBRARY_COMMAND") }
+            let resource = try LibraryFollow.decode(raw)
+            value.follows.removeAll { $0.id == resource.id && $0.kind == resource.kind }
+            if followed {
+                guard value.follows.count < 500 else { throw ResolverFailure.code("LIBRARY_RESOURCE_LIMIT") }
+                value.follows.insert(resource, at: 0)
+            }
         case "like":
             guard let raw = input["track"] as? [String: Any], let liked = Self.bool(input["liked"]) else { throw ResolverFailure.code("INVALID_LIBRARY_COMMAND") }
             let track = try PlaybackTrack.decode(raw)
@@ -171,7 +232,7 @@ final class NativeLibraryStore {
     }
 
     func snapshot(_ value: LibraryState) -> [String: Any] {
-        ["revision": value.revision, "likes": value.likes.map(\.json), "recent": value.recent.map(\.json), "follows": [],
+        ["revision": value.revision, "likes": value.likes.map(\.json), "recent": value.recent.map(\.json), "follows": value.follows.map(\.json),
          "playlists": value.playlists.map { item in
             ["id": item.id, "name": item.name, "description": item.description, "items": item.items.map(\.json),
              "revision": item.revision, "updatedAt": item.updatedAt,

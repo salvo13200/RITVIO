@@ -157,6 +157,45 @@ class IOSResolverTests(unittest.TestCase):
         with patch.object(resolver.shared, 'catalog', return_value=json.dumps({'items': [{}] * 1001})):
             self.assertEqual(self.call(operation='catalog-search', kind='album', query='Large fixture')['error'], 'RESULT_TOO_LARGE')
 
+    def test_extended_catalog_validation_and_default_android_boundary(self):
+        invalid = [dict(operation='releases',kind='album',id='album-1',section='albums'),
+                   dict(operation='releases',kind='artist',id='artist-1',section='private'),
+                   dict(operation='artist-search',kind='artist',id='artist-1',searchKind='video'),
+                   dict(operation='search-snapshot',query='ab'),
+                   dict(operation='search-snapshot',query='Original artist',refresh=1)]
+        with patch.object(resolver.shared, 'catalog') as provider:
+            for payload in invalid: self.assertFalse(self.call(**payload)['ok'])
+            provider.assert_not_called()
+        for operation in ['search-snapshot','releases','artist-search']:
+            with self.assertRaises(ValueError): resolver.shared.catalog(json.dumps({'operation':operation,'ios_identity_catalog':True}))
+
+    def test_unified_catalog_snapshot_is_one_owner_call_and_refresh_is_explicit(self):
+        raw={'items':[],'candidates':[],'albums':[],'truncated':False,'albumsUnavailable':False,'url':'private'}
+        with patch.object(resolver.shared,'catalog',return_value=json.dumps(raw)) as provider:
+            first=self.call(operation='search-snapshot',query='Original artist')['value']
+            self.assertNotIn('url',first)
+            self.assertTrue(self.call(operation='search-snapshot',query='ORIGINAL ARTIST')['value']['cached'])
+            self.assertEqual(provider.call_count,1)
+            request=json.loads(provider.call_args.args[0])
+            self.assertEqual(request,{'operation':'search-snapshot','query':'Original artist','includeAlbums':True})
+            self.assertEqual(provider.call_args.kwargs,{'ios_identity_catalog':True})
+            self.assertFalse(self.call(operation='search-snapshot',query='Original artist',refresh=True)['value']['cached'])
+            self.assertEqual(provider.call_count,2)
+
+    def test_partial_albums_are_not_cached_as_successful_empty_results(self):
+        with patch.object(resolver.shared,'catalog',return_value=json.dumps({'items':[],'candidates':[],'albums':[],'albumsUnavailable':True})) as provider:
+            for _ in range(2): self.assertTrue(self.call(operation='search-snapshot',query='Original artist')['value']['albumsUnavailable'])
+            self.assertEqual(provider.call_count,2)
+        self.assertFalse(resolver._catalog_cache)
+
+    def test_artist_releases_keep_identity_and_separate_section_cache(self):
+        with patch.object(resolver.shared,'catalog',return_value=json.dumps({'items':[],'truncated':False,'headers':{'secret':'private'}})) as provider:
+            for section in ['albums','singles']:
+                value=self.call(operation='releases',kind='artist',id='artist-1',section=section)['value']
+                self.assertEqual(value['artistId'],'artist-1');self.assertNotIn('headers',value)
+            self.assertEqual(provider.call_count,2)
+            self.assertTrue(self.call(operation='releases',kind='artist',id='artist-1',section='albums')['value']['cached'])
+
     def test_provider_diagnostics_use_fixed_codes_without_error_text(self):
         for message, code in [('Sign in to confirm you are not a bot', 'PROVIDER_SIGN_IN_REQUIRED'), ('Requested format is not available', 'FORMAT_UNAVAILABLE'), ('challenge solving failed', 'JS_CHALLENGE_FAILED'), ('HTTP Error 429: Too Many Requests', 'RATE_LIMITED')]:
             with self.subTest(code=code), patch.object(resolver.shared, 'resolve', side_effect=RuntimeError(message + ' ' + self.stream['url'])):

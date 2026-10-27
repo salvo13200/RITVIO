@@ -26,9 +26,9 @@ extension RitvioPlaybackPlugin {
     }
     @objc func library(_ call: CAPPluginCall) { libraryOperation(call) { try NativeLibraryStore.shared.read() } }
     @objc func libraryCommand(_ call: CAPPluginCall) {
-        guard let type = call.getString("type"), ["like","create","rename","delete","add","remove","move","clearHistory"].contains(type) else { call.reject("Invalid library command", "INVALID_LIBRARY_COMMAND"); return }
+        guard let type = call.getString("type"), ["like","follow","create","rename","delete","add","remove","move","clearHistory"].contains(type) else { call.reject("Invalid library command", "INVALID_LIBRARY_COMMAND"); return }
         var input: [String: Any] = ["type":type]
-        for field in ["name","description","id","revision","track","liked","index","from","to"] { if let value = call.getValue(field) { input[field] = value } }
+        for field in ["name","description","id","revision","track","liked","index","from","to","resource","followed"] { if let value = call.getValue(field) { input[field] = value } }
         #if DEBUG
         if NativeUIFixture.enabled, let track = input["track"] as? [String: Any] { input["track"] = NativeUIFixture.playbackTrack(track) }
         #endif

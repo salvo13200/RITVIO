@@ -138,10 +138,16 @@ def search(query):
 
 def catalog(payload):
     operation, kind = payload.get('operation'), payload.get('kind')
-    if operation not in ('catalog-search', 'detail') or kind not in ('artist', 'album'):
+    if operation not in ('catalog-search', 'detail', 'search-snapshot', 'releases', 'artist-search') or (operation != 'search-snapshot' and kind not in ('artist', 'album')):
         raise ResolverError('INVALID_ARGUMENT')
-    request = {'operation': operation, 'kind': kind}
-    if operation == 'catalog-search':
+    if operation in ('releases', 'artist-search') and kind != 'artist':
+        raise ResolverError('INVALID_ARGUMENT')
+    if operation == 'search-snapshot':
+        kind = None
+    request = {'operation': operation}
+    if kind is not None:
+        request['kind'] = kind
+    if operation in ('catalog-search', 'search-snapshot'):
         query = payload.get('query')
         if not isinstance(query, str) or not 3 <= len(query.strip()) <= 200:
             raise ResolverError('INVALID_QUERY')
@@ -152,29 +158,47 @@ def catalog(payload):
         if not isinstance(identifier, str) or not re.fullmatch(r'[A-Za-z0-9_-]{1,160}', identifier):
             raise ResolverError('INVALID_RESOURCE')
         request['id'] = identity = identifier
-    key = json.dumps([operation, kind, identity])
-    cached = cache_read(_catalog_cache, key, time.monotonic())
+    if operation == 'search-snapshot':
+        request['includeAlbums'] = True
+    if operation == 'releases':
+        if payload.get('section') not in ('albums', 'singles'):
+            raise ResolverError('INVALID_ARGUMENT')
+        request['section'] = payload['section']
+    if operation == 'artist-search':
+        query = payload.get('query', '')
+        if not isinstance(query, str) or len(query) > 200 or payload.get('searchKind') not in ('track', 'album'):
+            raise ResolverError('INVALID_ARGUMENT')
+        request['query'], request['searchKind'] = ' '.join(query.split()), payload['searchKind']
+    refresh = payload.get('refresh', False)
+    if not isinstance(refresh, bool):
+        raise ResolverError('INVALID_ARGUMENT')
+    key = json.dumps([operation, kind, identity, request.get('section'), request.get('searchKind'), request.get('query', '').casefold() if operation == 'artist-search' else None])
+    cached = None if refresh else cache_read(_catalog_cache, key, time.monotonic())
     if cached is not None:
         return {**cached, 'cached': True}
     if time.monotonic() < _cooldown_until:
         raise ResolverError('RATE_LIMITED')
     # Only validated metadata fields reach the common adapter. Caller-supplied
     # endpoints, headers, or alternate operations never cross this boundary.
-    result = json.loads(shared.catalog(json.dumps(request, ensure_ascii=False)))
+    result = json.loads(shared.catalog(json.dumps(request, ensure_ascii=False), ios_identity_catalog=True)) if operation in ('search-snapshot', 'releases', 'artist-search') else json.loads(shared.catalog(json.dumps(request, ensure_ascii=False)))
     checkpoint()
     if not isinstance(result, dict):
         raise ResolverError('NATIVE_RESPONSE_INVALID')
     if operation == 'detail' and (result.get('id') != identity or result.get('kind') != kind):
         raise ResolverError('NATIVE_RESPONSE_INVALID')
     result = public_catalog(result)
-    cache_write(_catalog_cache, key, result, time.monotonic() + (120 if operation == 'catalog-search' else 600), 8)
+    if operation in ('releases', 'artist-search'):
+        result['artistId'] = identity
+    # A partial failed section can be retried; don't cache it as a successful empty album catalog.
+    if not result.get('albumsUnavailable'):
+        cache_write(_catalog_cache, key, result, time.monotonic() + (120 if operation in ('catalog-search', 'search-snapshot', 'artist-search') else 600), 8)
     return {**result, 'cached': False}
 
 
 _CATALOG_FIELDS = frozenset(('items', 'candidates', 'tracks', 'entries', 'albums', 'singles',
     'id', 'name', 'kind', 'artwork', 'description', 'artists', 'year', 'releaseType',
     'number', 'title', 'duration', 'videoId', 'artist', 'thumbnail', 'album', 'track',
-    'reportedCount', 'incomplete', 'moreAlbums', 'moreSingles', 'truncated'))
+    'reportedCount', 'incomplete', 'moreAlbums', 'moreSingles', 'truncated', 'albumsUnavailable', 'artistId'))
 
 
 def public_catalog(value, depth=0):
@@ -287,7 +311,7 @@ def invoke(payload_json):
             value = status()
         elif operation == 'search':
             value = search(payload.get('query'))
-        elif operation in ('catalog-search', 'detail'):
+        elif operation in ('catalog-search', 'detail', 'search-snapshot', 'releases', 'artist-search'):
             value = catalog(payload)
         elif operation == 'resolve':
             value = resolve(payload.get('videoId'), payload.get('refresh', False))

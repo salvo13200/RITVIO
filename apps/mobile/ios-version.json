@@ -1,6 +1,6 @@
 {
-  "version": "0.5.0",
-  "build": 5,
+  "version": "0.5.1",
+  "build": 6,
   "phase": "IOS-5",
   "minimumOS": "15.0"
 }

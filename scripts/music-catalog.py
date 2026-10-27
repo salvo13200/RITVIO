@@ -62,7 +62,19 @@ def search_snapshot(payload):
             continue
         seen.add(key)
         items.append(song(item))
-    return {'items': items[:100], 'candidates': search_candidates(client, query), 'truncated': len(raw) >= 101}
+    result = {'items': items[:100], 'candidates': search_candidates(client, query), 'truncated': len(raw) >= 101}
+    # Existing desktop callers keep their two-look-up response. The iOS owner
+    # opts into one serial snapshot instead of competing bridge requests.
+    if payload.get('includeAlbums') is True:
+        try:
+            raw_albums = client.search(query, filter='albums', limit=21)
+            result['albums'] = [resource(item, 'album') for item in raw_albums[:20]
+                                if item.get('resultType') == 'album' and item.get('browseId')]
+            result['albumsUnavailable'] = False
+        except Exception:
+            result['albums'] = []
+            result['albumsUnavailable'] = True
+    return result
 
 def catalog(payload):
     operation = payload.get('operation', 'search')

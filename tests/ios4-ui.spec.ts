@@ -29,9 +29,9 @@ test('queue handle changes actual next track; accessible actions and clear work'
 });
 test('debounced search, stale result rejection, queue menu and error recovery',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();const input=page.getByRole('searchbox');
- await input.fill('ab');await page.waitForTimeout(400);expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='search').length)).toBe(0);
- await input.fill('slower');await page.waitForTimeout(400);await input.fill('empty');await expect(page.getByRole('heading',{name:'No songs found'})).toBeVisible();await page.waitForTimeout(400);await expect(page.getByRole('heading',{name:'No songs found'})).toBeVisible();
- await input.fill('offline');await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();await input.fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Play next',exact:true}).click();await expect(page.getByRole('status')).toContainText('Added to queue');
+ await input.fill('ab');await page.waitForTimeout(400);expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='catalog').length)).toBe(0);
+ await input.fill('slower');await page.waitForTimeout(400);await input.fill('empty');await expect(page.getByRole('heading',{name:'No results here'})).toBeVisible();await page.waitForTimeout(400);await expect(page.getByRole('heading',{name:'No results here'})).toBeVisible();
+ await input.fill('offline');await expect(page.getByRole('button',{name:'Try again'})).toBeVisible();await input.fill('luna');await page.getByRole('button',{name:'Songs',exact:true}).click();await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Play next',exact:true}).click();await expect(page.getByRole('status')).toContainText('Added to queue');
  const toast=(await page.getByRole('status').boundingBox())!,mini=(await page.getByTestId('mini-player').boundingBox())!;expect(toast.y+toast.height).toBeLessThanOrEqual(mini.y);
  await input.fill('offline');await expect(page.getByRole('button',{name:'Try again'})).toBeInViewport();await expect(page.getByRole('status')).not.toContainText('Added to queue');
 });
@@ -45,7 +45,7 @@ test('queue handles offer tap actions and cancel a held gesture after a native r
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type==='move').length)).toBe(0);await expect(page.getByRole('status')).toContainText('Reorder cancelled');
 });
 test('a song menu consumes outside taps without activating the screen behind it',async({page})=>{
- await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();
+ await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'Songs',exact:true}).click();await page.getByRole('button',{name:'More options: Slow motion'}).click();
  await expect(page.getByRole('dialog',{name:'Slow motion',exact:true})).toBeVisible();
  const gear=(await page.locator('.ios-header button').boundingBox())!;await page.mouse.click(gear.x+gear.width/2,gear.y+gear.height/2);
  await expect(page.getByRole('dialog')).toHaveCount(0);await expect(page.getByRole('heading',{name:'Search',exact:true})).toBeVisible();

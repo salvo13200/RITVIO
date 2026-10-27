@@ -8,7 +8,7 @@ export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,l
  await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isIOS=true;export const isAndroid=false;export const isNativeMobile=true;export const nativePlayback=window.__ios;'}));
  await page.route('**/src/ios/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const foundationBridge=window.__ios;'}));
  await page.addInitScript(({empty,scale,withLibrary,librarySeed})=>{
-  const tracks=['After the rain','Slow motion','Golden hour','Night swim','An unusually long title that must remain readable without growing the player'].map((title,i)=>({videoId:`ritviotest${i+1}`,title,artist:['Luna Vale','North Avenue','June Atlas','Luna Vale','Many collaborating artists with a very long name'][i],thumbnail:`https://i.ytimg.com/vi/ritviotest${i+1}/hqdefault.jpg`,duration:90,...(i===0?{album:{id:'fixture-album',name:'Night scenes'}}:{})}));
+  const tracks=['After the rain','Slow motion','Golden hour','Night swim','An unusually long title that must remain readable without growing the player'].map((title,i)=>({videoId:`ritviotest${i+1}`,title,artist:['Luna Vale','North Avenue','June Atlas','Luna Vale','Many collaborating artists with a very long name'][i],thumbnail:`https://i.ytimg.com/vi/ritviotest${i+1}/hqdefault.jpg`,duration:90,artists:[{id:i===0||i===3?'fixture-artist':`fixture-artist-${i}`,name:['Luna Vale','North Avenue','June Atlas','Luna Vale','Many collaborating artists with a very long name'][i]}],...(i===0?{album:{id:'fixture-album',name:'Night scenes'}}:{})}));
   let state:any={items:empty?[]:tracks,index:0,order:empty?[]:[0,1,2,3,4],queueRevision:1,position:24,duration:90,buffered:65,playing:false,loading:false,repeat:'off',shuffle:false,volume:1,error:null,status:'ready',stamp:{session:1,sequence:0}};
   const collections=new Set<(value:any)=>void>();
   const operations:any[]=[],listeners=new Set<(value:any)=>void>(),languages=new Set<(value:any)=>void>();
@@ -21,7 +21,17 @@ export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,l
    snapshot:async()=>copy(state),
    languageRead:async()=>copy(language),languageWrite:async({preference}:any)=>{language={...language,preference,revision:language.revision+1};localStorage.setItem('__iosLanguage',preference);for(const listener of languages)listener(copy(language));return copy(language);},
    addListener:async(event:string,listener:(value:any)=>void)=>{const list=event==='language'?languages:event==='library'?collections:listeners;list.add(listener);return {remove:async()=>{list.delete(listener);}};},
-   search:async(input:any)=>{operations.push({method:'search',...input});await new Promise(resolve=>setTimeout(resolve,input.query==='slower'?600:30));if(input.query==='offline')throw fail('NETWORK_UNAVAILABLE');return {items:input.query==='empty'?[]:tracks,cached:false};},cancelResolver:async(input:any)=>{operations.push({method:'cancel',...input});return {cancelled:true};},
+   search:async(input:any)=>{operations.push({method:'search',...input});await new Promise(resolve=>setTimeout(resolve,input.query==='slower'?600:30));if(input.query==='offline')throw fail('NETWORK_UNAVAILABLE');return {items:input.query==='empty'?[]:tracks,cached:false};},
+   catalog:async(input:any)=>{
+    operations.push({method:'catalog',...input});await new Promise(resolve=>setTimeout(resolve,input.query==='slower'?600:30));if(input.query==='offline')throw fail('NETWORK_UNAVAILABLE');if((window as any).__iosCatalogBusy)throw fail('BUSY');
+    const person={id:'fixture-artist',name:'Luna Vale'},artwork=tracks[0].thumbnail,artist={...person,kind:'artist',artwork},album={id:'fixture-album',name:'Night scenes',kind:'album',artwork,artists:[person],year:'2025'};
+    const custom=(window as any).__iosCatalogResult?.(input);if(custom)return copy(custom);
+    if(input.operation==='search-snapshot')return {items:input.query==='empty'?[]:tracks,candidates:input.query==='empty'?[]:[artist],albums:input.query==='empty'?[]:[album],cached:false,truncated:false};
+    if(input.operation==='releases')return {artistId:input.id,items:[album,...Array.from({length:8},(_,i)=>({...album,id:`fixture-album-${i}`,name:`Night scenes ${i+2}`}))],truncated:false};
+    if(input.operation==='artist-search')return {artistId:input.id,kind:input.searchKind,items:input.searchKind==='track'?tracks:[album],truncated:false};
+    if(input.kind==='artist')return {...artist,id:input.id,description:'',tracks,albums:[album],singles:[],moreAlbums:true,moreSingles:false};
+    return {...album,id:input.id,description:'',entries:[{number:1,title:tracks[0].title,duration:90,track:tracks[0]},{number:2,title:'Unavailable interlude',duration:0,track:null},{number:3,title:tracks[1].title,duration:90,track:tracks[1]},{number:4,title:tracks[0].title,duration:90,track:tracks[0]}],reportedCount:4,incomplete:false};
+   },cancelResolver:async(input:any)=>{operations.push({method:'cancel',...input});return {cancelled:true};},
    playTracks:async(input:any)=>{operations.push({method:'playTracks',...input});state={...state,items:input.items,index:input.index,order:input.items.map((_:any,i:number)=>i),queueRevision:state.queueRevision+1,playing:true,position:0};return emit();},
    enqueue:async(input:any)=>{operations.push({method:'enqueue',...input});const entry=state.items.length;state.items.push(input.track);state.order.splice(input.next?state.order.indexOf(state.index)+1:state.order.length,0,entry);state.queueRevision++;return emit();},
    command:async(input:any)=>{operations.push(input);const {type,value}=input;
@@ -44,6 +54,7 @@ export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,l
     const value=copy(library),p=value.playlists.find((item:any)=>item.id===input.id);
     if(['rename','delete','add','remove','move','cover'].includes(input.type)){if(!p)throw fail('PLAYLIST_MISSING');if(p.revision!==input.revision)throw fail('PLAYLIST_CHANGED');}
     if(input.type==='like'){value.likes=value.likes.filter((item:any)=>item.videoId!==input.track.videoId);if(input.liked)value.likes.unshift(input.track);}
+    else if(input.type==='follow'){value.follows=value.follows.filter((item:any)=>item.kind!==input.resource.kind||item.id!==input.resource.id);if(input.followed)value.follows.unshift(input.resource);}
     else if(input.type==='create'||input.type==='createFromTracks'){value.playlists.unshift({id:crypto.randomUUID(),name:input.name.trim(),description:input.description??'',items:input.items??(input.track?[input.track]:[]),revision:1,updatedAt:Date.now(),cover:null});}
     else if(input.type==='rename'){p.name=input.name.trim();p.description=input.description;}
     else if(input.type==='delete')value.playlists=value.playlists.filter((item:any)=>item.id!==input.id);

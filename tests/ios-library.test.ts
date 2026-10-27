@@ -18,3 +18,10 @@ test('older and duplicate asynchronous events retain the newest library and its 
  const first=parseLibrary({...empty(),revision:4,likes:[track]}),old=parseLibrary({...empty(),revision:3}),same=parseLibrary({...empty(),revision:4}),next=parseLibrary({...empty(),revision:5});
  assert.equal(acceptLibrary(null,first),first);assert.equal(acceptLibrary(first,old),first);assert.equal(acceptLibrary(first,same),first);assert.equal(acceptLibrary(first,next),next);
 });
+test('saved artist and album identities coexist without losing collections or personal covers',()=>{
+ const artist={id:'artist-1',kind:'artist',name:'Original artist',artwork:'https://lh3.googleusercontent.com/fixture'};
+ const album={...artist,kind:'album',artists:[{id:'artist-1',name:artist.name}],year:'2026'};
+ const value={...empty(),revision:8,follows:[artist,album],playlists:[collection()],likes:[track],recent:[track]};
+ assert.equal(parseLibrary(value),value);assert.equal(parseLibrary(value).follows.length,2);assert.equal(value.playlists[0].items.length,2);
+ for(const invalid of [[artist,artist],[{...artist,id:'artist-1\n'}],[{...artist,artwork:'https://rr1.googlevideo.com/private'}],[{...artist,artwork:'https://user:secret@lh3.googleusercontent.com/private'}],[{...artist,url:'signed descriptor'}],[{...artist,name:'\n'}],[{...album,artists:[{id:'artist-1',name:'bad\nname'}]}],Array.from({length:501},(_,i)=>({...artist,id:`artist-${i}`}))])assert.throws(()=>parseLibrary({...value,follows:invalid}));
+});

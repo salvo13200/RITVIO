@@ -251,7 +251,7 @@ enum NativeUIFixture {
     static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--ritvio-ui-check") }
     private static var preparing = false
     static let tracks: [[String: Any]] = [
-        ["videoId": "ritviotest1", "title": "After the rain", "artist": "Luna Vale", "thumbnail": "", "duration": 90, "album": ["id": "fixture-album", "name": "Night scenes"]],
+        ["videoId": "ritviotest1", "title": "After the rain", "artist": "Luna Vale", "thumbnail": "", "duration": 90, "artists": [["id":"fixture-artist", "name":"Luna Vale"]], "album": ["id": "fixture-album", "name": "Night scenes"]],
         ["videoId": "ritviotest2", "title": "Slow motion", "artist": "North Avenue", "thumbnail": "", "duration": 90],
         ["videoId": "ritviotest3", "title": "Golden hour", "artist": "June Atlas", "thumbnail": "", "duration": 90],
         ["videoId": "ritviotest4", "title": "Night swim", "artist": "Luna Vale", "thumbnail": "", "duration": 90],
@@ -321,6 +321,30 @@ enum NativeUIFixture {
         var result = track
         if tracks.contains(where: { $0["videoId"] as? String == track["videoId"] as? String }) { result["thumbnail"] = "" }
         return result
+    }
+    static func catalog(_ input: [String: Any]) -> [String: Any] {
+        let person: [String:Any] = ["id":"fixture-artist", "name":"Luna Vale"]
+        let artist: [String:Any] = ["id":"fixture-artist", "name":"Luna Vale", "kind":"artist", "artwork":covers[3]]
+        let album: [String:Any] = ["id":"fixture-album", "name":"Night scenes", "kind":"album", "artists":[person], "year":"2025", "artwork":covers[0]]
+        let songs = present(["items":tracks])["items"] as? [[String:Any]] ?? []
+        let operation = input["operation"] as? String ?? ""
+        if operation == "search-snapshot" {
+            let empty = (input["query"] as? String)?.lowercased().contains("empty") == true
+            return ["items":empty ? [] : songs, "candidates":empty ? [] : [artist], "albums":empty ? [] : [album], "cached":false, "truncated":false]
+        }
+        if operation == "artist-search" { return ["items":songs, "kind":"track", "artistId":input["id"] ?? "", "truncated":false] }
+        if operation == "releases" { return ["items":[album], "artistId":input["id"] ?? "", "truncated":false] }
+        if input["kind"] as? String == "artist" {
+            return artist.merging(["id":input["id"] ?? "", "description":"", "tracks":songs, "albums":[album], "singles":[], "moreAlbums":true, "moreSingles":false]) { _, new in new }
+        }
+        let entries: [[String:Any]] = [
+            ["number":1, "title":"After the rain", "duration":90, "track":songs[0]],
+            ["number":2, "title":"Unavailable interlude", "duration":0, "track":NSNull()],
+            ["number":3, "title":"Slow motion", "duration":90, "track":songs[1]],
+            ["number":4, "title":"After the rain", "duration":90, "track":songs[0]],
+            ["number":5, "title":"Golden hour", "duration":90, "track":songs[2]]
+        ]
+        return album.merging(["id":input["id"] ?? "", "description":"", "entries":entries, "reportedCount":5, "incomplete":false]) { _, new in new }
     }
 }
 #endif

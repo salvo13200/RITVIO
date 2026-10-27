@@ -1,12 +1,13 @@
 import {registerPlugin,type PluginListenerHandle} from '@capacitor/core';
 import type {MobilePlayback,MobileCommand,NativeTrack} from '../../../../packages/domain/mobile';
 import type {LibraryAction} from './library-model';
+import type {CatalogRequest} from './catalog-model';
 interface FoundationPlugin {
  foundationStatus():Promise<unknown>;
  foundationCheck(options:{nonce:string}):Promise<unknown>;
  snapshot():Promise<MobilePlayback>;
  search(options:{query:string;requestId:string}):Promise<{items:NativeTrack[];cached:boolean}>;
- catalog(options:({operation:'catalog-search';kind:'artist'|'album';query:string}|{operation:'detail';kind:'artist'|'album';id:string})&{requestId:string}):Promise<unknown>;
+ catalog(options:CatalogRequest&{requestId:string}):Promise<unknown>;
  cancelResolver(options:{requestId:string}):Promise<{cancelled:boolean}>;
  playTracks(options:{items:NativeTrack[];index:number}):Promise<MobilePlayback>;
  enqueue(options:{track:NativeTrack;next?:boolean}):Promise<MobilePlayback>;

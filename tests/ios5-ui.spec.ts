@@ -17,7 +17,7 @@ test('approved collection shelf, list/search preference and navigation preserve 
 test('create, save a song, add to a personal playlist and reload use real UI actions',async({page})=>{
  await fixture(page,{withLibrary:true});await library(page);await page.getByRole('button',{name:'Create playlist',exact:true}).first().click();await named(page,'My collection');
  await expect(page.getByRole('heading',{name:'My collection',exact:true})).toBeVisible();await page.getByRole('button',{name:'Back to library'}).click();
- await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Like song',exact:true}).click();
+ await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'Songs',exact:true}).click();await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Like song',exact:true}).click();
  await page.getByRole('button',{name:'More options: Slow motion'}).click();await page.getByRole('button',{name:'Add to playlist',exact:true}).click();await page.getByRole('dialog',{name:'Choose a playlist'}).getByRole('button',{name:/My collection/}).click();
  await expect(page.getByRole('dialog')).toHaveCount(0);await page.reload();await library(page);await page.getByRole('button',{name:'My collection, 1 song',exact:true}).click();await expect(page.getByRole('button',{name:'Play: Slow motion',exact:true})).toBeVisible();
  expect(await page.evaluate(()=>(window as any).__iosLibrary().likes.length)).toBe(1);

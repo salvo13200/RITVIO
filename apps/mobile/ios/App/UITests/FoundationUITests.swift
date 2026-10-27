@@ -3,6 +3,53 @@ import XCTest
 /// WKWebView gestures -> Capacitor -> native queue and AVPlayer.
 /// Debug fixtures use original tones, never real-provider acceptance evidence.
 final class FoundationUITests: XCTestCase {
+    func testCatalogAlbumArtistAndSavedResources() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launch()
+        let settings = app.webViews.buttons.matching(NSPredicate(format:"label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
+        XCTAssertTrue(settings.waitForExistence(timeout:45)); tapCenter(settings)
+        chooseLanguage(app,"English"); button(app,"Done").tap()
+        wait(app) { !self.button(app,"Done").exists }
+        button(app,"Search").tap()
+        let field = app.webViews.searchFields["Songs, albums or artists"]
+        XCTAssertTrue(field.waitForExistence(timeout:15)); field.tap(); field.typeText("luna\n")
+        XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:15)); capture(app,"ios-catalog-search-all")
+        button(app,"Albums").tap()
+        let album = button(app,"Open album: Night scenes")
+        XCTAssertTrue(album.waitForExistence(timeout:10)); tapCenter(album)
+        XCTAssertTrue(app.webViews.staticTexts["Night scenes"].waitForExistence(timeout:15))
+        XCTAssertTrue(app.webViews.staticTexts["Unavailable interlude"].waitForExistence(timeout:10)); capture(app,"ios-catalog-album-b")
+        let save = button(app,"Save")
+        reveal(app,save); tapCenter(save)
+        XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
+        let artist = button(app,"Luna Vale")
+        reveal(app,artist); tapCenter(artist)
+        XCTAssertTrue(app.webViews.staticTexts["Luna Vale"].waitForExistence(timeout:10))
+        XCTAssertTrue(button(app,"Save").waitForExistence(timeout:10)); reveal(app,button(app,"Save")); tapCenter(button(app,"Save"))
+        XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10)); capture(app,"ios-catalog-artist-discography")
+        // Native WebKit history must return to the album without replacing the queue.
+        tapCenter(button(app,"Back")); XCTAssertTrue(app.webViews.staticTexts["Night scenes"].waitForExistence(timeout:10))
+        tapCenter(button(app,"Back")); XCTAssertTrue(field.waitForExistence(timeout:10)); XCTAssertTrue((field.value as? String)?.contains("luna") == true)
+        XCTAssertTrue(button(app,"Open player: After the rain").exists)
+        app.terminate(); app.launchArguments.removeAll { $0 == "--ritvio-ui-library-reset" }; app.launch()
+        XCTAssertTrue(button(app,"Library").waitForExistence(timeout:35)); button(app,"Library").tap()
+        XCTAssertTrue(button(app,"Open album: Night scenes").waitForExistence(timeout:15))
+        XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:10))
+        reveal(app,button(app,"Open album: Night scenes")); capture(app,"ios-catalog-saved-resources")
+        tapCenter(button(app,"Open album: Night scenes")); XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
+    }
+    private func reveal(_ app: XCUIApplication, _ target: XCUIElement) {
+        let content = app.webViews.otherElements.matching(identifier:"main").firstMatch
+        XCTAssertTrue(content.waitForExistence(timeout:10)); XCTAssertTrue(target.waitForExistence(timeout:10))
+        for _ in 0..<8 {
+            if content.frame.contains(target.frame) { break }
+            let up = target.frame.maxY > content.frame.maxY
+            content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.8 : 0.2)).press(forDuration:0.05,thenDragTo:content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.2 : 0.8)))
+        }
+        XCTAssertTrue(content.frame.contains(target.frame),"Catalog control must be inside the content viewport")
+    }
     func testLibraryPersistenceAndPersonalArtwork() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -29,8 +76,8 @@ final class FoundationUITests: XCTestCase {
         capture(app,"ios5-playlist-create"); button(app,"Save").tap()
         XCTAssertTrue(button(app,"Close player").waitForExistence(timeout:10)); button(app,"Close player").tap()
         button(app,"Search").tap()
-        let search = app.webViews.searchFields["Songs or artists"]
-        XCTAssertTrue(search.waitForExistence(timeout:10)); search.tap(); search.typeText("luna\n")
+        let search = app.webViews.searchFields["Songs, albums or artists"]
+        XCTAssertTrue(search.waitForExistence(timeout:10)); search.tap(); search.typeText("luna\n"); button(app,"Songs").tap()
         XCTAssertTrue(button(app,"More options: Slow motion").waitForExistence(timeout:10)); button(app,"More options: Slow motion").tap(); button(app,"Add to playlist").tap()
         let target = app.webViews.buttons.matching(NSPredicate(format:"label CONTAINS %@", "Native mix")).firstMatch
         XCTAssertTrue(target.waitForExistence(timeout:10)); target.tap()
@@ -170,19 +217,19 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app, "Play").waitForExistence(timeout: 15))
         capture(app, "ios4-player-after-reordered-next")
         button(app, "Close player").tap(); button(app, "Search").tap()
-        let field = app.webViews.searchFields["Songs or artists"]
-        XCTAssertTrue(field.waitForExistence(timeout: 10)); field.tap(); field.typeText("luna\n")
+        let field = app.webViews.searchFields["Songs, albums or artists"]
+        XCTAssertTrue(field.waitForExistence(timeout: 10)); field.tap(); field.typeText("luna\n"); button(app,"Songs").tap()
         XCTAssertTrue(button(app, "More options: Slow motion").waitForExistence(timeout: 10))
         capture(app, "ios4-search-native-fixture")
         button(app, "More options: Slow motion").tap(); button(app, "Add to queue").tap()
         XCTAssertTrue(app.webViews.staticTexts["Added to queue"].waitForExistence(timeout: 10))
         button(app, "Clear search").tap(); field.typeText("offline\n")
-        XCTAssertTrue(app.webViews.staticTexts["Search could not complete. Check your connection and try again."].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.webViews.staticTexts["The catalog could not load. Check your connection and try again."].waitForExistence(timeout: 10))
         XCTAssertFalse(app.webViews.staticTexts["Added to queue"].exists, "New search must dismiss superseded queue feedback")
         XCTAssertTrue(button(app, "Try again").isHittable)
         capture(app, "ios4-search-recoverable-error")
         button(app, "Clear search").tap(); field.typeText("empty\n")
-        XCTAssertTrue(app.webViews.staticTexts["No songs found"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.webViews.staticTexts["No results here"].waitForExistence(timeout: 10))
         button(app, "Settings").tap()
         XCTAssertTrue(app.webViews.staticTexts["IOS-5"].waitForExistence(timeout: 10))
         let done = button(app, "Done"), headerTop = done.frame.minY

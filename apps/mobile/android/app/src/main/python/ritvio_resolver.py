@@ -113,9 +113,12 @@ def _catalog_value(value, artwork=''):
     return result
 
 
-def catalog(payload_json):
+def catalog(payload_json, *, ios_identity_catalog=False):
     payload = json.loads(payload_json)
-    if not isinstance(payload, dict) or payload.get('operation') not in ('catalog-search', 'detail', 'home-index', 'home-collection', 'radio', 'browse-index', 'browse-playlists', 'browse-tracks'):
+    allowed = ('catalog-search', 'detail', 'home-index', 'home-collection', 'radio', 'browse-index', 'browse-playlists', 'browse-tracks')
+    if ios_identity_catalog is True:
+        allowed += ('search-snapshot', 'releases', 'artist-search')
+    if not isinstance(payload, dict) or payload.get('operation') not in allowed:
         raise ValueError('Invalid catalog operation')
     # Shared desktop metadata adapter, copied from its authoritative sources by the APK builder.
     import music_catalog

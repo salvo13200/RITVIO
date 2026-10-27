@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {parseCatalog,type AlbumDetail,type ArtistDetail,type CatalogSearch} from '../apps/mobile/src/ios/catalog-model';
+import {parseCatalog,type AlbumDetail,type ArtistDetail,type CatalogSearch,type CatalogSnapshot} from '../apps/mobile/src/ios/catalog-model';
 
 const artwork='https://lh3.googleusercontent.com/original-fixture';
 const song={videoId:'abcdefghijk',title:'Original fixture',artist:'Luna Vale',thumbnail:artwork,duration:90,artists:[{id:'artist-1',name:'Luna Vale'}],album:{id:'album-1',name:'Night scenes'}};
@@ -26,4 +26,18 @@ test('malformed and oversized catalog results cannot produce playable metadata',
  for(const raw of [null,{...album,entries:[{...album.entries[0],number:0}]},{...album,entries:[{...album.entries[0],track:{...song,videoId:'../bad'}}]},
   {...album,entries:[{...album.entries[0],track:{...song,videoId:'abcdefghijk\n'}}]},
   {...album,entries:Array.from({length:1001},(_,index)=>({...album.entries[0],number:index+1}))},{...album,reportedCount:-1},{...album,entries:[{...album.entries[0],duration:Infinity}]}])assert.throws(()=>parseCatalog(raw,request));
+});
+test('unified snapshot distinguishes all three result kinds and preserves partial albums',()=>{
+ const raw={items:[song],candidates:[{id:'artist-1',name:'Luna Vale',kind:'artist',artwork}],albums:[album],albumsUnavailable:true};
+ const request={operation:'search-snapshot',query:'Luna Vale'} as const,value=parseCatalog(raw,request) as CatalogSnapshot;
+ assert.equal(value.items[0].videoId,song.videoId);assert.equal(value.albums[0].kind,'album');assert.equal(value.candidates[0].kind,'artist');assert.equal(value.albumsUnavailable,true);
+ for(const invalid of [{...raw,items:[album]},{...raw,candidates:[album]},{...raw,albumsUnavailable:'false'}])assert.throws(()=>parseCatalog(invalid,request));
+});
+test('artist releases and artist-scoped search reject stale identities',()=>{
+ const releases={operation:'releases',kind:'artist',id:'artist-1',section:'albums'} as const;
+ assert.doesNotThrow(()=>parseCatalog({artistId:'artist-1',items:[album]},releases));
+ assert.throws(()=>parseCatalog({artistId:'artist-2',items:[album]},releases));
+ const songs={operation:'artist-search',kind:'artist',id:'artist-1',query:'',searchKind:'track'} as const;
+ assert.doesNotThrow(()=>parseCatalog({artistId:'artist-1',kind:'track',items:[song]},songs));
+ assert.throws(()=>parseCatalog({artistId:'artist-1',kind:'album',items:[album]},songs));
 });

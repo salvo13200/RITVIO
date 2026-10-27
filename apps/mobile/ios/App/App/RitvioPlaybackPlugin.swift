@@ -108,12 +108,16 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func catalog(_ call: CAPPluginCall) {
-        guard let operation = call.getString("operation"), ["catalog-search", "detail"].contains(operation),
-              let kind = call.getString("kind"), ["artist", "album"].contains(kind) else {
+        guard let operation = call.getString("operation"), ["catalog-search", "detail", "search-snapshot", "releases", "artist-search"].contains(operation) else {
             call.reject("Invalid catalog operation", "INVALID_ARGUMENT"); return
         }
-        var payload: [String: Any] = ["operation":operation, "kind":kind]
-        if operation == "catalog-search" {
+        var payload: [String: Any] = ["operation":operation]
+        if operation != "search-snapshot" {
+            guard let kind = call.getString("kind"), ["artist", "album"].contains(kind),
+                  !["releases", "artist-search"].contains(operation) || kind == "artist" else { call.reject("Invalid catalog kind", "INVALID_ARGUMENT"); return }
+            payload["kind"] = kind
+        }
+        if operation == "catalog-search" || operation == "search-snapshot" {
             guard let query = call.getString("query"), (3...200).contains(query.trimmingCharacters(in:.whitespacesAndNewlines).count) else {
                 call.reject("Invalid catalog query", "INVALID_QUERY"); return
             }
@@ -124,6 +128,29 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
             }
             payload["id"] = id
         }
+        if operation == "releases" {
+            guard let section = call.getString("section"), ["albums", "singles"].contains(section) else { call.reject("Invalid release section", "INVALID_ARGUMENT"); return }
+            payload["section"] = section
+        }
+        if operation == "artist-search" {
+            let query = call.getString("query") ?? ""
+            guard query.count <= 200, let kind = call.getString("searchKind"), ["track", "album"].contains(kind) else { call.reject("Invalid artist search", "INVALID_ARGUMENT"); return }
+            payload["query"] = query; payload["searchKind"] = kind
+        }
+        if call.getValue("refresh") != nil {
+            guard let value = call.getValue("refresh") as? NSNumber, CFGetTypeID(value) == CFBooleanGetTypeID() else { call.reject("Invalid refresh flag", "INVALID_ARGUMENT"); return }
+            payload["refresh"] = value.boolValue
+        }
+        #if DEBUG
+        if NativeUIFixture.enabled {
+            let request = payload
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                if (request["query"] as? String)?.lowercased().contains("offline") == true { call.reject("Synthetic offline check", "NETWORK_UNAVAILABLE") }
+                else { call.resolve(NativeUIFixture.catalog(request)) }
+            }
+            return
+        }
+        #endif
         resolve(call, payload:payload)
     }
 

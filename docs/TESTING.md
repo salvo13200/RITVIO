@@ -325,3 +325,24 @@ Queue dragging only starts on the handle. Text/artwork swipes keep native scroll
 Reader checks cover stored text-size/emphasis preferences, stable row heights across active-line changes, manual-scroll interruption and explicit follow recovery. Auto-follow scrolls the reader itself rather than an ancestor dialog. Plain lyrics retain text-size controls without invented timing. Loading/unavailable lyrics and gallery/export failures must stay recoverable.
 
 The opt-in `capture:` case writes English demo screenshots and actual canvas exports under the ignored `.impeccable/review/android-listening-tools/` directory, which it creates in a clean checkout. Those are browser-rendered layouts with fixture bridge responses; they do not establish native system insets, TalkBack, OEM font scaling, Gallery permissions or playback continuity. Test the exact signed APK on the phone, particularly long-list drag/drop with one finger, edge holds, Android Back through sharing, large system fonts, save-to-Gallery feedback and continuous locked-screen audio. The Windows 0.7.5 candidate passed isolated packaged track/lyrics/ten-line exports, including the real cover proxy, without changing playback. Its release is separate from Android. The maintainer reported successful initial Android 1.3.0 trials on Motorola edge 60 neo / Android 16 on 20 October 2026: locked-screen listening, Wi-Fi/data handoff, skips/seeks and headphones/calls. This is a maintainer report, not instrumented evidence or comprehensive device acceptance; prolonged listening, accessibility and broader Bluetooth/device checks remain open.
+
+
+## Autonomous iOS catalog candidate 0.5.1
+
+The iOS catalog is an unreleased candidate on `codex/ios-5-catalog`, separate from Android/Windows and the temporary iOS 12 PC-assisted trial. It requires iOS 15 or later. Unified search returns songs, artist identities and albums through one bounded metadata operation; artist-scoped lists use provider IDs. Album entries retain unavailable positions and repeated occurrences. The 500-song native queue limit is disclosed before a larger collection is played. Metadata work yields to playback; an in-flight network operation can still wait for its existing socket timeout before cooperative cancellation completes.
+
+Saved albums/artists use native library schema 2 in the existing `library-v1.json` path. Legacy schema 1 is upgraded in memory on read and written only by a successful mutation. Migration checks retain likes, recent listening, personal playlists and managed covers, including simulated write failure. Damaged or future documents remain untouched. Store resources contain public metadata only, never stream URLs/headers.
+
+Run the following from a clean checkout with dependencies installed:
+
+```sh
+pnpm exec tsc --noEmit
+pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-library.test.ts tests/ios-catalog.test.ts
+python tests/ios_resolver_test.py
+python tests/artist-search-resolver.py
+pnpm exec playwright test --config tests/config/playwright.ios5.config.ts
+```
+
+The browser suite includes the catalog, existing player/queue and personal library. It checks saved resources, stale-response rejection, playback-priority waiting, bounded BUSY recovery, unavailable/repeated album entries, navigation without audio commands and compact large-text accessibility. Fixtures are diagnostic data and are not evidence of real-provider availability.
+
+On macOS, `pnpm ios:build --smoke --skip-live` compiles unsigned device and simulator applications, exercises the real Swift store/migration and player, and runs WKWebView gestures on compact and large-text simulators. The XCTest catalog flow captures search, Album B, Artist discography and saved resources under `.local/ios/artifacts/`. `--skip-live` explicitly leaves real-provider acceptance open. Signing, sideloading and autonomous iPhone playback/background/network checks must be completed before public distribution; the iOS 12 PC-assisted test does not establish those results. No iOS release is published by these checks.

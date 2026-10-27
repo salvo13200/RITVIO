@@ -46,6 +46,7 @@ class AttributionTests(unittest.TestCase):
 class RankingClient:
     calls = []
     fail_candidates = False
+    fail_albums = False
     def __init__(self, **kwargs): pass
     def search(self, query, **kwargs):
         self.calls.append((query, kwargs))
@@ -54,6 +55,7 @@ class RankingClient:
             if self.fail_candidates: raise RuntimeError('Optional artist lookup unavailable')
             return [{'resultType': 'artist', 'browseId': person['id'], 'artist': person['name']}]
         if kwargs['filter'] == 'albums':
+            if self.fail_albums: raise RuntimeError('Optional album lookup unavailable')
             return [{'resultType': 'album', 'browseId': 'MPREwrong', 'title': 'Marracash', 'artists': []},
                     {'resultType': 'album', 'browseId': 'MPREcorrect', 'title': 'Album vero', 'artists': [person]}]
         return [{'resultType': 'song', 'videoId': f'raw{i:08d}', 'title': 'Marracash' if i == 0 else 'King',
@@ -63,6 +65,7 @@ class SnapshotTests(unittest.TestCase):
         module.YTMusic = RankingClient
         RankingClient.calls = []
         RankingClient.fail_candidates = False
+        RankingClient.fail_albums = False
     def tearDown(self): module.YTMusic = FakeClient
     def test_full_bounded_snapshot_is_not_paginated_or_filtered_by_artist(self):
         data = module.catalog({'operation': 'search-snapshot', 'query': 'Marracash'})
@@ -86,4 +89,18 @@ class SnapshotTests(unittest.TestCase):
     def test_snapshot_validates_query_bounds(self):
         for query in ['xy', 'x' * 201, None]:
             with self.assertRaises(ValueError): module.catalog({'operation': 'search-snapshot', 'query': query})
+    def test_ios_snapshot_adds_one_bounded_album_lookup_without_filtering_songs(self):
+        data = module.catalog({'operation':'search-snapshot','query':'Marracash','includeAlbums':True})
+        self.assertEqual([call[1]['filter'] for call in RankingClient.calls], ['songs','artists','albums'])
+        self.assertEqual(RankingClient.calls[-1][1]['limit'],21)
+        self.assertEqual(len(data['items']),100)
+        self.assertEqual(len(data['albums']),2)
+        self.assertFalse(data['albumsUnavailable'])
+    def test_ios_album_failure_is_partial_not_an_empty_success(self):
+        RankingClient.fail_albums = True
+        data = module.catalog({'operation':'search-snapshot','query':'Marracash','includeAlbums':True})
+        self.assertEqual(len(data['items']),100)
+        self.assertEqual(len(data['candidates']),1)
+        self.assertEqual(data['albums'],[])
+        self.assertTrue(data['albumsUnavailable'])
 if __name__ == '__main__': unittest.main()

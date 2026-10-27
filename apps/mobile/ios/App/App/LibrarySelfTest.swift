@@ -58,7 +58,7 @@ enum LibrarySelfTest {
         try Data("not json".utf8).write(to: broken)
         try rejects("LIBRARY_DAMAGED") { _ = try NativeLibraryStore(file: broken).command(["type":"create", "name":"Must not replace damage"]) }
         try require(String(contentsOf: broken, encoding: .utf8) == "not json")
-        try Data("{\"schema\":2}".utf8).write(to: broken)
+        try Data("{\"schema\":9}".utf8).write(to: broken)
         try rejects("LIBRARY_VERSION_UNSUPPORTED") { _ = try NativeLibraryStore(file: broken).read() }
         let huge = folder.appendingPathComponent("huge.json")
         try Data(repeating: 32, count: NativeLibraryStore.maxBytes + 1).write(to: huge)
@@ -86,11 +86,53 @@ enum LibrarySelfTest {
         try require(Data(contentsOf:limitFile) == limitBefore)
         let single = try store.command(["type":"create", "name":"Single-song create", "track":track])
         try require(single.playlists[0].items.count == 1)
+        // Decode the previous real document schema without writing during read.
+        let migrationFile = folder.appendingPathComponent("migration.json")
+        let legacyCover = UUID().uuidString.lowercased() + ".jpg"
+        var legacy = store.snapshot(single)
+        legacy["schema"] = 1; legacy.removeValue(forKey:"follows")
+        var legacyPlaylists = legacy["playlists"] as! [[String:Any]]
+        legacyPlaylists[0].removeValue(forKey:"cover"); legacyPlaylists[0]["coverFile"] = legacyCover
+        legacy["playlists"] = legacyPlaylists
+        let legacyBytes = try JSONSerialization.data(withJSONObject:legacy)
+        try legacyBytes.write(to:migrationFile)
+        let migrated = NativeLibraryStore(file:migrationFile)
+        try FileManager.default.createDirectory(at:migrated.artworkDirectory,withIntermediateDirectories:true)
+        let legacyCoverURL = migrated.artworkDirectory.appendingPathComponent(legacyCover)
+        try Data([1,2,3]).write(to:legacyCoverURL)
+        try require(migrated.read().schema == 2 && migrated.read().follows.isEmpty)
+        try require(Data(contentsOf:migrationFile) == legacyBytes)
+        let resource: [String:Any] = ["id":"artist-1","kind":"artist","name":"Original artist","artwork":"https://lh3.googleusercontent.com/fixture"]
+        let migrationFailure = NativeLibraryStore(file:migrationFile,write:{_,_ in throw ResolverFailure.code("SIMULATED_DISK_FULL")})
+        try rejects("LIBRARY_WRITE_FAILED") { _ = try migrationFailure.command(["type":"follow","resource":resource,"followed":true]) }
+        try require(Data(contentsOf:migrationFile) == legacyBytes)
+        let followed = try migrated.command(["type":"follow","resource":resource,"followed":true])
+        try require(followed.schema == 2 && followed.follows.count == 1 && followed.likes.count == single.likes.count && followed.recent.count == single.recent.count)
+        try require(followed.playlists[0].items.count == 1 && followed.playlists[0].coverFile == legacyCover && FileManager.default.fileExists(atPath:legacyCoverURL.path))
+        try require(NativeLibraryStore(file:migrationFile).read().follows.first?.id == "artist-1")
+        var otherKind = resource; otherKind["kind"] = "album"
+        _ = try migrated.command(["type":"follow","resource":otherKind,"followed":true])
+        _ = try migrated.command(["type":"follow","resource":resource,"followed":true])
+        try require(migrated.read().follows.count == 2)
+        _ = try migrated.command(["type":"follow","resource":resource,"followed":false])
+        try require(migrated.read().follows.count == 1 && migrated.read().follows[0].kind == "album")
+        try rejects("INVALID_LIBRARY_COMMAND") { _ = try migrated.command(["type":"follow","resource":resource,"followed":1]) }
+        var invalidResource = resource; invalidResource["artwork"] = "https://rr1.googlevideo.com/signed-audio"
+        try rejects("INVALID_RESOURCE") { _ = try migrated.command(["type":"follow","resource":invalidResource,"followed":true]) }
+        let savedBytes = try Data(contentsOf:migrationFile)
+        var missing = try JSONSerialization.jsonObject(with:savedBytes) as! [String:Any]
+        missing.removeValue(forKey:"follows")
+        try JSONSerialization.data(withJSONObject:missing).write(to:broken)
+        let damagedV2 = try Data(contentsOf:broken)
+        try rejects("LIBRARY_DAMAGED") { _ = try NativeLibraryStore(file:broken).command(["type":"create","name":"Must not lose saved resources"]) }
+        try require(Data(contentsOf:broken) == damagedV2)
         return ["status":"passed", "atomicFailurePreservesData":true, "damagedFilePreserved":true, "unknownSchemaRejected":true,
             "restartPersistence":true, "duplicateOccurrenceEdits":true, "staleRevisionRejected":true, "strictBooleanAndIndex":true,
             "historyDeduplicated":true, "noSignedDescriptors":true, "managedCoverCleanup":true, "boundedDocument":true,
             "artworkDownsampled":true, "artworkMetadataRemoved":true, "invalidImageRejected":true,
-            "trackLimitPreservesData":true, "singleSongCreateAtomic":true]
+            "trackLimitPreservesData":true, "singleSongCreateAtomic":true,
+            "followMigrationPreservesCollectionsAndCovers":true,"followMigrationReadOnlyUntilMutation":true,
+            "followMigrationFailurePreservesLegacyFile":true,"followRestartAndIdentity":true,"damagedFollowFieldPreserved":true]
     }
     #endif
 }
