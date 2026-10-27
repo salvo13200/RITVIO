@@ -65,8 +65,14 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(content.waitForExistence(timeout:10)); XCTAssertTrue(target.waitForExistence(timeout:10))
         for _ in 0..<8 {
             if content.frame.contains(target.frame) { break }
-            let up = target.frame.maxY > content.frame.maxY
-            content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.8 : 0.2)).press(forDuration:0.05,thenDragTo:content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:up ? 0.2 : 0.8)))
+            let viewport = content.frame, frame = target.frame
+            let distance = frame.maxY > viewport.maxY ? frame.maxY - viewport.maxY + 4 : frame.minY - viewport.minY - 4
+            // Fixed 60%-height drags can overshoot a tall card in both directions.
+            // Move only its measured overflow, retaining a real touch gesture.
+            let fraction = min(0.5, max(0.04, abs(distance) / max(1, viewport.height)))
+            let start: CGFloat = distance > 0 ? 0.75 : 0.25
+            let end = start + (distance > 0 ? -fraction : fraction)
+            content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:start)).press(forDuration:0.05,thenDragTo:content.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:end)))
         }
         XCTAssertTrue(content.frame.contains(target.frame),"Catalog control must be inside the content viewport")
     }
