@@ -185,10 +185,16 @@ enum PlaybackSelfTest {
         word(UInt32(16)); word(UInt16(1)); word(UInt16(1)); word(UInt32(22050)); word(UInt32(44100)); word(UInt16(2)); word(UInt16(16))
         wav.append(contentsOf: "data".utf8); word(UInt32(count * 2))
         let angularStep: Double = 2.0 * Double.pi * 440.0 / 22050.0
-        for index in 0..<count {
-            let sample: Int16 = Int16(sin(Double(index) * angularStep) * 2000.0)
-            word(sample)
+        // Fill PCM in one allocation: per-sample Data.append is expensive in
+        // unoptimised simulator builds and can delay the UI fixture's queue.
+        var pcm = Data(count: count * MemoryLayout<Int16>.size)
+        pcm.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
+            let samples = raw.bindMemory(to: Int16.self)
+            for index in 0..<count {
+                samples[index] = Int16(sin(Double(index) * angularStep) * 2000.0).littleEndian
+            }
         }
+        wav.append(pcm)
         let input = directory.appendingPathComponent("original-tone.wav"), output = directory.appendingPathComponent("original-tone.m4a")
         try wav.write(to: input)
         guard let exporter = AVAssetExportSession(asset: AVURLAsset(url: input), presetName: AVAssetExportPresetAppleM4A) else { throw ResolverFailure.code("FIXTURE_ENCODER_UNAVAILABLE") }
@@ -250,6 +256,7 @@ final class FixtureMediaProtocol: URLProtocol {
 enum NativeUIFixture {
     static var enabled: Bool { ProcessInfo.processInfo.arguments.contains("--ritvio-ui-check") }
     private static var preparing = false
+    private(set) static var preparationStage = "not-started"
     static let tracks: [[String: Any]] = [
         ["videoId": "ritviotest1", "title": "After the rain", "artist": "Luna Vale", "thumbnail": "", "duration": 90, "artists": [["id":"fixture-artist", "name":"Luna Vale"]], "album": ["id": "fixture-album", "name": "Night scenes"]],
         ["videoId": "ritviotest2", "title": "Slow motion", "artist": "North Avenue", "thumbnail": "", "duration": 90],
@@ -274,19 +281,21 @@ enum NativeUIFixture {
         }
     }
     static func prepareIfRequested() {
-        guard enabled, !preparing else { return }; preparing = true
+        guard enabled, !preparing else { return }; preparing = true; preparationStage = "generating-media"
         Task { @MainActor in
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent("ui-media-\(UUID().uuidString)", isDirectory: true)
             defer { try? FileManager.default.removeItem(at: directory) }
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 FixtureMediaProtocol.configure(try await PlaybackSelfTest.makeAudio(in: directory))
+                preparationStage = "seeding-queue"
                 if !ProcessInfo.processInfo.arguments.contains("--ritvio-ui-empty") {
                     let player = NativePlaybackOwner.shared
                     _ = try player.playTracks(tracks, index: 0)
                     _ = try player.command("pause"); _ = try player.command("seek", value: 24)
                 }
-            } catch { assertionFailure("Original UI media fixture could not be prepared") }
+                preparationStage = "ready"
+            } catch { preparationStage = "failed"; assertionFailure("Original UI media fixture could not be prepared") }
         }
     }
     private static let covers: [String] = (0..<5).map { index in

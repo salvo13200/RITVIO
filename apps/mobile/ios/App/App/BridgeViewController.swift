@@ -66,7 +66,7 @@ private final class UIStartupMessages: NSObject, WKScriptMessageHandler {
         let identity = String(describing:ObjectIdentifier(controller))
         instances.insert(identity)
         var event: [String:Any] = ["stage":stage,"controller":identity,
-            "visibleRoot":controller.view.window?.rootViewController === controller]
+            "visibleRoot":controller.view.window?.rootViewController === controller,"fixtureStage":NativeUIFixture.preparationStage]
         if let document { event["document"] = document }
         if stage == "interaction" { interactions.append(event);interactions=Array(interactions.suffix(64)) }
         else { events.append(event);events=Array(events.suffix(32)) }

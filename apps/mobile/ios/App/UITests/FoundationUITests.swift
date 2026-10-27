@@ -8,7 +8,7 @@ final class FoundationUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-ritvio.language.preference", "en", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:45))
+        XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:90), "Original media fixture must finish seeding before Catalog starts")
         button(app,"Search").tap()
         let field = app.webViews.searchFields["Songs, albums or artists"]
         XCTAssertTrue(field.waitForExistence(timeout:15)); field.tap(); field.typeText("luna\n")
@@ -46,7 +46,7 @@ final class FoundationUITests: XCTestCase {
             app.terminate()
             app.launchArguments.append(contentsOf:["-UIPreferredContentSizeCategoryName","UICTContentSizeCategoryL"])
             app.launch()
-            XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:45))
+            XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:90), "Original media fixture must finish seeding before Catalog starts")
             button(app,"Search").tap()
             let standardSearch = app.webViews.searchFields["Songs, albums or artists"]
             XCTAssertTrue(standardSearch.waitForExistence(timeout:10)); standardSearch.tap(); standardSearch.typeText("luna\n")
