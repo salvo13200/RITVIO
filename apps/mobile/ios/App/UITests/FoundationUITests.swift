@@ -15,7 +15,7 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:15)); capture(app,"ios-catalog-search-all")
         button(app,"Albums").tap()
         let album = button(app,"Open album: Night scenes")
-        XCTAssertTrue(album.waitForExistence(timeout:10)); tapCenter(album)
+        XCTAssertTrue(album.waitForExistence(timeout:10)); reveal(app,album); tapCenter(album)
         XCTAssertTrue(app.webViews.staticTexts["Night scenes"].waitForExistence(timeout:15))
         XCTAssertTrue(app.webViews.staticTexts["Unavailable interlude"].waitForExistence(timeout:10)); capture(app,"ios-catalog-album-b")
         let save = button(app,"Save")
@@ -34,7 +34,7 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app,"Library").waitForExistence(timeout:35)); button(app,"Library").tap()
         XCTAssertTrue(button(app,"Open album: Night scenes").waitForExistence(timeout:15))
         XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:10))
-        reveal(app,button(app,"Open album: Night scenes")); capture(app,"ios-catalog-saved-resources")
+        capture(app,"ios-catalog-saved-resources"); reveal(app,button(app,"Open artist: Luna Vale")); capture(app,"ios-catalog-saved-artists"); reveal(app,button(app,"Open album: Night scenes"))
         tapCenter(button(app,"Open album: Night scenes")); XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
     }
     private func reveal(_ app: XCUIApplication, _ target: XCUIElement) {
@@ -268,6 +268,7 @@ final class FoundationUITests: XCTestCase {
         expectation(for: selected, evaluatedWith: app); waitForExpectations(timeout: 10)
     }
     private func capture(_ app: XCUIApplication, _ name: String) {
+        if name == "ios-catalog-artist-discography" || name == "ios5-player-liked" { wait(app) { !app.webViews.staticTexts["Saved to your library"].exists && !app.webViews.staticTexts["Song saved to liked songs"].exists } }
         Thread.sleep(forTimeInterval: name.contains("landscape") ? 1.0 : 0.35)
         // A full-screen capture avoids app.screenshot's transformed-window ROI in landscape.
         let attachment = XCTAttachment(screenshot: XCUIScreen.main.screenshot()); attachment.name = name; attachment.lifetime = .keepAlways; add(attachment)

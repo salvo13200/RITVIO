@@ -7,3 +7,38 @@
 .ios-app .ios-header.has-catalog{justify-content:flex-start;gap:12px}.ios-app .ios-album-identity{margin-top:12px;margin-bottom:30px}.ios-app .ios-album-identity>.artwork{align-self:start}.ios-app .ios-album-identity .ios-catalog-actions{gap:4px;margin:16px -5px 0;justify-content:space-between}.ios-app .ios-album-identity .ios-catalog-action{min-width:44px;min-height:66px;padding:0;gap:8px;flex:1}.ios-app .ios-album-identity .ios-catalog-action>svg{padding:10px;width:22px;height:22px}.ios-app .ios-album-identity .ios-catalog-action>span{font-size:12px}.ios-app .ios-album-identity .ios-catalog-credits button{min-height:44px;padding:0;justify-content:flex-start}.ios-app .ios-album-tracks li{min-height:62px}.ios-app .ios-album-song small{display:none}.ios-app .ios-album-song.is-unavailable small{display:block}.ios-app .ios-catalog-refresh{margin-top:22px}.ios-app[data-large-text] .ios-album-identity .ios-catalog-actions{max-width:300px;gap:16px;margin:20px auto 0}.ios-app .ios-catalog-page{padding-top:0}
 
 .ios-app[data-large-text] .ios-catalog-action>span{font-size:calc(.8rem * var(--ios-text-scale))}
+
+/* Ratio boxes also keep an empty Artwork placeholder square in WebKit. */
+.ios-app .ios-resource>.artwork{height:auto;min-height:0;flex:0 0 auto;aspect-ratio:auto;position:relative}
+.ios-app .ios-resource>.artwork::before{content:"";display:block;padding-top:100%}
+.ios-app .ios-resource>.artwork>img{position:absolute;inset:0}
+.ios-app .ios-resource-shelf.is-list .ios-resource>.artwork{width:56px;height:56px}
+.ios-app .ios-resource .ios-identity strong,.ios-app .ios-resource .ios-identity small{white-space:normal}
+.ios-app .ios-catalog-action{justify-content:flex-start}
+.ios-app .ios-album-identity .ios-catalog-action>span{font-size:13px;white-space:nowrap}
+.ios-app .ios-album-identity .ios-catalog-credits button{margin-block:-8px}
+.ios-app .ios-catalog-credits button{font-size:calc(16px * var(--ios-text-scale,1))}
+.ios-app .ios-catalog-meta{font-size:calc(13px * var(--ios-text-scale,1))}
+.ios-app .ios-album-song strong{font-size:calc(16px * var(--ios-text-scale,1))}
+.ios-app .ios-album-song small{font-size:calc(13px * var(--ios-text-scale,1))}
+.ios-app .ios-catalog-page .ios-primary{font-size:calc(16px * var(--ios-text-scale,1))}
+.ios-app .ios-artist-identity{position:relative;isolation:isolate;display:block;text-align:left;padding:104px 22px 0;margin:-10px -22px 24px}
+.ios-app .ios-artist-portrait{position:absolute;inset:0 0 auto;height:194px;overflow:hidden;z-index:-2}
+.ios-app .ios-artist-portrait>.artwork{width:100%;height:100%;border-radius:0}
+.ios-app .ios-artist-portrait img{object-position:center 38%}
+.ios-app .ios-artist-identity::before{content:"";position:absolute;inset:0 0 auto;height:210px;z-index:-1;background:linear-gradient(180deg,#0f111710,#0f1117b8 50%,#0f1117 92%);pointer-events:none}
+.ios-app .ios-artist-identity h1{margin:0 0 18px;font-size:calc(30px * var(--ios-text-scale,1));line-height:1.1}
+.ios-app .ios-artist-actions{justify-content:flex-start;gap:20px;flex-wrap:wrap}
+.ios-app .ios-artist-actions .ios-catalog-action{align-items:center;justify-content:center}
+.ios-app .ios-artist-identity+section .ios-section-title{margin-top:14px}
+.ios-app .ios-saved-resources .ios-resource-shelf{margin-top:12px}
+.ios-app .ios-catalog-filters button{font-size:calc(14px * var(--ios-text-scale,1))}
+.ios-app[data-large-text] .ios-catalog-filters{display:grid;grid-template-columns:1fr 1fr;overflow:visible}
+.ios-app[data-large-text] .ios-album-identity>.artwork{width:min(45%,150px)}
+.ios-app[data-large-text] .ios-album-identity .ios-catalog-action>span{font-size:calc(13px * var(--ios-text-scale,1))}
+.ios-app[data-large-text] .ios-album-identity .ios-catalog-actions{gap:10px;max-width:none}
+
+.ios-app[data-large-text] .ios-resource-shelf .ios-resource{flex-direction:row;align-items:center;gap:16px}
+.ios-app[data-large-text] .ios-resource-shelf .ios-resource>.artwork{width:96px;height:96px;flex:0 0 96px}
+.ios-app[data-large-text] .ios-resource-shelf .ios-resource.is-artist>.artwork{width:72px;height:72px;flex-basis:72px}
+.ios-app[data-large-text] .ios-resource-shelf .ios-resource>.ios-identity{width:auto;flex:1;min-width:0}

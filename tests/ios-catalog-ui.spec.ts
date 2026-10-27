@@ -52,5 +52,12 @@ test('an oversized album asks before replacing the queue and retains the selecte
 });
 test('failed saves retain the unsaved state and album menu never activates the page beneath it',async({page})=>{
  await fixture(page,{withLibrary:true});await search(page);await page.getByRole('button',{name:'Albums',exact:true}).click();await page.getByRole('button',{name:'Open album: Night scenes',exact:true}).click();await page.evaluate(()=>{(window as any).__iosFailLibrary=true;});await page.getByRole('button',{name:'Save',exact:true}).click();await expect(page.getByRole('button',{name:'Save',exact:true})).toHaveAttribute('aria-pressed','false');
- await page.locator('.ios-catalog-actions').getByRole('button',{name:'More options',exact:true}).click();await expect(page.getByRole('dialog',{name:'Choose an artist'})).toBeVisible();await expect(page.locator('.ios-shell')).toHaveAttribute('aria-hidden','true');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('heading',{name:'Night scenes',exact:true})).toBeVisible();expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='playTracks').length)).toBe(0);
+ await page.locator('.ios-catalog-actions').getByRole('button',{name:'More',exact:true}).click();await expect(page.getByRole('dialog',{name:'Choose an artist'})).toBeVisible();await expect(page.locator('.ios-shell')).toHaveAttribute('aria-hidden','true');await page.getByRole('button',{name:'Cancel',exact:true}).click();await expect(page.getByRole('heading',{name:'Night scenes',exact:true})).toBeVisible();expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.method==='playTracks').length)).toBe(0);
+});
+test('saved album and artist placeholders retain square bounds without a personal-playlist empty hero',async({page})=>{
+ await fixture(page,{withLibrary:true,librarySeed:{revision:1,likes:[],recent:[],playlists:[],follows:[{id:'saved-album',kind:'album',name:'An album',artwork:null},{id:'saved-artist',kind:'artist',name:'An artist',artwork:null}]}});await page.getByRole('button',{name:'Library',exact:true}).click();
+ const covers=page.locator('.ios-saved-resources .ios-resource>.artwork');await expect(covers).toHaveCount(2);
+ for(const cover of await covers.all()){const box=(await cover.boundingBox())!;expect(box.width).toBeGreaterThan(100);expect(Math.abs(box.width-box.height)).toBeLessThan(1);}
+ await expect(page.getByRole('heading',{name:'Make room for your music',exact:true})).toHaveCount(0);
+ await expect(page.locator('.ios-new-playlist').getByText('Create playlist',{exact:true})).toBeVisible();
 });
