@@ -36,6 +36,26 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:10))
         capture(app,"ios-catalog-saved-resources"); reveal(app,button(app,"Open artist: Luna Vale")); capture(app,"ios-catalog-saved-artists"); reveal(app,button(app,"Open album: Night scenes"))
         tapCenter(button(app,"Open album: Night scenes")); XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10))
+        if app.frame.height > 800 {
+            // Keep the accessibility-size captures above. Add an independent
+            // normal-size pass on the tall iPhone for the portrait design comp;
+            // this launch-domain override does not alter the simulator setting.
+            app.terminate()
+            app.launchArguments.append(contentsOf:["-UIPreferredContentSizeCategoryName","UICTContentSizeCategoryL"])
+            app.launch()
+            XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:45))
+            button(app,"Search").tap()
+            let standardSearch = app.webViews.searchFields["Songs, albums or artists"]
+            XCTAssertTrue(standardSearch.waitForExistence(timeout:10)); standardSearch.tap(); standardSearch.typeText("luna\n")
+            XCTAssertTrue(button(app,"Open artist: Luna Vale").waitForExistence(timeout:15)); capture(app,"ios-catalog-search-standard")
+            button(app,"Library").tap()
+            let savedAlbum = button(app,"Open album: Night scenes")
+            reveal(app,savedAlbum); tapCenter(savedAlbum)
+            XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10)); capture(app,"ios-catalog-album-standard")
+            let standardArtist = button(app,"Luna Vale")
+            reveal(app,standardArtist); tapCenter(standardArtist)
+            XCTAssertTrue(button(app,"Saved").waitForExistence(timeout:10)); capture(app,"ios-catalog-artist-standard")
+        }
     }
     private func reveal(_ app: XCUIApplication, _ target: XCUIElement) {
         let content = app.webViews.otherElements.matching(identifier:"main").firstMatch
