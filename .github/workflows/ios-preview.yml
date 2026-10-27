@@ -44,7 +44,11 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      - run: pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-library.test.ts
+      - run: pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-library.test.ts tests/ios-catalog.test.ts
+      - name: Resolver playback priority and bounded admission
+        run: |
+          swiftc -swift-version 5 -warnings-as-errors apps/mobile/ios/App/App/ResolverWorker.swift tests/ios_resolver_admission_test.swift -o "$RUNNER_TEMP/ritvio-admission-test"
+          "$RUNNER_TEMP/ritvio-admission-test"
       - run: pnpm exec playwright install chromium
       - run: pnpm exec playwright test --config tests/config/playwright.ios5.config.ts
       - run: node scripts/prepare-ios-resolver.mjs
