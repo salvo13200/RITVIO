@@ -6,12 +6,9 @@ final class FoundationUITests: XCTestCase {
     func testCatalogAlbumArtistAndSavedResources() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
+        app.launchArguments = ["--ritvio-ui-check", "--ritvio-ui-library-reset", "-ritvio.language.preference", "en", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
-        let settings = app.webViews.buttons.matching(NSPredicate(format:"label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout:45)); tapCenter(settings)
-        chooseLanguage(app,"English"); button(app,"Done").tap()
-        wait(app) { !self.button(app,"Done").exists }
+        XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:45))
         button(app,"Search").tap()
         let field = app.webViews.searchFields["Songs, albums or artists"]
         XCTAssertTrue(field.waitForExistence(timeout:15)); field.tap(); field.typeText("luna\n")
@@ -259,7 +256,11 @@ final class FoundationUITests: XCTestCase {
         XCTAssertTrue(app.webViews.staticTexts["Your next listen starts here"].waitForExistence(timeout: 35))
         capture(app, "ios4-first-listen-empty")
     }
-    private func button(_ app: XCUIApplication, _ label: String) -> XCUIElement { app.webViews.buttons.matching(identifier: label).firstMatch }
+    // WebKit exposes an aria-pressed button as a native Switch. Keep those
+    // semantics and query the actual actionable role instead of changing UI.
+    private func button(_ app: XCUIApplication, _ label: String) -> XCUIElement {
+        app.webViews.descendants(matching:.any).matching(NSPredicate(format:"(elementType == %d OR elementType == %d) AND label == %@", XCUIElement.ElementType.button.rawValue, XCUIElement.ElementType.switch.rawValue, label)).firstMatch
+    }
     private func chooseLanguage(_ app: XCUIApplication, _ label: String) {
         let choice = app.webViews.switches[label]
         XCTAssertTrue(choice.waitForExistence(timeout: 10)); choice.tap()
