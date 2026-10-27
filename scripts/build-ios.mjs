@@ -9,10 +9,11 @@ import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
-for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only','--skip-live'].includes(flag))throw Error(`Unknown option: ${flag}`);
+for(const flag of options)if(!['--prepare-only','--simulator','--device','--smoke','--resolver-only','--skip-live','--listening-ui-only'].includes(flag))throw Error(`Unknown option: ${flag}`);
 if(!options.has('--prepare-only')&&process.platform!=='darwin')throw Error('Xcode builds require macOS. Use pnpm ios:prepare on Windows.');
 if(options.has('--smoke')&&options.has('--prepare-only'))throw Error('Smoke tests require a native build.');
 if(options.has('--resolver-only')&&!options.has('--smoke'))throw Error('Resolver-only mode requires --smoke');
+if(options.has('--listening-ui-only')&&(!options.has('--smoke')||options.has('--resolver-only')))throw Error('Listening-only UI verification requires --smoke and cannot skip UI tests');
 const env={...process.env,RITVIO_MOBILE_PLATFORM:'ios'};
 function run(file,args,{cwd=root,capture=false}={}){
  return new Promise((resolve,reject)=>{let stdout='';const child=spawn(file,args,{cwd,env,windowsHide:true,stdio:capture?['ignore','pipe','inherit']:'inherit'});if(capture)child.stdout.on('data',chunk=>{stdout+=chunk;if(stdout.length>16*1024*1024)child.kill();});child.once('error',reject);child.once('exit',(code,signal)=>code===0?resolve(stdout):reject(Error(`${path.basename(file)} failed (${code??signal})`)));});
@@ -31,7 +32,7 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
+const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,uiTestScope:options.has('--listening-ui-only')?'listening-only':options.has('--resolver-only')?'not-run':'all',deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
 const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});
@@ -68,7 +69,7 @@ if(buildSimulator){
     let uiPassed=true;
     if(!options.has('--resolver-only')){
     const result=path.join(results,`foundation-${index}.xcresult`);
-    try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO','test','CODE_SIGNING_ALLOWED=NO']);}
+    try{await run('xcodebuild',[...base,'-configuration','Debug','-destination',`platform=iOS Simulator,id=${device.udid}`,'-derivedDataPath',derived,'-resultBundlePath',result,'-parallel-testing-enabled','NO',...(options.has('--listening-ui-only')?['-only-testing:RitvioFoundationUITests/FoundationUITests/testListeningInterfaceAndNativeQueue']:[]),'test','CODE_SIGNING_ALLOWED=NO']);}
     catch(error){uiPassed=false;report.uiFailures.push({simulator:device.name,error:error.message});console.error(`Native UI failed on ${device.name}; continuing independent player/resolver and other-device checks.`);}
     finally{const exported=path.join(artifacts,`screenshots-${index}`);await mkdir(exported,{recursive:true});try{await stat(result);await run('xcrun',['xcresulttool','export','attachments','--path',result,'--output-path',exported]);}catch(error){console.error('Could not export XCTest screenshots:',error.message);}}
     }else await run('xcrun',['simctl','install',device.udid,path.join(derived,'Build/Products/Debug-iphonesimulator/App.app')]);
@@ -119,7 +120,7 @@ if(buildSimulator){
     }
     if(!nativeEvidence)throw Error('Native resolver evidence did not complete within 240 seconds');
     await writeFile(path.join(artifacts,`resolver-${index}.json`),JSON.stringify(nativeEvidence,null,2)+'\n');
-    report.simulators.push({name:device.name,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':uiPassed?'passed':'failed',resolver:nativeEvidence.status==='passed'?'passed':'failed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
+    report.simulators.push({name:device.name,uiTestScope:report.uiTestScope,runtime:device.runtime,largeText:index===1,uiTests:options.has('--resolver-only')?'not-run':uiPassed?'passed':'failed',resolver:nativeEvidence.status==='passed'?'passed':'failed',live,...(!options.has('--resolver-only')?{screenshots:`screenshots-${index}`}:{})});
     if(nativeEvidence.status!=='passed'){
      if(live&&String(nativeEvidence.failedStage).startsWith('live-')){
       report.liveFailures.push({simulator:device.name,stage:nativeEvidence.failedStage,error:nativeEvidence.error});
@@ -137,10 +138,10 @@ await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)
 if(report.liveFailures.length)throw Error('Live provider acceptance remains open; see the redacted resolver evidence.');
 if(report.uiFailures.length)throw Error('Native UI checks failed; see the XCTest captures and uiFailures.');
 if(options.has('--smoke')&&!options.has('--resolver-only')&&report.playback!=='native-synthetic-passed')throw Error('Full native verification requires a passed player check.');
-await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:report.simulators.length?'passed':'not-run',physicalTests:'pending'},null,2)+'\n');
+await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,uiTestScope:report.uiTestScope,checks:report.simulators.length?'passed':'not-run',physicalTests:'pending'},null,2)+'\n');
 } catch(error) {
  report.nativeBuild=nativeBuildPassed()?'passed':'failed';
  await writeFile(path.join(artifacts,'report.json'),JSON.stringify(report,null,2)+'\n');
- await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,checks:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
+ await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:report.nativeBuild,uiTestScope:report.uiTestScope,checks:'failed',physicalTests:'pending',reason:error.message},null,2)+'\n');
  throw error;
 }

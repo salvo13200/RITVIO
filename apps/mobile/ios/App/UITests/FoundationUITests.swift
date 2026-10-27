@@ -179,7 +179,8 @@ final class FoundationUITests: XCTestCase {
         app.launchArguments = ["--ritvio-ui-check", "-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
         app.launch()
         let settings = app.webViews.buttons.matching(NSPredicate(format: "label == %@ OR label == %@", "Settings", "Impostazioni")).firstMatch
-        XCTAssertTrue(settings.waitForExistence(timeout: 45)); settings.tap()
+        XCTAssertTrue(settings.waitForExistence(timeout: 45)); XCTAssertTrue(button(app,"Open player: After the rain").waitForExistence(timeout:30)); tapCenter(settings)
+        XCTAssertTrue(button(app,"Done").waitForExistence(timeout:10))
         chooseLanguage(app, "English"); button(app, "Done").tap()
         expectation(for: NSPredicate { _, _ in !self.button(app, "Done").exists }, evaluatedWith: app); waitForExpectations(timeout: 10)
         let resume = button(app, "Open player: After the rain")

@@ -20,6 +20,10 @@ on:
         description: Include native UI/language captures on both iPhone sizes
         type: boolean
         default: true
+      listening_ui_only:
+        description: Verify only listening UI after a harness change (scope is recorded)
+        type: boolean
+        default: false
       live_provider:
         description: Also require real-provider stream acceptance (may be rejected by the provider)
         type: boolean
@@ -61,11 +65,14 @@ jobs:
         name: Native UI, player and resolver core (live provider optional)
         env:
           CHECK_LIVE: ${{ github.event_name == 'workflow_dispatch' && inputs.live_provider }}
+          LISTENING_ONLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.listening_ui_only) || contains(github.event.head_commit.message, '[ios-listening-only]') }}
         run: |
+          ui_args=()
+          if [ "$LISTENING_ONLY" = "true" ]; then ui_args+=(--listening-ui-only); fi
           if [ "$CHECK_LIVE" = "true" ]; then
-            pnpm ios:build --smoke
+            pnpm ios:build --smoke "${ui_args[@]}"
           else
-            pnpm ios:build --smoke --skip-live
+            pnpm ios:build --smoke --skip-live "${ui_args[@]}"
           fi
       - if: github.event_name == 'workflow_dispatch' && !inputs.full_ui
         env:
