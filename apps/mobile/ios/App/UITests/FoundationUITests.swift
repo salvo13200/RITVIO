@@ -307,12 +307,17 @@ final class FoundationUITests: XCTestCase {
         return CGRect(x:app.frame.minX+22,y:top,width:app.frame.width-44,height:max(1,bottom-top))
     }
     private func revealQueueHandle(_ app: XCUIApplication, _ target: XCUIElement) {
-        for _ in 0..<8 {
+        for attempt in 0..<8 {
             let area = queueArea(app)
+            print("Queue reveal \(attempt): list=\(area), target=\(target.exists ? String(describing:target.frame) : "absent")")
             if target.exists && target.frame.midY>area.minY+24 && target.frame.midY<area.maxY-24 { return }
-            let downward = !target.exists || target.frame.midY>=area.maxY-24
-            let start = app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:area.minX+4-app.frame.minX,dy:(downward ? area.maxY-8 : area.minY+8)-app.frame.minY))
-            let end = start.withOffset(CGVector(dx:0,dy:(downward ? -1 : 1)*min(90,area.height-24)))
+            // AX text frames exclude CSS padding. Starting eight points after
+            // the hint can still land above the scrolling list at large text.
+            // Pan from its middle, away from either fixed boundary and grips.
+            let distance = target.exists ? target.frame.midY-area.midY : area.height
+            let travel = min(max(12,abs(distance)),min(90,area.height/2-16))
+            let start = app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:area.minX+4-app.frame.minX,dy:area.midY-app.frame.minY))
+            let end = start.withOffset(CGVector(dx:0,dy:(distance >= 0 ? -1 : 1)*travel))
             start.press(forDuration:0.05,thenDragTo:end)
         }
         XCTFail("Queue handle could not be revealed inside the list")
