@@ -2,9 +2,19 @@ import type {Track} from '../domain/index';
 import {storySize,storyBrand} from '../domain/story-sharing';
 
 export type StoryMode='track'|'lyrics';
-type Picture=ImageBitmap;
+type Picture=ImageBitmap|HTMLImageElement;
 const font='"Ancizar Sans", sans-serif';
-function rounded(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){ctx.beginPath();ctx.roundRect(x,y,w,h,r);}
+function rounded(ctx:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){
+  ctx.beginPath();
+  if(typeof ctx.roundRect==='function'){ctx.roundRect(x,y,w,h,r);return;}
+  // roundRect arrived after the iOS15 deployment target. Preserve the same
+  // semantic canvas shape without changing modern desktop/Android output.
+  const radius=Math.max(0,Math.min(r,w/2,h/2));
+  ctx.moveTo(x+radius,y);ctx.lineTo(x+w-radius,y);ctx.quadraticCurveTo(x+w,y,x+w,y+radius);
+  ctx.lineTo(x+w,y+h-radius);ctx.quadraticCurveTo(x+w,y+h,x+w-radius,y+h);
+  ctx.lineTo(x+radius,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-radius);
+  ctx.lineTo(x,y+radius);ctx.quadraticCurveTo(x,y,x+radius,y);ctx.closePath();
+}
 function cover(ctx:CanvasRenderingContext2D,image:Picture,x:number,y:number,w:number,h:number){
   const scale=Math.max(w/image.width,h/image.height),sw=w/scale,sh=h/scale;
   ctx.drawImage(image,(image.width-sw)/2,(image.height-sh)/2,sw,sh,x,y,w,h);
@@ -51,7 +61,7 @@ export async function renderStory(canvas:HTMLCanvasElement,track:Pick<Track,'tit
   await document.fonts.ready;canvas.width=storySize.width;canvas.height=storySize.height;
   const ctx=canvas.getContext('2d')!;ctx.textBaseline='top';const [r,g,b]=palette(image);
   ctx.fillStyle=`rgb(${Math.max(25,r*.58)},${Math.max(22,g*.58)},${Math.max(35,b*.68)})`;ctx.fillRect(0,0,1080,1920);
-  if(image&&mode==='track'){ctx.save();ctx.filter='blur(70px)';ctx.globalAlpha=.65;cover(ctx,image,-120,-120,1320,2160);ctx.restore();}
+  if(image&&mode==='track'&&typeof ctx.filter==='string'){ctx.save();ctx.filter='blur(70px)';ctx.globalAlpha=.65;cover(ctx,image,-120,-120,1320,2160);ctx.restore();}
   const shade=ctx.createLinearGradient(0,0,1080,1920);shade.addColorStop(0,'rgba(14,11,24,.2)');shade.addColorStop(1,'rgba(14,11,24,.65)');ctx.fillStyle=shade;ctx.fillRect(0,0,1080,1920);
   ctx.font=`700 64px ${font}`;const titleHeight=Math.min(3,wrap(ctx,track.title,656).length)*64*1.16;
   ctx.font=`400 42px ${font}`;const artistHeight=Math.min(2,wrap(ctx,track.artist,656).length)*42*1.16;

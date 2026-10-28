@@ -381,3 +381,27 @@ pnpm exec playwright test --config tests/config/playwright.ios5.config.ts tests/
 ```
 
 TypeScript and the final iOS-target web bundle passed locally;12 deterministic client/foundation cases and two browser fixture cases passed (15.2seconds for the latter). The browser flow covers manual/follow controls, appearance, track changes, plain/missing/instrumental/error states and59pt synthetic side insets in landscape plus the tall/default gutter rule. Opening lyrics does not issue an audio/queue command. The independent review resolved its sole safe-area fix at browser/source scope. No native Simulator, device, live LRCLIB HTTP or new IPA result is inferred. The maintainer explicitly deferred native/physical testing until beta; signing, native HTTP behaviour, Dynamic Type/VoiceOver and locked-screen/network continuity remain acceptance work before distribution. No GitHub push or public release was performed for this local increment. Existing Android and desktop releases are unchanged.
+
+
+## iOS image-sharing source candidate 0.7.0 build 8
+
+This local increment adds song and lyric card sharing to the existing iOS player and reader. It uses the shared desktop/Android 1080x1920 PNG renderer. Selection and preview are separate; Back retains the range and list scroll. The first selected row stays anchored until Reset. At most ten consecutive original rows are accepted, without a character cap or whole-song export. The inner quote sizes itself to wrapped verses, with a square cover beside the credits below. Song and available lyrics are captured on opening; later playback snapshots cannot change the card. Sharing issues no transport or queue commands.
+
+Artwork uses a separate ephemeral HTTPS request restricted to provider image hosts, without cookies, redirects or credentials. It is bounded to 2MiB while streaming and 12seconds, with bounded image decoding and a 1024px JPEG conversion that drops source metadata. An unavailable cover offers Retry or explicit RITVIO colors. Rendering uses an HTML image, a rounded-path fallback for iOS15 and sampled colors when canvas blur is unsupported. Existing modern desktop/Android renderer paths remain available.
+
+The native bridge validates a single 1080x1920 PNG up to 8MiB and re-encodes pixels without source metadata. Save to Photos requests add-only access only after the explicit tap and reports success after the Photos write completes. Denial offers user-initiated Open Settings and retry; it requests no photo-library read access and opens no Files picker. Share opens UIActivityViewController with an app-owned temporary PNG. Cancellation and failure remain distinct; completion does not prove publication by a receiving app. At most eight owned temporary export folders are retained. These operations do not change the playback audio session or enter the music resolver.
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm exec tsc --noEmit
+$env:RITVIO_MOBILE_PLATFORM='ios'
+pnpm --dir apps/mobile exec vite build
+pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-lyrics.test.ts tests/story-sharing.test.ts
+pnpm exec playwright test --config tests/config/playwright.ios-sharing.config.ts
+```
+
+TypeScript and the iOS-target web bundle passed locally. 17 deterministic cases passed, along with two existing reader browser cases and four sharing browser cases. These cover compact/large-text layouts, 59pt synthetic landscape side insets, contiguous selection and invalid extension, preserved Back state, frozen metadata, reader-document reuse, PNG dimensions, adaptive quote layout, delayed success acknowledgement, Photos denial, share cancellation and explicit cover fallback. Export checks remove roundRect/createImageBitmap to exercise compatibility. HTTPS responses and native outcomes are fixtures, not provider or OS evidence. Info.plist parses with an add-only Photos description and the project includes the new Swift source in App build sources; these checks do not compile Swift.
+
+This is local source on codex/ios-sharing, not an IPA or published iOS release. The maintainer deferred native/simulator/device testing until beta. Before distribution, macOS compilation and an iOS15+ phone must establish real artwork/lyrics access, Photos permission and acknowledgement, activity-sheet handoff/cancellation, VoiceOver/Dynamic Type and continuous audio through sharing. Existing Android/Windows releases and the temporary PC-assisted iOS12 trial remain separate and unchanged.
+
+The independent finish review requested one text-scaling correction in the new composer. Its verdict pass scored that finding resolved (`ship`) at source/browser scope; the documentation audit confirmed reuse of the incumbent system and preserved the known historical Android-document drift. Neither verdict establishes native or public-release readiness.

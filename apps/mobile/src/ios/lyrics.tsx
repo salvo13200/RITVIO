@@ -1,7 +1,7 @@
 import {useCallback,useEffect,useId,useLayoutEffect,useMemo,useRef,useState} from 'react';
-import {ChevronDown,LocateFixed,SkipBack,SkipForward} from 'lucide-react';
+import {ChevronDown,LocateFixed,Share2,SkipBack,SkipForward} from 'lucide-react';
 import {mobileTime,type MobileCommand,type MobilePlayback} from '../../../../packages/domain/mobile';
-import {activeLyricsLine,type LyricsResponse} from '../../../../packages/domain/lyrics';
+import {activeLyricsLine,type LyricsDocument,type LyricsResponse} from '../../../../packages/domain/lyrics';
 import {Artwork,Empty,IconButton,ScrollText,Sheet,Toggle} from './components';
 import type {IOSCopy} from './copy';
 import type {IOSLyricsCopy} from './lyrics-copy';
@@ -11,7 +11,7 @@ import {Seek} from './player';
 type Preferences={size:'standard'|'large'|'extra';emphasis:boolean};
 function preferences():Preferences{try{const value=JSON.parse(localStorage.getItem('ritvio.ios.lyrics.appearance')??'{}');return {size:['standard','large','extra'].includes(value.size)?value.size:'standard',emphasis:value.emphasis!==false};}catch{return {size:'standard',emphasis:true};}}
 type Load={key:string;loading:boolean;value:LyricsResponse|null;error:string|null};
-export function LyricsReader({state,text,t,send,onClose}:{state:MobilePlayback;text:IOSCopy;t:IOSLyricsCopy;send:(command:MobileCommand)=>void;onClose:()=>void}){
+export function LyricsReader({state,text,t,send,onClose,enabled=true,onShare,shareLabel}:{state:MobilePlayback;text:IOSCopy;t:IOSLyricsCopy;send:(command:MobileCommand)=>void;onClose:()=>void;enabled?:boolean;onShare?:(document?:LyricsDocument)=>void;shareLabel?:string}){
  const track=state.items[state.index],key=track?lyricsTrackKey(track):'';
  const [load,setLoad]=useState<Load>({key:'',loading:true,value:null,error:null}),[attempt,setAttempt]=useState(0),[follow,setFollow]=useState(true),[appearance,setAppearance]=useState(preferences),[settings,setSettings]=useState(false);
  const reading=useRef<HTMLDivElement>(null),rows=useRef(new Map<number,HTMLButtonElement>()),sendRef=useRef(send),currentTrack=useRef(track),previousAttempt=useRef({key:'',attempt:0}),latest=useRef({index:-1,follow:true}),readerId=useId();
@@ -20,13 +20,13 @@ export function LyricsReader({state,text,t,send,onClose}:{state:MobilePlayback;t
  const document=view.value?.document??null,index=document?activeLyricsLine(document.lines,state.position,document.offsetMs):-1;
  latest.current={index,follow};
  useEffect(()=>{
-  const item=currentTrack.current;if(!item)return;
+  const item=currentTrack.current;if(!item||!enabled)return;
   const controller=new AbortController();let active=true;
   setLoad({key,loading:true,value:null,error:null});setFollow(true);if(reading.current)reading.current.scrollTop=0;
   const fresh=previousAttempt.current.key===key&&previousAttempt.current.attempt!==attempt;previousAttempt.current={key,attempt};
   void iosLyrics.lookup(item,{signal:controller.signal,fresh}).then(value=>{if(active)setLoad({key,loading:false,value,error:null});}).catch(error=>{if(active&&error?.code!=='LYRICS_CANCELLED')setLoad({key,loading:false,value:null,error:String(error?.code??'LYRICS_UNAVAILABLE')});});
   return()=>{active=false;controller.abort();};
- },[key,attempt]);
+ },[key,attempt,enabled]);
  useEffect(()=>{try{localStorage.setItem('ritvio.ios.lyrics.appearance',JSON.stringify(appearance));}catch{/* Reading remains available when preferences cannot be saved. */}},[appearance]);
  const retry=()=>setAttempt(value=>value+1);
  const seek=useCallback((at:number)=>{sendRef.current({type:'seek',value:at});setFollow(true);},[]);
@@ -44,7 +44,7 @@ export function LyricsReader({state,text,t,send,onClose}:{state:MobilePlayback;t
  return <>
  <div aria-hidden={settings||undefined}>
  <Sheet title={t.title} closeLabel={t.close} onClose={onClose} className={`ios-lyrics ios-lyrics-size-${appearance.size}${appearance.emphasis?' is-emphasized':''}`}>
-  <div className="ios-player-top ios-lyrics-top"><IconButton label={t.close} onClick={onClose}><ChevronDown/></IconButton><span>{t.title}</span><button className="ios-lyrics-type" aria-label={t.appearance} aria-haspopup="dialog" onClick={()=>setSettings(true)}><span aria-hidden="true">Aa</span></button></div>
+  <div className="ios-player-top ios-lyrics-top"><IconButton label={t.close} onClick={onClose}><ChevronDown/></IconButton><span>{t.title}</span><div className="ios-lyrics-toolbar-actions"><button className="ios-lyrics-type" aria-label={t.appearance} aria-haspopup="dialog" onClick={()=>setSettings(true)}><span aria-hidden="true">Aa</span></button>{onShare&&<IconButton label={shareLabel!} onClick={()=>onShare(document??undefined)}><Share2/></IconButton>}</div></div>
   <div className="ios-lyrics-identity"><Artwork src={track.thumbnail} eager/><div className="ios-identity"><h1><ScrollText>{track.title}</ScrollText></h1><p><ScrollText>{track.artist}</ScrollText></p></div></div>
   <div ref={reading} id={readerId} className="ios-lyrics-reading" tabIndex={0} role="region" aria-label={t.reading} aria-busy={view.loading||undefined} onWheel={()=>setFollow(false)} onTouchMove={()=>setFollow(false)} onPointerDown={event=>{if(event.clientX>=event.currentTarget.getBoundingClientRect().right-14)setFollow(false);}} onKeyDown={event=>{if(['ArrowDown','ArrowUp','PageDown','PageUp','Home','End',' '].includes(event.key))setFollow(false);}}>
    {view.loading?<div className="ios-lyrics-loading" role="status" aria-label={t.loading}><span/><span/><span/><span/></div>:view.value?.status==='ready'&&document?<>{document.lines.length?lines:<p className="ios-lyrics-plain">{document.plainText}</p>}</>:<Empty title={unavailable.title} body={unavailable.body}>{unavailable.retry&&<button className="ios-primary" onClick={retry}>{t.retry}</button>}</Empty>}

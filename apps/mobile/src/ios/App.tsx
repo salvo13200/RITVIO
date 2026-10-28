@@ -11,6 +11,9 @@ import {Artwork,Empty,IconButton,MiniPlayer,Sheet,SongRow,Toggle} from './compon
 import {Player} from './player';
 import {LyricsReader} from './lyrics';
 import {lyricsCopy} from './lyrics-copy';
+import {IOSStoryComposer} from './story-sharing';
+import {storyCopy} from './story-copy';
+import type {LyricsDocument} from '../../../../packages/domain/lyrics';
 import {Queue,upcoming} from './queue';
 import {LibraryPane,PlaylistForm,AddToPlaylist,type PlaylistContext} from './library';
 import {libraryCopy} from './library-copy';
@@ -20,6 +23,7 @@ import {catalogCopy} from './catalog-copy';
 import './app.css';
 import './catalog.css';
 import './lyrics.css';
+import './story-sharing.css';
 
 type Menu={track:NativeTrack;index?:number;revision:number;current:number;playlist?:PlaylistContext};
 export function App({controller}:{controller:LanguageController}){
@@ -30,6 +34,9 @@ export function App({controller}:{controller:LanguageController}){
  const [query,setQuery]=useState(''),[route,setRoute]=useState<ResourceRoute|null>(null),[artistChoices,setArtistChoices]=useState<MobileResource[]>([]),[boundedPlay,setBoundedPlay]=useState<{items:NativeTrack[];index:number;shuffle:boolean}|null>(null);
  const catalogText=catalogCopy[language.language==='it'?'it':'en'];
  const lyricText=lyricsCopy[language.language==='it'?'it':'en'];
+ const shareText=storyCopy[language.language==='it'?'it':'en'];
+ const [sharing,setSharing]=useState<{track:NativeTrack;mode:'track'|'lyrics';document?:LyricsDocument}|null>(null);
+ function openSharing(mode:'track'|'lyrics',document?:LyricsDocument){if(!current)return;setSharing({track:JSON.parse(JSON.stringify(current)),mode,...(document?{document:JSON.parse(JSON.stringify(document))}:{})});}
  const [motion,setMotion]=useState(()=>{try{return localStorage.getItem('ritvio.ios.reduce-motion')==='true';}catch{return false;}}),[languageBusy,setLanguageBusy]=useState(false);
  const current=state.items[state.index],future=upcoming(state),searchRef=useRef<HTMLInputElement>(null),notice=useRef(0),root=useRef<HTMLDivElement>(null);
  const apply=useCallback((value:MobilePlayback)=>{setState(previous=>acceptPlaybackSnapshot(previous,value));setConnected(true);},[]);
@@ -69,7 +76,7 @@ export function App({controller}:{controller:LanguageController}){
  async function changeLanguage(value:'en'|'it'|'system'){setLanguageBusy(true);try{await controller.setPreference(value);}catch{announce(text.languageError);}finally{setLanguageBusy(false);}}
  function openSearch(){selectTab('search');requestAnimationFrame(()=>searchRef.current?.focus());}
  function moveMenu(direction:number){if(menu?.index===undefined)return;const at=future.indexOf(menu.index),to=future[at+direction];if(to!==undefined)void send({type:'move',value:{from:menu.index,to,revision:menu.revision}});setMenu(null);}
- const backgroundHidden=Boolean(overlay||menu||libraryModal||addTrack||queueForm!==null||artistChoices.length||boundedPlay),coveringPlayer=Boolean(menu||addTrack||queueForm!==null||artistChoices.length||boundedPlay);
+ const backgroundHidden=Boolean(overlay||menu||libraryModal||addTrack||queueForm!==null||artistChoices.length||boundedPlay||sharing),coveringPlayer=Boolean(menu||addTrack||queueForm!==null||artistChoices.length||boundedPlay||sharing);
  const menuPlaylist=menu?.playlist?library.value?.playlists.find(item=>item.id===menu.playlist!.id):undefined;
  function movePlaylist(direction:number){const context=menu?.playlist;if(!context)return;void library.command({type:'move',id:context.id,revision:context.revision,from:context.index,to:context.index+direction});setMenu(null);}
  return <div ref={root} data-large-text={(status?.textScale??1)>1.4||undefined} className={`ios-app${motion?' ios-reduce-motion':''}`} style={{'--ios-text-scale':status?.textScale??1,'--ios-native-safe-top':`${status?.safeArea?.top??0}px`,'--ios-native-safe-right':`${status?.safeArea?.right??0}px`,'--ios-native-safe-bottom':`${status?.safeArea?.bottom??0}px`,'--ios-native-safe-left':`${status?.safeArea?.left??0}px`,'--ios-notice-bottom':`${overlay==='queue'?104:overlay?20:current?154:84}px`} as CSSProperties}>
@@ -92,8 +99,9 @@ export function App({controller}:{controller:LanguageController}){
    {current&&<MiniPlayer state={state} text={text} onOpen={()=>setOverlay('player')} onToggle={toggle} onNext={()=>void send({type:'next'})}/>}
    <nav className="ios-tabs" aria-label="RITVIO"><button aria-current={tab==='home'?'page':undefined} onClick={()=>selectTab('home')}><Home fill={tab==='home'?'currentColor':'none'}/><span>{text.home}</span></button><button aria-current={tab==='search'?'page':undefined} onClick={()=>selectTab('search')}><Search/><span>{text.search}</span></button>{status?.capabilities.library&&<button aria-current={tab==='library'?'page':undefined} onClick={()=>selectTab('library')}><LibraryBig/><span>{libraryText.library}</span></button>}</nav>
   </div>
-  {overlay==='player'&&current&&<div aria-hidden={coveringPlayer?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')} onLyrics={status?.capabilities.lyrics?()=>setOverlay('lyrics'):undefined} lyricsLabel={lyricText.open} onAlbum={current.album?.id?()=>openResource({...current.album!,kind:'album'}):undefined} onArtists={current.artists?.some(person=>person.id)?()=>openArtists(current):undefined} libraryActions={library.value?<><IconButton label={liked(current)?libraryText.unlike:libraryText.like} disabled={library.busy} pressed={liked(current)} className={liked(current)?'is-liked':''} onClick={()=>toggleLike(current)}><Heart fill={liked(current)?'currentColor':'none'}/></IconButton><IconButton label={text.more} onClick={()=>showMenu(current)}><MoreHorizontal/></IconButton></>:undefined}/></div>}
-  {overlay==='lyrics'&&current&&<LyricsReader state={state} text={text} t={lyricText} send={command=>void send(command)} onClose={()=>setOverlay('player')}/>}
+  {overlay==='player'&&current&&<div aria-hidden={coveringPlayer?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')} onLyrics={status?.capabilities.lyrics?()=>setOverlay('lyrics'):undefined} lyricsLabel={lyricText.open} lyricsTitle={lyricText.title} onShare={status?.capabilities.sharing?()=>openSharing('track'):undefined} shareLabel={shareText.open} shareTitle={shareText.share} onAlbum={current.album?.id?()=>openResource({...current.album!,kind:'album'}):undefined} onArtists={current.artists?.some(person=>person.id)?()=>openArtists(current):undefined} libraryActions={library.value?<><IconButton label={liked(current)?libraryText.unlike:libraryText.like} disabled={library.busy} pressed={liked(current)} className={liked(current)?'is-liked':''} onClick={()=>toggleLike(current)}><Heart fill={liked(current)?'currentColor':'none'}/></IconButton><IconButton label={text.more} onClick={()=>showMenu(current)}><MoreHorizontal/></IconButton></>:undefined}/></div>}
+  {overlay==='lyrics'&&current&&<div aria-hidden={Boolean(sharing)||undefined}><LyricsReader enabled={!sharing} state={state} text={text} t={lyricText} send={command=>void send(command)} onShare={status?.capabilities.sharing?document=>openSharing('lyrics',document):undefined} shareLabel={shareText.openLyrics} onClose={()=>setOverlay('player')}/></div>}
+  {sharing&&<IOSStoryComposer track={sharing.track} initialMode={sharing.mode} initialDocument={sharing.document} t={shareText} onClose={()=>setSharing(null)}/>}
   {overlay==='queue'&&<div aria-hidden={coveringPlayer?true:undefined}><Queue state={state} text={text} send={send} onClose={()=>setOverlay(current?'player':null)} onMore={index=>showMenu(state.items[index],index)} onOpenPlayer={()=>setOverlay('player')} announce={announce} onSave={library.value&&state.items.length?()=>setQueueForm(state.queueRevision??0):undefined} saveLabel={libraryText.queueSave}/></div>}
   {overlay==='settings'&&<Sheet title={text.settings} closeLabel={text.done} closeText onClose={()=>setOverlay(null)} className="ios-settings"><div className="ios-settings-scroll"><section><h3>{text.language}</h3>{(['en','it','system'] as const).map(value=><button key={value} className="ios-setting-row" aria-pressed={language.preference===value} disabled={languageBusy} onClick={()=>void changeLanguage(value)}><span>{value==='en'?'English':value==='it'?'Italiano':text.system}</span>{language.preference===value&&<Check/>}</button>)}</section><section><h3>{text.motion}</h3><label className="ios-setting-row"><span>{text.motion}</span><input className="ios-switch" type="checkbox" role="switch" checked={motion} onChange={event=>{setMotion(event.target.checked);try{localStorage.setItem('ritvio.ios.reduce-motion',String(event.target.checked));}catch{}}}/></label><p>{text.motionBody}</p></section><section><h3>{text.about}</h3><dl><div><dt>{text.version}</dt><dd>{status?`${status.version} (${status.build})`:'—'}</dd></div><div><dt>{text.stage}</dt><dd>{status?.phase??'—'}</dd></div><div><dt>{text.connection}</dt><dd>{connected?text.ready:text.unavailable}</dd></div></dl><p>{text.scope}</p></section><section><h3>{text.sources}</h3><p>{text.sourceBody}</p></section></div></Sheet>}
   {menu&&<Sheet title={menu.track.title} closeLabel={text.cancel} onClose={()=>setMenu(null)} className="ios-menu"><p className="ios-menu-artist">{menu.track.artist}</p>

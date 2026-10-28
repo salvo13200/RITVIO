@@ -1,0 +1,61 @@
+.ios-app .ios-story{font-size:calc(16px * var(--ios-text-scale,1));display:flex;flex-direction:column;gap:12px;padding-left:max(22px,max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px)));padding-right:max(22px,max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px)))}
+.ios-app .ios-story>.ios-sheet-header{flex:0 0 auto;margin-bottom:0}
+.ios-app .ios-story>.ios-sheet-header h2{font-size:calc(20px * var(--ios-text-scale,1));line-height:1.25}
+.ios-story-identity{display:flex;align-items:center;gap:12px;flex:0 0 auto;min-width:0}
+.ios-app .ios-story-identity>.artwork{width:48px;height:48px;aspect-ratio:1;flex:0 0 48px;border-radius:9px}
+.ios-story-identity strong{font-size:calc(16px * var(--ios-text-scale,1));font-weight:700;min-width:0}
+.ios-story-identity span{font-size:calc(14px * var(--ios-text-scale,1));color:var(--ios-muted)}
+.ios-app .ios-story-back{align-self:flex-start;padding:0;font-size:calc(14px * var(--ios-text-scale,1));flex:0 0 auto;min-height:44px;color:var(--ios-muted)}
+.ios-story-modes{display:flex;gap:4px;padding:4px;background:#ffffff0a;border-radius:14px;flex:0 0 auto}
+.ios-app .ios-story-modes>button{flex:1;min-width:0;font-size:calc(15px * var(--ios-text-scale,1));padding:8px 6px;color:var(--ios-muted)}
+.ios-app .ios-story-modes>button[aria-pressed=true]{color:#18121f;background:var(--ios-accent)}
+.ios-story-selection{min-height:0;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ios-story-selection ol{list-style:none;margin:0;padding:8px 0;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y;min-height:0;scrollbar-color:#766287 transparent}
+.ios-story-selection li{margin:0;border-bottom:1px solid var(--ios-hairline)}
+.ios-app .ios-story-selection li button{display:block;width:100%;min-height:52px;padding:14px 12px;text-align:left;line-height:1.5;font-size:calc(18px * var(--ios-text-scale,1));font-weight:550;border-radius:0;transform:none;overflow-wrap:anywhere}
+.ios-story-selection li.is-selected{background:#bd91f426;border-bottom-color:#bd91f433}
+.ios-story-selection li.is-first{border-radius:12px 12px 0 0}
+.ios-story-selection li.is-last{border-radius:0 0 12px 12px;border-bottom-color:transparent}
+.ios-story-selection li.is-first.is-last{border-radius:12px}
+.ios-app .ios-story-selection li.is-selected button{color:#ebd7ff}
+.ios-story-blank{font-style:italic;color:var(--ios-muted)}
+.ios-story-selection-actions{flex:0 0 auto}
+.ios-story-counter{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px}
+.ios-story-counter>span{font-size:calc(16px * var(--ios-text-scale,1));font-variant-numeric:tabular-nums}
+.ios-story-selection-actions>p{font-size:calc(14px * var(--ios-text-scale,1));color:var(--ios-muted);margin:2px 0 10px}
+.ios-app .ios-story-selection-actions>.ios-primary{font-size:calc(16px * var(--ios-text-scale,1));line-height:1.3;width:100%;min-height:48px}
+.ios-story-selection-actions>small{display:block;margin-top:8px;font-size:calc(11px * var(--ios-text-scale,1));line-height:1.4;color:var(--ios-muted)}
+.ios-story-preview{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.ios-story-preview canvas{display:block;width:auto;height:100%;max-width:100%;max-height:100%;aspect-ratio:9/16;object-fit:contain;opacity:0;border-radius:12px;transition:opacity 180ms ease-out}
+.ios-story-preview canvas.is-ready{opacity:1}
+.ios-story-loading{display:flex;align-items:center;justify-content:center;min-height:80px;flex:1;color:var(--ios-muted)}
+.ios-story-preview>.ios-story-loading{position:absolute;inset:0}
+.ios-story-preview-error{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:12px;text-align:center;color:var(--ios-muted)}
+.ios-story-export{flex:0 0 auto;min-width:0}
+.ios-story-export-buttons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ios-app .ios-story-export-buttons>button{min-width:0;min-height:52px;padding:10px 8px;gap:8px;font-size:calc(14px * var(--ios-text-scale,1));background:#ffffff0d;line-height:1.3}
+.ios-story-export-buttons>button>svg{flex-shrink:0}
+.ios-app .ios-story-export-buttons>.ios-primary{background:var(--ios-accent);color:#18121f}
+.ios-story-notice{margin-bottom:10px!important;padding:12px;border-radius:12px;background:#bd91f41c;color:var(--ios-ink);font-size:calc(15px * var(--ios-text-scale,1))}
+.ios-app .ios-story-error{color:#f0bccb;font-size:calc(15px * var(--ios-text-scale,1));line-height:1.4;margin-bottom:10px}
+.ios-story-hint,.ios-story-cover-error>p{font-size:calc(13px * var(--ios-text-scale,1));color:var(--ios-muted);margin-bottom:8px!important}
+.ios-story-cover-error>div{display:flex;flex-wrap:wrap;gap:4px 12px;margin-bottom:8px}
+.ios-app .ios-story-cover-error button,.ios-app .ios-story-colors{font-size:calc(13px * var(--ios-text-scale,1));padding-left:0}
+.ios-app .ios-story .ios-empty{padding:20px 0;min-height:0}
+.ios-app .ios-player-utilities{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;width:100%}
+.ios-app .ios-player-utilities>.ios-player-queue{display:flex;flex-direction:column;gap:3px;min-width:0;padding:4px 2px;font-size:14px;line-height:1.25;margin:0;text-align:center}
+.ios-player-utility-label{min-width:0;overflow-wrap:anywhere}
+.ios-lyrics-toolbar-actions{display:flex;align-items:center;gap:4px}
+@media(max-height:700px){.ios-app .ios-story{gap:8px}.ios-app .ios-story-identity>.artwork{width:40px;height:40px;flex-basis:40px}.ios-app .ios-story-back{min-height:44px}.ios-story-selection li button{padding:10px 12px}.ios-app .ios-story-export-buttons>button{min-height:48px}.ios-story-selection-actions>small{margin-top:4px}}
+@media(orientation:landscape) and (max-height:500px){.ios-app .ios-player-utilities{display:none}.ios-app .ios-story{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr);column-gap:20px;row-gap:8px}.ios-story>.ios-sheet-header{grid-column:1/-1;grid-row:1}.ios-story-identity{grid-column:2;grid-row:2}.ios-story-preview,.ios-story-selection{grid-column:1;grid-row:2/4;min-width:0}.ios-story-export,.ios-story-selection-actions{grid-column:2;grid-row:3;align-self:end}.ios-story-modes{grid-column:1;grid-row:2;align-self:start;z-index:1}.ios-story.is-selecting .ios-story-selection{padding-top:52px}.ios-story.is-previewing .ios-story-modes{display:none}.ios-app .ios-story-back{grid-column:2;grid-row:2;align-self:start;transform:translateY(-4px)}.ios-story.is-lyrics-preview .ios-story-identity{padding-top:44px}}
+@media(prefers-reduced-motion:reduce){.ios-story-preview canvas{transition:none}}
+.ios-reduce-motion .ios-story-preview canvas{transition:none}
+
+@media(orientation:landscape) and (max-height:500px){.ios-story.is-previewing:not(.is-lyrics-preview) .ios-story-modes{display:flex;grid-column:2;grid-row:2;align-self:end}.ios-story.is-previewing:not(.is-lyrics-preview) .ios-story-identity{padding-bottom:54px}}
+
+.ios-app .ios-player-share-short{display:none}
+@media(orientation:landscape) and (max-height:500px){.ios-app .ios-player-share-short{display:inline-flex}.ios-player-top{gap:8px}}
+
+.ios-app .ios-story .ios-text{font-size:calc(15px * var(--ios-text-scale,1));line-height:1.4}
+.ios-app .ios-story .ios-story-cover-error .ios-text,.ios-app .ios-story .ios-story-colors{font-size:calc(13px * var(--ios-text-scale,1))}
+.ios-app .ios-story .ios-empty h2{font-size:calc(23px * var(--ios-text-scale,1))}

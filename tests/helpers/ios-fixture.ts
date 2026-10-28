@@ -1,13 +1,13 @@
 import type {Page} from '@playwright/test';
 import {expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,librarySeed=null,lyrics=false}:{empty?:boolean;scale?:number;withLibrary?:boolean;librarySeed?:any;lyrics?:boolean}={}){
+export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,librarySeed=null,lyrics=false,sharing=false}:{empty?:boolean;scale?:number;withLibrary?:boolean;librarySeed?:any;lyrics?:boolean;sharing?:boolean}={}){
  const errors:string[]=[];page.on('pageerror',error=>errors.push(error.message));
  const cover=await readFile('apps/client/public/artwork/electronic.webp');
  await page.route('https://i.ytimg.com/**',route=>route.fulfill({contentType:'image/webp',body:cover}));
  await page.route('**/src/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const isIOS=true;export const isAndroid=false;export const isNativeMobile=true;export const nativePlayback=window.__ios;'}));
  await page.route('**/src/ios/native.ts*',route=>route.fulfill({contentType:'application/javascript',body:'export const foundationBridge=window.__ios;'}));
- await page.addInitScript(({empty,scale,withLibrary,librarySeed,lyrics})=>{
+ await page.addInitScript(({empty,scale,withLibrary,librarySeed,lyrics,sharing,storyCover})=>{
   const tracks=['After the rain','Slow motion','Golden hour','Night swim','An unusually long title that must remain readable without growing the player'].map((title,i)=>({videoId:`ritviotest${i+1}`,title,artist:['Luna Vale','North Avenue','June Atlas','Luna Vale','Many collaborating artists with a very long name'][i],thumbnail:`https://i.ytimg.com/vi/ritviotest${i+1}/hqdefault.jpg`,duration:90,artists:[{id:i===0||i===3?'fixture-artist':`fixture-artist-${i}`,name:['Luna Vale','North Avenue','June Atlas','Luna Vale','Many collaborating artists with a very long name'][i]}],...(i===0?{album:{id:'fixture-album',name:'Night scenes'}}:{})}));
   let state:any={items:empty?[]:tracks,index:0,order:empty?[]:[0,1,2,3,4],queueRevision:1,position:24,duration:90,buffered:65,playing:false,loading:false,repeat:'off',shuffle:false,volume:1,error:null,status:'ready',stamp:{session:1,sequence:0}};
   const collections=new Set<(value:any)=>void>();
@@ -17,7 +17,11 @@ export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,l
   const emit=()=>{state.stamp.sequence++;for(const listener of listeners)listener(copy(state));return copy(state);};
   const fail=(code:string)=>Object.assign(Error(code),{code});
   Object.assign(window,{__iosOperations:operations,__iosState:()=>copy(state),__iosEmit:(value:any)=>{state={...state,...value};return emit();},__ios:{
-   foundationStatus:async()=>({platform:'ios',phase:withLibrary?'IOS-5':'IOS-4',version:withLibrary?'0.5.0':'0.4.0',build:withLibrary?'5':'4',bundleId:'it.ritvio.ios',systemVersion:'26.0',environment:'simulator',minimumOS:'15.0',bundledAssets:true,textScale:scale,safeArea:innerWidth>innerHeight?{top:0,right:20,bottom:0,left:20}:{top:20,right:0,bottom:20,left:0},capabilities:{resolver:true,playback:true,library:withLibrary,lyrics,sharing:false}}),
+   foundationStatus:async()=>({platform:'ios',phase:withLibrary?'IOS-5':'IOS-4',version:sharing?'0.7.0':withLibrary?'0.5.0':'0.4.0',build:sharing?'8':withLibrary?'5':'4',bundleId:'it.ritvio.ios',systemVersion:'26.0',environment:'simulator',minimumOS:'15.0',bundledAssets:true,textScale:scale,safeArea:innerWidth>innerHeight?{top:0,right:20,bottom:0,left:20}:{top:20,right:0,bottom:20,left:0},capabilities:{resolver:true,playback:true,library:withLibrary,lyrics,sharing}}),
+   storyArtwork:async(input:any)=>{operations.push({method:'storyArtwork',...input});if((window as any).__iosStoryCoverFailure)throw fail('STORY_ARTWORK_UNAVAILABLE');return {dataUrl:storyCover};},
+   cancelStoryArtwork:async(input:any)=>{operations.push({method:'cancelStoryArtwork',...input});return {cancelled:true};},
+   exportStory:async(input:any)=>{operations.push({method:'exportStory',save:input.save,encodedLength:input.base64.length});(window as any).__iosStoryPNG=input.base64;if((window as any).__iosStoryDeferred)await new Promise<void>(resolve=>(window as any).__iosStoryComplete=resolve);if((window as any).__iosStoryDenied)throw fail('STORY_PHOTOS_DENIED');return {status:input.save?'saved':(window as any).__iosStoryCancelled?'cancelled':'shared'};},
+   storyOpenSettings:async()=>{operations.push({method:'storyOpenSettings'});},
    snapshot:async()=>copy(state),
    languageRead:async()=>copy(language),languageWrite:async({preference}:any)=>{language={...language,preference,revision:language.revision+1};localStorage.setItem('__iosLanguage',preference);for(const listener of languages)listener(copy(language));return copy(language);},
    addListener:async(event:string,listener:(value:any)=>void)=>{const list=event==='language'?languages:event==='library'?collections:listeners;list.add(listener);return {remove:async()=>{list.delete(listener);}};},
@@ -77,7 +81,7 @@ export async function fixture(page:Page,{empty=false,scale=1,withLibrary=false,l
    });
   }
 
- },{empty,scale,withLibrary,librarySeed,lyrics});
+ },{empty,scale,withLibrary,librarySeed,lyrics,sharing,storyCover:`data:image/webp;base64,${cover.toString('base64')}`});
  await page.goto('/');await expect(page.getByRole('heading',{name:'Your listening',exact:true})).toBeVisible();
  return errors;
 }

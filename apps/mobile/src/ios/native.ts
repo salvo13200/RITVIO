@@ -18,6 +18,10 @@ interface FoundationPlugin {
  chooseArtwork(options:{kind:'playlist';id:string;revision:number}):Promise<{cancelled:boolean;library?:unknown}>;
  removeArtwork(options:{kind:'playlist';id:string;revision:number}):Promise<unknown>;
  navigationState(options:{canGoBack:boolean}):Promise<void>;
+ storyArtwork(options:{requestId:string;thumbnail:string}):Promise<{dataUrl:string}>;
+ cancelStoryArtwork(options:{requestId:string}):Promise<{cancelled:boolean}>;
+ exportStory(options:{base64:string;save:boolean}):Promise<{status:'saved'|'shared'|'cancelled';destination?:'photos'}>;
+ storyOpenSettings():Promise<void>;
  addListener(event:'playback',listener:(state:MobilePlayback)=>void):Promise<PluginListenerHandle>;
  addListener(event:'library',listener:(state:unknown)=>void):Promise<PluginListenerHandle>;
 }

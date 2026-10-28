@@ -26,12 +26,18 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "saveQueue", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "chooseArtwork", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "removeArtwork", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "navigationState", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "navigationState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storyArtwork", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelStoryArtwork", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "exportStory", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storyOpenSettings", returnType: CAPPluginReturnPromise)
     ]
     private let preferenceKey = "ritvio.language.preference"
     private let revisionKey = "ritvio.language.revision"
     let libraryWorker = DispatchQueue(label: "it.ritvio.library", qos: .userInitiated)
     var artworkPicker: LibraryArtworkPicker?
+    var storyArtworkFetch: StoryArtworkFetch?
+    var storyExporter: StoryImageExport?
 
     public override func load() {
         DispatchQueue.main.async { [weak self] in
@@ -198,7 +204,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": false]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true]
             ])
         }
     }

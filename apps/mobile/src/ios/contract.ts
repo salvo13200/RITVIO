@@ -1,7 +1,7 @@
 export interface FoundationStatus {
  platform:'ios'; phase:'IOS-1'|'IOS-2'|'IOS-3'|'IOS-4'|'IOS-5'; version:string; build:string; bundleId:string; systemVersion:string;
  environment:'simulator'|'device'; minimumOS:string; bundledAssets:boolean;
- capabilities:{resolver:boolean;playback:boolean;library:boolean;lyrics:boolean;sharing:false};
+ capabilities:{resolver:boolean;playback:boolean;library:boolean;lyrics:boolean;sharing:boolean};
  textScale?:number;
  safeArea?:{top:number;right:number;bottom:number;left:number};
 }
@@ -17,7 +17,7 @@ export function parseFoundationStatus(value:unknown):FoundationStatus {
  if(typeof capabilities.resolver!=='boolean'||source.phase==='IOS-1'&&capabilities.resolver)throw Error('Invalid embedded resolver capability');
  if(typeof capabilities.playback!=='boolean'||!['IOS-3','IOS-4','IOS-5'].includes(String(source.phase))&&capabilities.playback)throw Error('Invalid native player capability');
  if(typeof capabilities.library!=='boolean'||capabilities.library&&source.phase!=='IOS-5')throw Error('Invalid native library capability');
- if(typeof capabilities.lyrics!=='boolean'||capabilities.lyrics&&source.phase!=='IOS-5'||capabilities.sharing!==false)throw Error('Invalid lyrics or sharing capability');
+ if(typeof capabilities.lyrics!=='boolean'||capabilities.lyrics&&source.phase!=='IOS-5'||typeof capabilities.sharing!=='boolean'||capabilities.sharing&&source.phase!=='IOS-5')throw Error('Invalid lyrics or sharing capability');
  return source as unknown as FoundationStatus;
 }
 export function verifyFoundationCheck(value:unknown,nonce:string):void {
