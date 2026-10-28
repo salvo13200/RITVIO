@@ -42,7 +42,7 @@ test('queue handles offer tap actions and cancel a held gesture after a native r
  await page.mouse.move(from.x+22,from.y+22);await page.mouse.down();await page.mouse.move(to.x+22,to.y+22,{steps:8});
  expect((await grip.boundingBox())!.y).toBeLessThan(from.y-50);
  await page.evaluate(()=>{const state=(window as any).__iosState();(window as any).__iosEmit({queueRevision:state.queueRevision+1,index:1});});await expect(page.locator('.ios-queue-entry.is-lifted')).toHaveCount(0);await page.mouse.up();
- expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type==='move').length)).toBe(0);await expect(page.getByRole('status')).toContainText('Reorder cancelled');
+ expect(await page.evaluate(()=>(window as any).__iosOperations.filter((op:any)=>op.type==='move').length)).toBe(0);await expect(page.getByRole('dialog',{name:'Queue',exact:true}).getByRole('status')).toContainText('Reorder cancelled');
 });
 test('a song menu consumes outside taps without activating the screen behind it',async({page})=>{
  await fixture(page);await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('searchbox').fill('luna');await page.getByRole('button',{name:'Songs',exact:true}).click();await page.getByRole('button',{name:'More options: Slow motion'}).click();
