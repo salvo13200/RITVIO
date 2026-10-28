@@ -39,3 +39,14 @@ Repeat a scenario when its implementation, runtime/package or relevant environme
 - [ ] Downloaded files match hashes; install/update tested from those downloads. Only then publish the reviewed draft.
 
 Fill this template for a future candidate without overwriting the dated evidence in [Quality status](QUALITY_STATUS.md). Keep automated, controlled-native and maintainer-reported outcomes distinct; leave unverified checks open and state their limits in the release notes.
+
+
+## iOS beta (separate channel)
+
+- [ ] Clean exact source commit/tree, independent iOS app/Xcode versions and corresponding-source ZIP verified.
+- [ ] Completed native run record matches the archive/report/checkout. Compile, UI, synthetic playback and provider outcomes remain distinct.
+- [ ] Device IPA contains unchanged Release iPhoneOS arm64 app/dependencies; simulator/too-new/encrypted binaries and personal provisioning material rejected.
+- [ ] Source ZIP contents, dependency inventory, notices, installation guide, candidate manifest and SHA-256 verified.
+- [ ] Draft explicitly says beta, personal signing and minimum iOS, and lists all deferred acceptance. Never mark publicReleaseReady true merely to publish a beta.
+- [ ] Owner authorizes the prerelease. Keep Android/Windows stable downloads unchanged.
+- [ ] After GitHub upload: actual iPhone install/update, provider/background/permissions/sharing/renewal and accessibility outcomes recorded; fix blockers before stable promotion.

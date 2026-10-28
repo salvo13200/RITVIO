@@ -482,3 +482,23 @@ LibrarySelfTest now includes native source checks for portable round-trip order/
 This is local source on codex/ios-transfer-support; no IPA, push or release is produced. Public Android/Windows builds and the temporary iOS12 PC-assisted trial remain separate. This does not add cloud sync, public playlist URL import, automatic update installation or complete the full native beta acceptance plan.
 
 The independent finish review's pagination finding is resolved: Show more reveals rows without changing selection, while the separate Select all action selects every occurrence. Its scored-fix verdict is `ship` only within local source/browser scope. The documentation audit verified all 24 packet source hashes, all 16 browser-preview capture hashes and the three approved private reference-image sidecars, and confirmed reuse of the incumbent iOS system. No detector ran (iOS); native compilation and device acceptance remain deferred to beta. Historical Android design-document drift and the unrelated older CatalogPLATES gate remain untouched.
+
+
+## Consolidated iOS beta packaging
+
+The packaging implementation originally developed for IOS-6 has been integrated with the full 0.10.0 build 11 source. The app version is unchanged by packaging. `ios:candidate:prepare` requires a clean committed checkout, checks source policy and app/Xcode versions, creates a corresponding-source ZIP from that commit and records canonical source hashes, beta scope and deferred acceptance. Preparation creates no IPA and runs no phone checks. The native builder now records its actual source commit/tree and dirty state; the packager rejects stale versions, missing/different provenance, uncommitted inputs and a run from another source. A supplied source ZIP must contain exactly the frozen Git export, with no changed/extra/missing files. Host automatic EOL conversion is disabled for export; explicit Git attributes are retained.
+
+```sh
+pnpm exec tsx --test tests/ios-candidate.test.ts
+python3 tests/ios_package_test.py
+pnpm exec tsc --noEmit
+pnpm check:docs
+pnpm release:check
+pnpm ios:prepare
+# After committing all source changes:
+pnpm ios:candidate:prepare
+```
+
+On Windows replace python3 with `.venv/Scripts/python.exe`. Three source-preparation cases and 15 container/provenance cases passed locally. These use synthetic native files and isolated temporary Git repositories, not a new iPhoneOS build. They cover deterministic/idempotent preparation, dirty-source refusal, normalized EOL handling, stale/mismatched source/report/run/version rejection, matching corresponding source, native Mach-O platform/architecture/minimum/encryption checks, strict ZIP containment, runtime inventory, existing-output preservation and partial-write recovery. TypeScript, documentation and public-source scans passed. Windows `ios:prepare` rebuilt/synced bundled web resources and verified the pinned Python/QuickJS/wheel downloads; it explicitly reports nativeBuild false.
+
+The macOS workflow will run the expanded iOS model suite and packaging checks and upload frozen source separately from its native artifacts. Wiring a check into a workflow does not prove it has run remotely. The beta manifest preserves failed/not-run provider/UI/device outcomes and keeps publicReleaseReady false. Physical iPhone acceptance is deferred until after the candidate/source are on GitHub, as the maintainer requested. A stable iOS release still requires the deferred acceptance. No new runtime UI, player policy, platform version, signing identity, public download link or stable Android/Windows binary changes in this packaging increment.

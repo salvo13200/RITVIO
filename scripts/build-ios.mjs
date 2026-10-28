@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {prepareIOSIcon} from './ios-assets.mjs';
 import {prepareIOSResolver} from './prepare-ios-resolver.mjs';
+import {iosSourceIdentity} from './ios-source-identity.mjs';
 
 const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'..'),mobile=path.join(root,'apps/mobile'),require=createRequire(import.meta.url);
 const options=new Set(process.argv.slice(2));
@@ -32,7 +33,7 @@ if(options.has('--prepare-only')){console.log(JSON.stringify({prepared:true,plat
 const output=path.join(root,'.local/ios'),artifacts=path.join(output,'artifacts');await mkdir(artifacts,{recursive:true});
 const buildSimulator=!options.has('--device')||options.has('--simulator')||options.has('--smoke'),buildDevice=!options.has('--simulator')||options.has('--device');
 const base=['-project',project,'-scheme','App','-clonedSourcePackagesDirPath',path.join(output,'swift-packages')];
-const report={schema:1,phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,uiTestScope:options.has('--listening-ui-only')?'listening-only':options.has('--catalog-ui-only')?'catalog-only':options.has('--resolver-only')?'not-run':'all',deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
+const report={schema:1,source:iosSourceIdentity(root),phase:version.phase,version:version.version,build:version.build,minimumOS:version.minimumOS,uiTestScope:options.has('--listening-ui-only')?'listening-only':options.has('--catalog-ui-only')?'catalog-only':options.has('--resolver-only')?'not-run':'all',deviceSigning:'none',physicalTests:'pending',resolver:'pending',liveProvider:options.has('--skip-live')?'not-run':'pending',playback:'not-run',artifacts:[],simulators:[],liveFailures:[],uiFailures:[]};
 const nativeBuildPassed=()=> (!buildDevice||report.artifacts.some(item=>item.destination==='device-unsigned'))&&(!buildSimulator||report.artifacts.some(item=>item.destination==='simulator'));
 await writeFile(path.join(artifacts,'status.json'),JSON.stringify({phase:version.phase,nativeBuild:'running',physicalTests:'pending'},null,2)+'\n');
 const results=path.join(output,`results-${Date.now()}-${process.pid}`);await mkdir(results,{recursive:true});

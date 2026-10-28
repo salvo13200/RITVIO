@@ -42,6 +42,7 @@
     "android:setup": "powershell -NoProfile -File scripts/setup-android.ps1",
     "android:build": "node scripts/build-android.mjs",
     "ios:prepare": "node scripts/build-ios.mjs --prepare-only",
+    "ios:candidate:prepare": "node scripts/ios-candidate.mjs",
     "ios:build": "node scripts/build-ios.mjs",
     "android:test:ui": "playwright test --config tests/config/playwright.android10.config.ts",
     "licenses:collect": "node scripts/collect-licenses.mjs",

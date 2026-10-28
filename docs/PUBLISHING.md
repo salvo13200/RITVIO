@@ -81,3 +81,12 @@ From the exact reviewed source commit used to build the assets, create the appro
 Verify downloads and SHA-256, inspect source content, and test update/install from the downloaded assets before publishing the draft. Add actual relative release links to README after a release exists; no fake repository URL or expiring hosting link is embedded in the prepared README. Keep sources available as long as binaries are offered.
 
 References: [funding files](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/displaying-a-sponsor-button-in-your-repository), [repository roles](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-repository-roles/repository-roles-for-an-organization), [rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/available-rules-for-rulesets).
+
+
+## 6. iOS beta distribution
+
+Prepare the complete source candidate using [the iOS beta build instructions](BUILDING.md#prepare-the-consolidated-ios-beta-candidate). Keep its version independent from Android and Windows. The maintainer has explicitly deferred physical iPhone acceptance until after the candidate/source are uploaded to GitHub. A GitHub beta must therefore be a prerelease, with personal-signing requirements, minimum iOS, actual automated outcomes and deferred acceptance visible before download. Never describe simulator or synthetic playback results as successful phone/provider testing.
+
+A technical branch push may produce native and corresponding-source Actions artifacts. Those artifacts are not a published release. Once its completed native run and corresponding-source package have been verified, prepare an owner-approved draft prerelease with the beta IPA, exact source ZIP, candidate manifest, checksums, dependency inventory, notices and installation guide. Keep failed/not-run native checks intact in candidate.json; unresolved blocking defects must be fixed rather than hidden by editing the report. Do not attach the older 0.5.0 test IPA to the 0.10.0 source.
+
+Use an iOS-specific beta tag and keep the current Android/Windows stable download buttons unchanged. Public beta publication requires the maintainer's authorization; no packaging command creates a tag, PR, merge or release. Stable iOS publication remains contingent on the deferred acceptance.

@@ -38,6 +38,7 @@ jobs:
       - run: .venv/Scripts/python.exe tests/home-catalog.test.py
       - run: .venv/Scripts/python.exe tests/radio-catalog.test.py
       - run: python tests/mobile-discovery.test.py
+      - run: python tests/ios_package_test.py
       - run: pnpm build
       - run: pnpm --dir apps/mobile build
       - run: pnpm site:build

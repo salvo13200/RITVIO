@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "implemented": [
+    "Home, unified song/album/artist search, persistent mini-player and fixed expanded player.",
+    "Native AVPlayer, embedded resolver, queue editing/reordering, seeking, shuffle/repeat and restore without autoplay.",
+    "Local Library, likes, personal playlists/photos, history, saved albums/artists and queue saving.",
+    "Album/artist pages, discography and catalogue navigation from song metadata.",
+    "Lyrics reader with follow controls, contiguous lyric selection and song/lyric image cards.",
+    "Native Photos saving and system sharing for cards, with explicit outcomes.",
+    "Sleep timer, song radio, Autoplay and automatic-occurrence queue labels.",
+    "New-playlist-only .ritvio.json import/export, selection and duplicate handling.",
+    "English/Italian, motion settings and reviewed manual Help reports."
+  ],
+  "notYetPorted": [
+    "Audio equalizer and the complete Android/Windows discovery-home catalogue are not included.",
+    "Playlist import from a public provider URL is not included; portable .ritvio.json files are supported.",
+    "There are no cloud accounts/sync, offline audio downloads or automatic IPA installation."
+  ],
+  "deferredChecks": [
+    "Physical-device acceptance is intentionally deferred until after the candidate/source are uploaded to GitHub. This is a beta, not a stable iOS release.",
+    "Personal signing, installation and updating with preserved local data on an iPhone running iOS 15 or newer.",
+    "Actual provider search/stream/lyrics availability, audible playback, skip/seek and automatic continuation.",
+    "Locked-screen playback/media controls, headphones, Bluetooth, calls, Wi-Fi/mobile transitions and recovery.",
+    "Photos saving/permissions, Files/iCloud import/export, clipboard and activity-sheet completion, with uninterrupted playback.",
+    "Actual Android/Windows file interoperability, VoiceOver, Dynamic Type, keyboard/safe-area behavior and iOS 15 compatibility.",
+    "Free-account signing renewal through Sideloadly. Never send Apple credentials in RITVIO or support reports."
+  ]
+}

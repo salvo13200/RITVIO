@@ -52,7 +52,10 @@ jobs:
       - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec tsc --noEmit
-      - run: pnpm exec tsx --test tests/ios-foundation.test.ts tests/ios-library.test.ts tests/ios-catalog.test.ts
+      - run: pnpm exec tsx --test tests/ios*.test.ts
+      - run: python3 tests/ios_package_test.py
+      - name: Freeze corresponding source and beta scope
+        run: pnpm ios:candidate:prepare
       - name: Resolver playback priority and bounded admission
         run: |
           swiftc -swift-version 5 -warnings-as-errors apps/mobile/ios/App/App/ResolverWorker.swift tests/ios_resolver_admission_test.swift -o "$RUNNER_TEMP/ritvio-admission-test"
@@ -95,4 +98,13 @@ jobs:
           name: RITVIO-iOS-${{ github.sha }}
           path: .local/ios/artifacts/
           if-no-files-found: error
+          retention-days: 5
+
+      - name: Upload corresponding iOS source and beta preparation
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        if: always()
+        with:
+          name: RITVIO-iOS-source-${{ github.sha }}
+          path: .local/ios/prepared/
+          if-no-files-found: warn
           retention-days: 5

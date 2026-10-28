@@ -1,0 +1,1 @@
+export function prepareIOSCandidate(project?:string):Promise<{prepared:true;folder:string;sourceCommit:string;version:string;build:number;sourceFiles:number;sourceArchive:{file:string;bytes:number;sha256:string};ipaCreated:false;nativeBuild:'not-run';physicalTests:string;publicReleaseReady:false}>;
