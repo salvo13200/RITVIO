@@ -198,7 +198,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": false, "sharing": false]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": false]
             ])
         }
     }

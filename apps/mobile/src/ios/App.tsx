@@ -9,6 +9,8 @@ import {parseFoundationStatus,type FoundationStatus} from './contract';
 import {iosCopy,friendlyError} from './copy';
 import {Artwork,Empty,IconButton,MiniPlayer,Sheet,SongRow,Toggle} from './components';
 import {Player} from './player';
+import {LyricsReader} from './lyrics';
+import {lyricsCopy} from './lyrics-copy';
 import {Queue,upcoming} from './queue';
 import {LibraryPane,PlaylistForm,AddToPlaylist,type PlaylistContext} from './library';
 import {libraryCopy} from './library-copy';
@@ -17,15 +19,17 @@ import {CatalogPage,CatalogSearch,type ResourceRoute} from './catalog';
 import {catalogCopy} from './catalog-copy';
 import './app.css';
 import './catalog.css';
+import './lyrics.css';
 
 type Menu={track:NativeTrack;index?:number;revision:number;current:number;playlist?:PlaylistContext};
 export function App({controller}:{controller:LanguageController}){
  const language=useSyncExternalStore(localization.subscribe,localization.getSnapshot),text=iosCopy[language.language==='it'?'it':'en'];
- const [state,setState]=useState<MobilePlayback>(emptyMobilePlayback),[connected,setConnected]=useState(false),[tab,setTab]=useState<'home'|'search'|'library'>('home'),[overlay,setOverlay]=useState<'player'|'queue'|'settings'|null>(null),[menu,setMenu]=useState<Menu|null>(null),[status,setStatus]=useState<FoundationStatus|null>(null),[message,setMessage]=useState('');
+ const [state,setState]=useState<MobilePlayback>(emptyMobilePlayback),[connected,setConnected]=useState(false),[tab,setTab]=useState<'home'|'search'|'library'>('home'),[overlay,setOverlay]=useState<'player'|'queue'|'lyrics'|'settings'|null>(null),[menu,setMenu]=useState<Menu|null>(null),[status,setStatus]=useState<FoundationStatus|null>(null),[message,setMessage]=useState('');
  const [libraryModal,setLibraryModal]=useState(false),[addTrack,setAddTrack]=useState<NativeTrack|null>(null),[queueForm,setQueueForm]=useState<number|null>(null),playIntent=useRef(0);
  const libraryText=libraryCopy[language.language==='it'?'it':'en'];
  const [query,setQuery]=useState(''),[route,setRoute]=useState<ResourceRoute|null>(null),[artistChoices,setArtistChoices]=useState<MobileResource[]>([]),[boundedPlay,setBoundedPlay]=useState<{items:NativeTrack[];index:number;shuffle:boolean}|null>(null);
  const catalogText=catalogCopy[language.language==='it'?'it':'en'];
+ const lyricText=lyricsCopy[language.language==='it'?'it':'en'];
  const [motion,setMotion]=useState(()=>{try{return localStorage.getItem('ritvio.ios.reduce-motion')==='true';}catch{return false;}}),[languageBusy,setLanguageBusy]=useState(false);
  const current=state.items[state.index],future=upcoming(state),searchRef=useRef<HTMLInputElement>(null),notice=useRef(0),root=useRef<HTMLDivElement>(null);
  const apply=useCallback((value:MobilePlayback)=>{setState(previous=>acceptPlaybackSnapshot(previous,value));setConnected(true);},[]);
@@ -55,7 +59,7 @@ export function App({controller}:{controller:LanguageController}){
  function openArtists(track:NativeTrack){const people=(track.artists??[]).filter(person=>person.id);if(people.length===1)openResource({...people[0],kind:'artist'});else if(people.length){setArtistChoices(people.map(person=>({...person,kind:'artist',artwork:null})));setMenu(null);}}
  useEffect(()=>{if(menu&&(menu.revision!==state.queueRevision||menu.current!==state.index))setMenu(null);},[state.queueRevision,state.index,menu]);
  useEffect(()=>{if(menu?.playlist&&library.value?.playlists.find(item=>item.id===menu.playlist!.id)?.revision!==menu.playlist.revision)setMenu(null);},[menu,library.value]);
- useEffect(()=>{if(overlay==='player'&&!current)setOverlay(null);},[overlay,current]);
+ useEffect(()=>{if((overlay==='player'||overlay==='lyrics')&&!current)setOverlay(null);},[overlay,current]);
  async function send(command:MobileCommand){try{apply(await bridge.command(command));return true;}catch(error){announce(friendlyError(error,text));if(String((error as {code?:string})?.code).includes('QUEUE_CHANGED'))void bridge.snapshot().then(apply).catch(()=>{});return false;}}
  async function play(track:NativeTrack){playIntent.current++;try{apply(await bridge.playTracks({items:[track],index:0}));}catch(error){announce(friendlyError(error,text));}}
  async function playCollection(items:NativeTrack[],index:number,shuffle=false){if(items.length>500){setBoundedPlay({items,index,shuffle});return;}const intent=++playIntent.current;try{apply(await bridge.playTracks({items,index}));if(intent===playIntent.current)apply(await bridge.command({type:'shuffle',value:shuffle}));}catch(error){announce(friendlyError(error,text));}}
@@ -88,7 +92,8 @@ export function App({controller}:{controller:LanguageController}){
    {current&&<MiniPlayer state={state} text={text} onOpen={()=>setOverlay('player')} onToggle={toggle} onNext={()=>void send({type:'next'})}/>}
    <nav className="ios-tabs" aria-label="RITVIO"><button aria-current={tab==='home'?'page':undefined} onClick={()=>selectTab('home')}><Home fill={tab==='home'?'currentColor':'none'}/><span>{text.home}</span></button><button aria-current={tab==='search'?'page':undefined} onClick={()=>selectTab('search')}><Search/><span>{text.search}</span></button>{status?.capabilities.library&&<button aria-current={tab==='library'?'page':undefined} onClick={()=>selectTab('library')}><LibraryBig/><span>{libraryText.library}</span></button>}</nav>
   </div>
-  {overlay==='player'&&current&&<div aria-hidden={coveringPlayer?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')} onAlbum={current.album?.id?()=>openResource({...current.album!,kind:'album'}):undefined} onArtists={current.artists?.some(person=>person.id)?()=>openArtists(current):undefined} libraryActions={library.value?<><IconButton label={liked(current)?libraryText.unlike:libraryText.like} disabled={library.busy} pressed={liked(current)} className={liked(current)?'is-liked':''} onClick={()=>toggleLike(current)}><Heart fill={liked(current)?'currentColor':'none'}/></IconButton><IconButton label={text.more} onClick={()=>showMenu(current)}><MoreHorizontal/></IconButton></>:undefined}/></div>}
+  {overlay==='player'&&current&&<div aria-hidden={coveringPlayer?true:undefined}><Player state={state} text={text} send={command=>void send(command)} onClose={()=>setOverlay(null)} onQueue={()=>setOverlay('queue')} onLyrics={status?.capabilities.lyrics?()=>setOverlay('lyrics'):undefined} lyricsLabel={lyricText.open} onAlbum={current.album?.id?()=>openResource({...current.album!,kind:'album'}):undefined} onArtists={current.artists?.some(person=>person.id)?()=>openArtists(current):undefined} libraryActions={library.value?<><IconButton label={liked(current)?libraryText.unlike:libraryText.like} disabled={library.busy} pressed={liked(current)} className={liked(current)?'is-liked':''} onClick={()=>toggleLike(current)}><Heart fill={liked(current)?'currentColor':'none'}/></IconButton><IconButton label={text.more} onClick={()=>showMenu(current)}><MoreHorizontal/></IconButton></>:undefined}/></div>}
+  {overlay==='lyrics'&&current&&<LyricsReader state={state} text={text} t={lyricText} send={command=>void send(command)} onClose={()=>setOverlay('player')}/>}
   {overlay==='queue'&&<div aria-hidden={coveringPlayer?true:undefined}><Queue state={state} text={text} send={send} onClose={()=>setOverlay(current?'player':null)} onMore={index=>showMenu(state.items[index],index)} onOpenPlayer={()=>setOverlay('player')} announce={announce} onSave={library.value&&state.items.length?()=>setQueueForm(state.queueRevision??0):undefined} saveLabel={libraryText.queueSave}/></div>}
   {overlay==='settings'&&<Sheet title={text.settings} closeLabel={text.done} closeText onClose={()=>setOverlay(null)} className="ios-settings"><div className="ios-settings-scroll"><section><h3>{text.language}</h3>{(['en','it','system'] as const).map(value=><button key={value} className="ios-setting-row" aria-pressed={language.preference===value} disabled={languageBusy} onClick={()=>void changeLanguage(value)}><span>{value==='en'?'English':value==='it'?'Italiano':text.system}</span>{language.preference===value&&<Check/>}</button>)}</section><section><h3>{text.motion}</h3><label className="ios-setting-row"><span>{text.motion}</span><input className="ios-switch" type="checkbox" role="switch" checked={motion} onChange={event=>{setMotion(event.target.checked);try{localStorage.setItem('ritvio.ios.reduce-motion',String(event.target.checked));}catch{}}}/></label><p>{text.motionBody}</p></section><section><h3>{text.about}</h3><dl><div><dt>{text.version}</dt><dd>{status?`${status.version} (${status.build})`:'—'}</dd></div><div><dt>{text.stage}</dt><dd>{status?.phase??'—'}</dd></div><div><dt>{text.connection}</dt><dd>{connected?text.ready:text.unavailable}</dd></div></dl><p>{text.scope}</p></section><section><h3>{text.sources}</h3><p>{text.sourceBody}</p></section></div></Sheet>}
   {menu&&<Sheet title={menu.track.title} closeLabel={text.cancel} onClose={()=>setMenu(null)} className="ios-menu"><p className="ios-menu-artist">{menu.track.artist}</p>

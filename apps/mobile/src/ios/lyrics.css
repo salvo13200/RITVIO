@@ -1,0 +1,43 @@
+.ios-app .ios-lyrics{display:grid;grid-template-rows:auto auto minmax(0,1fr) auto;gap:16px;padding-left:max(24px,max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px)));padding-right:max(24px,max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px)))}
+.ios-app .ios-lyrics>.ios-sheet-header{display:none}
+.ios-lyrics-top{font-size:calc(15px * var(--ios-text-scale,1))}
+.ios-app .ios-lyrics-type{font-size:22px;color:var(--ios-muted);min-width:44px}
+.ios-lyrics-identity{display:flex;gap:16px;align-items:center;min-width:0;padding:8px 0 4px}
+.ios-app .ios-lyrics-identity>.artwork{width:64px;height:64px;aspect-ratio:1;flex:0 0 64px;border-radius:10px}
+.ios-app .ios-lyrics-identity h1{font-size:calc(19px * var(--ios-text-scale,1));line-height:1.25;margin:0 0 3px;min-width:0}
+.ios-app .ios-lyrics-identity p{font-size:calc(16px * var(--ios-text-scale,1));color:var(--ios-muted);min-width:0}
+.ios-lyrics-reading{min-height:0;overflow-y:auto;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scroll-behavior:auto;padding:14px 4px 24px;margin:0 -4px;scrollbar-color:#766287 transparent;touch-action:pan-y;outline-offset:-2px}
+.ios-app .ios-lyric-line{display:block;width:100%;min-height:44px;padding:12px 0;text-align:left;border-radius:0;background:transparent;font-size:calc(var(--ios-lyric-size,22px) * var(--ios-text-scale,1));line-height:1.45;font-weight:650;color:var(--ios-muted);transform:none;overflow-wrap:anywhere;transition:color 200ms ease-out}
+.ios-app .ios-lyric-line:active{transform:none;background:#ffffff08}
+.ios-app .ios-lyric-line.is-active{color:var(--ios-ink)}
+.ios-app .ios-lyrics.is-emphasized .ios-lyric-line.is-active{color:var(--ios-accent)}
+.ios-lyrics-size-large{--ios-lyric-size:27px}
+.ios-lyrics-size-extra{--ios-lyric-size:33px}
+.ios-app .ios-lyrics-plain{font-size:calc(var(--ios-lyric-size,22px) * var(--ios-text-scale,1));line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--ios-ink);font-weight:600}
+.ios-lyrics-footer{min-width:0;padding-top:4px}
+.ios-lyrics-follow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;min-height:44px;padding:0 0 8px}
+.ios-lyrics-follow>div{min-height:44px;display:flex;align-items:center}
+.ios-app .ios-lyrics-follow button{gap:8px;padding-left:0;font-size:14px}
+.ios-lyrics-follow p{font-size:calc(11px * var(--ios-text-scale,1));line-height:1.4;color:var(--ios-muted)}
+.ios-lyrics-transport{display:flex;align-items:center;justify-content:center;gap:48px;min-height:76px}
+.ios-lyrics-transport>.ios-icon:not(.ios-toggle){width:48px;height:48px}
+.ios-lyrics-loading{display:flex;flex-direction:column;gap:24px;padding-top:14px}
+.ios-lyrics-loading span{height:24px;border-radius:6px;background:#ffffff15;animation:ios-lyric-pulse 1400ms ease-in-out infinite alternate}
+.ios-lyrics-loading span:nth-child(even){width:78%}
+.ios-app .ios-lyrics-reading .ios-empty{padding:24px 0;min-height:0}
+.ios-app .ios-lyrics-settings fieldset{border:0;margin:0;padding:8px 0 16px;min-width:0}
+.ios-app .ios-lyrics-settings legend{font-size:17px;color:var(--ios-muted);padding:0 0 8px}
+.ios-lyrics-size-options{display:flex;flex-wrap:wrap;gap:8px}
+.ios-lyrics-size-options label{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 12px;border-radius:12px;background:#ffffff0a}
+.ios-lyrics-size-options input{accent-color:var(--ios-accent);width:18px;height:18px}
+.ios-app .ios-player-utilities{display:flex;align-items:center;justify-content:center;gap:28px;min-width:0}
+.ios-app .ios-player-utilities .ios-player-queue{margin:0;padding:8px 12px}
+@keyframes ios-lyric-pulse{from{opacity:.45}to{opacity:1}}
+@media(max-height:700px){.ios-app .ios-lyrics{gap:8px;padding-left:max(22px,max(env(safe-area-inset-left,0px),var(--ios-native-safe-left,0px)));padding-right:max(22px,max(env(safe-area-inset-right,0px),var(--ios-native-safe-right,0px)))}.ios-lyrics-identity{padding:2px 0}.ios-app .ios-lyrics-identity>.artwork{width:52px;height:52px;flex-basis:52px}.ios-lyrics-reading{padding-top:4px}.ios-lyrics-follow{padding-bottom:0;min-height:36px}.ios-lyrics-transport{min-height:64px;gap:40px}.ios-app .ios-lyrics-transport .ios-toggle-large{width:64px;height:64px;min-height:64px;flex-basis:64px}}
+@media(orientation:landscape) and (max-height:560px){.ios-app .ios-lyrics{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);grid-template-rows:44px auto minmax(0,1fr);column-gap:24px}.ios-lyrics-top{grid-row:1;grid-column:1/-1}.ios-lyrics-identity{grid-row:2;grid-column:2}.ios-lyrics-reading{grid-column:1;grid-row:2/4}.ios-lyrics-footer{grid-column:2;grid-row:3;align-self:end}.ios-lyrics-follow{display:block}.ios-lyrics-transport{gap:18px}}
+@media(prefers-reduced-motion:reduce){.ios-lyrics-loading span{animation:none}.ios-app .ios-lyric-line{transition:none}}
+.ios-reduce-motion .ios-lyrics-loading span{animation:none}
+.ios-reduce-motion .ios-lyric-line{transition:none}
+
+.ios-app .ios-player-lyrics-short{display:none}
+@media(orientation:landscape) and (max-height:500px){.ios-app .ios-player-utilities{display:none}.ios-app .ios-player-lyrics-short{display:inline-flex}}
