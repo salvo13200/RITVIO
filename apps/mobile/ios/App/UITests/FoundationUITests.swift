@@ -318,7 +318,9 @@ final class FoundationUITests: XCTestCase {
             let travel = min(max(12,abs(distance)),min(90,area.height/2-16))
             let start = app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:area.minX+4-app.frame.minX,dy:area.midY-app.frame.minY))
             let end = start.withOffset(CGVector(dx:0,dy:(distance >= 0 ? -1 : 1)*travel))
-            start.press(forDuration:0.05,thenDragTo:end)
+            // Finish at rest rather than flicking: native momentum can move
+            // this short list by more than its entire viewport at large text.
+            start.press(forDuration:0.05,thenDragTo:end,withVelocity:.slow,thenHoldForDuration:0.5)
         }
         XCTFail("Queue handle could not be revealed inside the list")
     }
