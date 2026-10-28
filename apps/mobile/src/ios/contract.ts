@@ -1,7 +1,7 @@
 export interface FoundationStatus {
  platform:'ios'; phase:'IOS-1'|'IOS-2'|'IOS-3'|'IOS-4'|'IOS-5'; version:string; build:string; bundleId:string; systemVersion:string;
  environment:'simulator'|'device'; minimumOS:string; bundledAssets:boolean;
- capabilities:{resolver:boolean;playback:boolean;library:boolean;lyrics:boolean;sharing:boolean;sleepTimer?:boolean;discovery?:boolean};
+ capabilities:{resolver:boolean;playback:boolean;library:boolean;lyrics:boolean;sharing:boolean;sleepTimer?:boolean;discovery?:boolean;playlistFiles?:boolean;support?:boolean};
  textScale?:number;
  safeArea?:{top:number;right:number;bottom:number;left:number};
 }
@@ -20,6 +20,7 @@ export function parseFoundationStatus(value:unknown):FoundationStatus {
  if(typeof capabilities.lyrics!=='boolean'||capabilities.lyrics&&source.phase!=='IOS-5'||typeof capabilities.sharing!=='boolean'||capabilities.sharing&&source.phase!=='IOS-5')throw Error('Invalid lyrics or sharing capability');
  if(capabilities.sleepTimer!==undefined&&(typeof capabilities.sleepTimer!=='boolean'||capabilities.sleepTimer&&source.phase!=='IOS-5'))throw Error('Invalid sleep timer capability');
  if(capabilities.discovery!==undefined&&(typeof capabilities.discovery!=='boolean'||capabilities.discovery&&source.phase!=='IOS-5'))throw Error('Invalid discovery capability');
+ for(const key of ['playlistFiles','support'])if(capabilities[key]!==undefined&&(typeof capabilities[key]!=='boolean'||capabilities[key]&&source.phase!=='IOS-5'))throw Error('Invalid document capability');
  return source as unknown as FoundationStatus;
 }
 export function verifyFoundationCheck(value:unknown,nonce:string):void {

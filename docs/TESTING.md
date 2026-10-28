@@ -454,3 +454,31 @@ pnpm exec playwright test --config tests/config/playwright.ios-discovery.config.
 This remains local source on codex/ios-radio-autoplay. Native macOS compilation, actual provider access, automatic continuation across locked-screen/background changes, iOS15+ rendering, interruptions and VoiceOver remain beta acceptance work, as agreed. No IPA, push or publication is performed. Playlist document transfer and support/update adaptation remain later IOS-5 work; this block does not complete the full iOS plan.
 
 The independent Impeccable finish review returned `ship` without material findings for this local source/browser increment. This does not certify Swift compilation or native/provider acceptance.
+
+
+## iOS playlist files and support source candidate 0.10.0 build 11
+
+Library > Import playlist file uses the native JSON picker, then previews the validated document before any library mutation. Select occurrences, skip duplicates if desired and choose a new playlist name. Import always creates a new playlist, without overwriting existing collections. At most 1,000 source rows can be previewed, with a maximum of 500 imported songs and 100 personal playlists on iOS. Limits are disclosed, a first-500 selection is available and the Import action remains below the scrolling list. A failed write preserves existing library bytes and removes only the newly created managed cover. Completion requires a successful native acknowledgement.
+
+Personal playlist menus export the shared `ritvio-playlist` version 1 `.ritvio.json` format used on Android and Windows. Native code reads the authoritative playlist at its captured revision; a changed/missing playlist requires reopening export. Order and duplicate occurrences are retained. Portable files contain names, description, song IDs/title/artist/duration and an optional inline cover, without audio, signed media descriptors, accounts or private paths. Extreme metadata is bounded with an adjustment notice. Cover pixels are resized/re-encoded as JPEG, removing embedded metadata. Save to Files and Share file use native system choosers with separate success/cancellation outcomes.
+
+Documents are bounded to 4 MiB and portable covers to 196,608 encoded characters. Images are dimension-checked before downsampling. The native import picker uses [Apple's asCopy initializer](https://developer.apple.com/documentation/uikit/uidocumentpickerviewcontroller/init%28foropeningcontenttypes%3Aascopy%3A%29), coordinated reading and balanced security-scoped access, then admits only the validated document through an opaque token. One preview is retained at most; eligibility expires after ten minutes and allows one successful import. Export accepts a playlist ID/revision rather than an arbitrary path. Output is restricted to app-owned temporary UUID directories, retaining at most eight documents. These flows add no audio/session commands.
+
+Settings > Help & feedback prepares a report only after View report is pressed. Inspect the exact frozen text before Copy or Share. It includes app/build/iOS versions, six feature flags and three whitelisted error codes. Unknown error text becomes OTHER; titles, artists, playlist names, history, device IDs, paths, accounts and URLs are excluded. Report eligibility expires after ten minutes. Nothing is uploaded or sent automatically. Separate explicit links open the fixed GitHub issue chooser or project releases page. This is a manual releases link, not an update checker/installer; iOS updates still require a newly signed IPA.
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm exec tsc --noEmit
+$env:RITVIO_MOBILE_PLATFORM='ios'
+pnpm --dir apps/mobile exec vite build
+pnpm exec tsx --test tests/ios-documents.test.ts
+pnpm exec playwright test --config tests/config/playwright.ios-documents.config.ts
+```
+
+TypeScript, the iOS-target web bundle, three deterministic model cases and five browser cases passed locally. Checks cover occurrence order/duplicates, malformed/oversized preview and report validation, report field allowlists, compact 375x667 and 1.6-scale 402x874 layouts, picker cancellation/error fixtures, the 500-song limit, delayed import/copy acknowledgement, failed write and expired preview, personal playlist export, share cancellation, explicit report preparation and 59pt synthetic landscape insets. They assert no transport/queue/timer/discovery mutation calls from document/help UI actions. Browser outcomes are bridge fixtures, not Files, activity-sheet or clipboard evidence. Xcode source/build references were counted statically; this does not compile Swift.
+
+LibrarySelfTest now includes native source checks for portable round-trip order/duplicates, strict version/extra-field rejection, invalid/empty selection, removal of cover metadata, failed-import rollback without leftover new cover, single-use tokens and frozen report text. Those additions have not been compiled or run on Windows. Before beta distribution, macOS compilation and an iOS15+ phone must verify Files/iCloud provider access, security scope, destination save/cancel, activity-sheet acknowledgement, clipboard writing, actual Android/Windows interoperability in both directions, VoiceOver/Dynamic Type/keyboard behavior and continuous playback. The maintainer deferred these native checks until beta.
+
+This is local source on codex/ios-transfer-support; no IPA, push or release is produced. Public Android/Windows builds and the temporary iOS12 PC-assisted trial remain separate. This does not add cloud sync, public playlist URL import, automatic update installation or complete the full native beta acceptance plan.
+
+The independent finish review's pagination finding is resolved: Show more reveals rows without changing selection, while the separate Select all action selects every occurrence. Its scored-fix verdict is `ship` only within local source/browser scope. The documentation audit verified all 24 packet source hashes, all 16 browser-preview capture hashes and the three approved private reference-image sidecars, and confirmed reuse of the incumbent iOS system. No detector ran (iOS); native compilation and device acceptance remain deferred to beta. Historical Android design-document drift and the unrelated older CatalogPLATES gate remain untouched.

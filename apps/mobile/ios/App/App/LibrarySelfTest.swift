@@ -126,11 +126,43 @@ enum LibrarySelfTest {
         let damagedV2 = try Data(contentsOf:broken)
         try rejects("LIBRARY_DAMAGED") { _ = try NativeLibraryStore(file:broken).command(["type":"create","name":"Must not lose saved resources"]) }
         try require(Data(contentsOf:broken) == damagedV2)
+        // Playlist interchange checks run on macOS/iOS with the existing library self-check.
+        let portable = LibraryPlaylist(id:UUID().uuidString.lowercased(),name:"Portable",description:"Order and duplicates",items:[try PlaybackTrack.decode(track),try PlaybackTrack.decode(second),try PlaybackTrack.decode(track)],coverFile:nil,revision:1,updatedAt:0)
+        let exported = try PlaylistDocument.export(portable,cover:input as Data)
+        let document = try PlaylistDocument.parse(exported.data)
+        try require(document.tracks.map(\.videoId)==["abcdefghijk","bcdefghijkl","abcdefghijk"])
+        try require(document.selected([3,1,2],skipDuplicates:true).tracks.map(\.videoId)==["abcdefghijk","bcdefghijkl"])
+        try require(document.selected([3,1],skipDuplicates:false).tracks.count==2)
+        try rejects("LIBRARY_TRACK_LIMIT"){_ = try document.selected([],skipDuplicates:true)}
+        try rejects("INVALID_IMPORT_SELECTION"){_ = try document.selected([0],skipDuplicates:true)}
+        try rejects("INVALID_IMPORT_SELECTION"){_ = try document.selected([1,1],skipDuplicates:true)}
+        try rejects("PLAYLIST_FILE_INVALID"){_ = try PlaylistDocument.parse(Data("{}".utf8))}
+        var payload = try JSONSerialization.jsonObject(with:exported.data) as! [String:Any]
+        payload["version"] = true
+        try rejects("PLAYLIST_FILE_INVALID"){_ = try PlaylistDocument.parse(JSONSerialization.data(withJSONObject:payload))}
+        payload["version"] = 1;payload["privateUrl"] = "must-not-export"
+        try rejects("PLAYLIST_FILE_INVALID"){_ = try PlaylistDocument.parse(JSONSerialization.data(withJSONObject:payload))}
+        let cleanCover = CGImageSourceCreateWithData(document.cover! as CFData,nil)!
+        try require((CGImageSourceCopyPropertiesAtIndex(cleanCover,0,nil)! as NSDictionary)[kCGImagePropertyGPSDictionary]==nil)
+        let importBefore = try Data(contentsOf:path),coversBefore = Set(try FileManager.default.contentsOfDirectory(atPath:store.artworkDirectory.path))
+        try rejects("LIBRARY_WRITE_FAILED"){_ = try failWrite.importPlaylist(name:"Must not save",description:"",tracks:document.tracks,cover:document.cover)}
+        try require(Data(contentsOf:path)==importBefore)
+        try require(Set(FileManager.default.contentsOfDirectory(atPath:store.artworkDirectory.path))==coversBefore)
+        let imported = try store.importPlaylist(name:"New portable playlist",description:document.description,tracks:document.tracks,cover:document.cover)
+        try require(imported.state.playlists.count==single.playlists.count+1 && imported.state.likes.count==single.likes.count)
+        try require(imported.state.playlists[0].items.count==3 && imported.state.playlists[0].id != portable.id)
+        let sessions=PlaylistDocumentSession(),sessionPreview=sessions.prepare(document),sessionToken=sessionPreview["token"] as! String
+        _ = try sessions.begin(sessionToken);sessions.cancel(sessionToken);sessions.finish(sessionToken,success:false)
+        _ = try sessions.begin(sessionToken);sessions.finish(sessionToken,success:true)
+        try rejects("IMPORT_EXPIRED"){_ = try sessions.begin(sessionToken)}
+        let frozen=sessions.prepareReport("reviewed bytes"),reportToken=frozen["token"] as! String
+        try require(sessions.reportText(reportToken)=="reviewed bytes")
+        try require(RitvioPlaybackPlugin.reportCode("private song name")=="OTHER" && RitvioPlaybackPlugin.reportCode(nil)=="NONE")
         return ["status":"passed", "atomicFailurePreservesData":true, "damagedFilePreserved":true, "unknownSchemaRejected":true,
             "restartPersistence":true, "duplicateOccurrenceEdits":true, "staleRevisionRejected":true, "strictBooleanAndIndex":true,
             "historyDeduplicated":true, "noSignedDescriptors":true, "managedCoverCleanup":true, "boundedDocument":true,
             "artworkDownsampled":true, "artworkMetadataRemoved":true, "invalidImageRejected":true,
-            "trackLimitPreservesData":true, "singleSongCreateAtomic":true,
+            "trackLimitPreservesData":true, "singleSongCreateAtomic":true,"playlistInterchangeAndDuplicateOrder":true,"importFailureRemovesOnlyNewCover":true,"singleUseImportAndFrozenReport":true,
             "followMigrationPreservesCollectionsAndCovers":true,"followMigrationReadOnlyUntilMutation":true,
             "followMigrationFailurePreservesLegacyFile":true,"followRestartAndIdentity":true,"damagedFollowFieldPreserved":true]
     }

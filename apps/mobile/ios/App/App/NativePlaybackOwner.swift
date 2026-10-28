@@ -213,6 +213,7 @@ final class NativePlaybackOwner {
     private var discoverySuspended: String? {
         sleepTimer.mode != "off" ? "timer" : queue.repeatMode != "off" ? "repeat" : nil
     }
+    func diagnosticCodes() -> [String:String] { precondition(Thread.isMainThread);return ["playback":errorCode ?? "NONE","suggestions":discoveryMessage ?? "NONE"] }
     func discoverySnapshot() -> [String:Any] {
         precondition(Thread.isMainThread)
         return ["enabled":autoplayEnabled,"status":discoveryStatus,"mode":discoveryMode as Any? ?? NSNull(),

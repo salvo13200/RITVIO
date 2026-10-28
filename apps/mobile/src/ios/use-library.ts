@@ -19,7 +19,7 @@ export function useLibrary(enabled:boolean,text:LibraryCopy,announce:(message:st
   catch(error){if(active.current)notice.current(libraryError(error,copy.current));await reload();return null;}
   finally{locked.current=false;if(active.current)setBusy(false);}
  }
- return {value,error,busy,reload,command:(action:LibraryAction,message?:string)=>run(()=>bridge.libraryCommand(action),message),
+ return {value,error,busy,reload,receive:apply,command:(action:LibraryAction,message?:string)=>run(()=>bridge.libraryCommand(action),message),
   saveQueue:(name:string,revision:number)=>run(()=>bridge.saveQueue({name,revision}),text.queueSaved),
   removeCover:(id:string,revision:number)=>run(()=>bridge.removeArtwork({kind:'playlist',id,revision}),text.coverRemoved),
   async chooseCover(id:string,revision:number){if(locked.current)return;locked.current=true;setBusy(true);try{const result=await bridge.chooseArtwork({kind:'playlist',id,revision});if(!result.cancelled&&result.library){apply(result.library);notice.current(copy.current.coverSaved);}}catch(error){notice.current(libraryError(error,copy.current));await reload();}finally{locked.current=false;if(active.current)setBusy(false);}}

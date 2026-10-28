@@ -221,6 +221,30 @@ final class NativeLibraryStore {
         return value
     }
 
+    /// One library write; a failed save removes only the newly created managed cover.
+    func importPlaylist(name:String,description:String,tracks:[PlaybackTrack],cover:Data?) throws -> (state:LibraryState,id:String) {
+        lock.lock();defer{lock.unlock()}
+        var value=try load()
+        guard value.playlists.count<100 else{throw ResolverFailure.code("LIBRARY_PLAYLIST_LIMIT")}
+        let title=try Self.title(["name":name])
+        guard title.utf16.count<=100,description.utf16.count<=1000,!tracks.isEmpty,tracks.count<=Self.maxTracks,tracks.allSatisfy(\.valid) else{throw ResolverFailure.code("LIBRARY_TRACK_LIMIT")}
+        var created:URL?,filename:String?
+        do{
+            if let cover {
+                guard cover.count<=140*1024 else{throw ResolverFailure.code("PLAYLIST_COVER_INVALID")}
+                try FileManager.default.createDirectory(at:artworkDirectory,withIntermediateDirectories:true)
+                let files=try FileManager.default.contentsOfDirectory(at:artworkDirectory,includingPropertiesForKeys:[.fileSizeKey])
+                let size=files.reduce(0){$0+((try? $1.resourceValues(forKeys:[.fileSizeKey]).fileSize) ?? 0)}
+                guard size+cover.count<=24*1024*1024 else{throw ResolverFailure.code("ARTWORK_STORAGE_FULL")}
+                filename=UUID().uuidString.lowercased()+".jpg";let url=artworkDirectory.appendingPathComponent(filename!)
+                try cover.write(to:url,options:[.atomic,.completeFileProtectionUntilFirstUserAuthentication]);created=url
+            }
+            let id=UUID().uuidString.lowercased()
+            value.playlists.insert(LibraryPlaylist(id:id,name:title,description:description,items:tracks,coverFile:filename,revision:1,updatedAt:Int64(Date().timeIntervalSince1970*1000)),at:0)
+            value.revision += 1;try save(value);return (value,id)
+        }catch{if let created{try? FileManager.default.removeItem(at:created)};throw error}
+    }
+
     @discardableResult func remember(_ track: PlaybackTrack) throws -> LibraryState {
         guard track.valid else { throw ResolverFailure.code("INVALID_TRACK") }
         lock.lock(); defer { lock.unlock() }

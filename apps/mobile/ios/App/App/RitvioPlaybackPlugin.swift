@@ -34,11 +34,23 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "sleepTimer", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setSleepTimer", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "discoveryState", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "discoveryCommand", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "discoveryCommand", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "choosePlaylistFile", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "cancelPlaylistImport", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "commitPlaylistImport", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "exportPlaylistDocument", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "prepareSupportReport", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "useSupportReport", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "openSupportLink", returnType: CAPPluginReturnPromise)
     ]
     private let preferenceKey = "ritvio.language.preference"
     private let revisionKey = "ritvio.language.revision"
     let libraryWorker = DispatchQueue(label: "it.ritvio.library", qos: .userInitiated)
+    let documents=PlaylistDocumentSession()
+    var documentPicker:PlaylistDocumentPicker?
+    var documentExporter:DocumentExport?
+    var documentBusy=false
+    var lastDocumentError:String?
     var artworkPicker: LibraryArtworkPicker?
     var storyArtworkFetch: StoryArtworkFetch?
     var storyExporter: StoryImageExport?
@@ -250,7 +262,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true, "sleepTimer": true, "discovery": true]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true, "sleepTimer": true, "discovery": true, "playlistFiles": true, "support": true]
             ])
         }
     }

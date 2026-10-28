@@ -5,6 +5,13 @@ import type {SleepMode,SleepMinutes} from './sleep-model';
 import type {DiscoveryCommand} from './discovery-model';
 import type {CatalogRequest} from './catalog-model';
 interface FoundationPlugin {
+ choosePlaylistFile():Promise<{cancelled:boolean;preview?:unknown}>;
+ cancelPlaylistImport(options:{token:string}):Promise<void>;
+ commitPlaylistImport(options:{token:string;name:string;numbers:number[];skipDuplicates:boolean}):Promise<{library:unknown;playlistId:string;added:number;skipped:number}>;
+ exportPlaylistDocument(options:{id:string;revision:number;save:boolean}):Promise<{status:'saved'|'shared'|'cancelled';filename:string;adjusted:number}>;
+ prepareSupportReport():Promise<unknown>;
+ useSupportReport(options:{token:string;action:'copy'|'share'}):Promise<{status:'copied'|'shared'|'cancelled'}>;
+ openSupportLink(options:{kind:'issues'|'releases'}):Promise<void>;
  foundationStatus():Promise<unknown>;
  discoveryState():Promise<unknown>;
  discoveryCommand(options:DiscoveryCommand):Promise<unknown>;

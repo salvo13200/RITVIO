@@ -43,6 +43,9 @@ DD5000000000000000000008 = {isa = PBXBuildFile; fileRef = DD50000000000000000000
 EE7000000000000000000002 = {isa = PBXBuildFile; fileRef = EE7000000000000000000001; };
 FF8000000000000000000002 = {isa = PBXBuildFile; fileRef = FF8000000000000000000001; };
 AA9000000000000000000002 = {isa = PBXBuildFile; fileRef = AA9000000000000000000001; };
+AB2000000000000000000001 = {isa = PBXBuildFile; fileRef = AB1000000000000000000001; };
+AB2000000000000000000002 = {isa = PBXBuildFile; fileRef = AB1000000000000000000002; };
+AB2000000000000000000003 = {isa = PBXBuildFile; fileRef = AB1000000000000000000003; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -84,6 +87,9 @@ DD5000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourceco
 EE7000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "App/StoryBridge.swift"; sourceTree = SOURCE_ROOT; };
 FF8000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/PlaybackSleepTimer.swift; sourceTree = SOURCE_ROOT; };
 AA9000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/PlaybackDiscovery.swift; sourceTree = SOURCE_ROOT; };
+AB1000000000000000000001 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/PlaylistDocument.swift; sourceTree = SOURCE_ROOT; };
+AB1000000000000000000002 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DocumentPicker.swift; sourceTree = SOURCE_ROOT; };
+AB1000000000000000000003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = App/DocumentBridge.swift; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -132,6 +138,9 @@ DD5000000000000000000007,
 EE7000000000000000000001,
 FF8000000000000000000001,
 AA9000000000000000000001,
+AB1000000000000000000003,
+AB1000000000000000000002,
+AB1000000000000000000001,
 CC3000000000000000000001,
 				504EC3061FED79650016851F /* App */,
 AA1000000000000000000010,
@@ -279,6 +288,9 @@ DD5000000000000000000008,
 EE7000000000000000000002,
 FF8000000000000000000002,
 AA9000000000000000000002,
+AB2000000000000000000003,
+AB2000000000000000000002,
+AB2000000000000000000001,
 CC3000000000000000000008,
 CC3000000000000000000006,
 CC3000000000000000000004,
@@ -433,14 +445,14 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				OTHER_SWIFT_FLAGS = "$(inherited) \"-D\" \"COCOAPODS\" \"-DDEBUG\"";
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -461,14 +473,14 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 10;
+				CURRENT_PROJECT_VERSION = 11;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.9.0;
+				MARKETING_VERSION = 0.10.0;
 				PRODUCT_BUNDLE_IDENTIFIER = it.ritvio.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "";
