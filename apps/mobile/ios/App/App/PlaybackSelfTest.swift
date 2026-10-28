@@ -60,12 +60,38 @@ enum PlaybackSelfTest {
             catch let failure as ResolverFailure { if failure.identifier != "QUEUE_CHANGED" { throw failure } }
             report["queuePolicy"] = ["repeatOne": true, "manualSkip": true, "repeatAll": true, "shufflePermutation": true, "reorderIdentity": true, "staleRevisionRejected": true, "currentChangeInvalidatesEdits": true]
 
+            progress("sleep-policy")
+            var timerPolicy = PlaybackSleepTimer()
+            try timerPolicy.configure(mode: "duration", minutes: 15, now: 100)
+            try expect(timerPolicy.snapshot(now: 999)["remaining"] as? Int == 1, "TIMER_ELAPSED_INTERVAL_FAILED")
+            try expect(!timerPolicy.consumeExpiry(now: 999) && timerPolicy.consumeExpiry(now: 1000) && !timerPolicy.consumeExpiry(now: 1001), "TIMER_EXPIRY_NOT_SINGLE_USE")
+            try timerPolicy.configure(mode: "track-end", minutes: nil, now: 1002)
+            try expect(timerPolicy.consumeBoundary(now: 1002) && !timerPolicy.consumeBoundary(now: 1002), "TIMER_BOUNDARY_NOT_SINGLE_USE")
+            for minutes in [0, 14, 16, 120] {
+                do { try timerPolicy.configure(mode: "duration", minutes: minutes, now: 1003); throw ResolverFailure.code("INVALID_TIMER_ACCEPTED") }
+                catch let failure as ResolverFailure { if failure.identifier != "INVALID_TIMER" { throw failure } }
+            }
+            report["sleepPolicy"] = ["singleExpiry":true,"singleBoundary":true,"invalidPresetsRejected":true,"clock":"injected-continuous-time"]
+            var pendingNow = 200.0, pendingCancelled = 0
+            var lateReply: ((Result<[String:Any],ResolverFailure>)->Void)?
+            let pendingTimerOwner = NativePlaybackOwner(storage:directory.appendingPathComponent("pending-timer.json"),systemIntegration:false,
+                sleepClock:{pendingNow},scheduleSleepTicks:false,resolver:{_,_,reply in lateReply=reply},cancelResolve:{_ in pendingCancelled += 1})
+            _ = try pendingTimerOwner.playTracks(tracks,index:0)
+            _ = try pendingTimerOwner.configureSleepTimer(mode:"duration",minutes:15,revision:0)
+            pendingNow += 901;pendingTimerOwner.refreshSleepTimer()
+            lateReply?(.failure(.code("CANCELLED")))
+            try await Task.sleep(nanoseconds:50_000_000)
+            try expect(pendingCancelled == 1 && !playing(pendingTimerOwner) && !loading(pendingTimerOwner) && pendingTimerOwner.snapshot()["error"] is NSNull, "LATE_RESOLVE_OVERRAN_TIMER")
+            pendingTimerOwner.shutdown()
+            report["sleepPolicyPendingResolve"] = ["cancelled":true,"lateFailureIgnored":true]
             progress("original-aac")
             let audio = try await makeAudio(in: directory)
             FixtureMediaProtocol.configure(audio)
+            var timerNow = 100.0
             var resolved: [[String: Any]] = [], cancelled = 0
             let stateURL = directory.appendingPathComponent("playback.json")
             owner = NativePlaybackOwner(storage: stateURL, protocols: [FixtureMediaProtocol.self], systemIntegration: false,
+                sleepClock: { timerNow }, scheduleSleepTicks: false,
                 resolver: { payload, _, callback in
                     resolved.append(payload)
                     DispatchQueue.main.asyncAfter(deadline: .now() + (resolved.count == 1 ? 0.25 : 0.05)) {
@@ -91,6 +117,33 @@ enum PlaybackSelfTest {
             _ = try player.command("pause")
             try await wait("RAPID_SEEK_FAILED") { !loading(player) && abs(position(player) - 4) < 0.25 && !playing(player) }
             report["seeking"] = ["pausedSeek": true, "resume": true, "latestSeekWins": true, "pauseIntentPreserved": true]
+
+            progress("sleep-transport")
+            _ = try player.configureSleepTimer(mode: "duration", minutes: 15, revision: player.timerSnapshot()["revision"] as! Int)
+            timerNow += 899; player.refreshSleepTimer()
+            try expect(player.timerSnapshot()["remaining"] as? Int == 1 && !playing(player), "PAUSE_FROZE_TIMER")
+            _ = try player.command("play"); try await wait("TIMER_RESUME_SETUP_FAILED") { playing(player) }
+            timerNow += 2; player.refreshSleepTimer()
+            try expect(!playing(player) && player.timerSnapshot()["reason"] as? String == "expired", "TIMER_DID_NOT_PAUSE")
+            player.interruption(began:false,shouldResume:true)
+            try expect(!playing(player), "TIMER_INTERRUPTION_RESUMED")
+            _ = try player.configureSleepTimer(mode:"track-end",minutes:nil,revision:player.timerSnapshot()["revision"] as! Int)
+            _ = try player.command("repeat",value:"one"); _ = try player.command("play")
+            _ = try player.command("seek",value:Double(fixtureSeconds)-0.3)
+            try await wait("TIMER_DID_NOT_OVERRIDE_REPEAT") { player.timerSnapshot()["reason"] as? String == "expired" && !playing(player) }
+            _ = try player.command("play"); try await wait("TIMER_EXPLICIT_RESTART_FAILED") { playing(player) }
+            _ = try player.configureSleepTimer(mode:"track-end",minutes:nil,revision:player.timerSnapshot()["revision"] as! Int)
+            let beforeTimerSkip = player.snapshot()["index"] as? Int
+            _ = try player.command("next")
+            try expect(!playing(player) && player.snapshot()["index"] as? Int == beforeTimerSkip, "TIMER_MANUAL_BOUNDARY_FAILED")
+            let staleTimer = player.timerSnapshot()["revision"] as! Int
+            _ = try player.configureSleepTimer(mode:"duration",minutes:60,revision:staleTimer)
+            do { _ = try player.configureSleepTimer(mode:"off",minutes:nil,revision:staleTimer); throw ResolverFailure.code("STALE_TIMER_ACCEPTED") }
+            catch let failure as ResolverFailure { if failure.identifier != "TIMER_CHANGED" { throw failure } }
+            _ = try player.configureSleepTimer(mode:"off",minutes:nil,revision:player.timerSnapshot()["revision"] as! Int)
+            try expect(!playing(player) && player.timerSnapshot()["reason"] as? String == "cancelled", "TIMER_CANCEL_CHANGED_PLAYBACK")
+            _ = try player.command("repeat",value:"off")
+            report["sleepTransport"] = ["elapsedDuringPause":true,"expiryPauses":true,"interruptionCannotResume":true,"overridesRepeat":true,"manualBoundary":true,"explicitRestart":true,"staleMutationRejected":true,"cancelDoesNotPlay":true]
 
             progress("interruptions-and-route")
             _ = try player.command("play"); try await wait("RESUME_FAILED") { playing(player) }

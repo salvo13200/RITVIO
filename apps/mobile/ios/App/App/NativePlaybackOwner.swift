@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import MediaPlayer
+import UIKit
 
 /// Main-thread owner of transport, intent, queue and system controls. UI is a client.
 final class NativePlaybackOwner {
@@ -12,6 +13,11 @@ final class NativePlaybackOwner {
     }()
     typealias Resolve = ([String: Any], String, @escaping (Result<[String: Any], ResolverFailure>) -> Void) -> Void
     var onSnapshot: (([String: Any]) -> Void)?
+    var onSleepTimer: (([String: Any]) -> Void)?
+    private var sleepTimer = PlaybackSleepTimer()
+    private var sleepTick: DispatchSourceTimer?
+    private let sleepClock: () -> TimeInterval
+    private let scheduleSleepTicks: Bool
     var onTrackStarted: ((PlaybackTrack) -> Void)?
     private var rememberedGeneration = -1
     private let player = AVPlayer()
@@ -48,8 +54,10 @@ final class NativePlaybackOwner {
     private let systemIntegration: Bool
 
     init(storage: URL? = nil, protocols: [AnyClass]? = nil, systemIntegration: Bool = true,
+         sleepClock: @escaping () -> TimeInterval = PlaybackTimerClock.now, scheduleSleepTicks: Bool = true,
          resolver: @escaping Resolve = { payload, id, callback in ResolverWorker.shared.perform(payload, requestID: id, budget: 60000, completion: callback) },
          cancelResolve: @escaping (String) -> Void = { _ = ResolverWorker.shared.cancel($0) }) {
+        self.sleepClock = sleepClock; self.scheduleSleepTicks = scheduleSleepTicks
         self.resolver = resolver; self.cancelResolve = cancelResolve; self.protocols = protocols; self.systemIntegration = systemIntegration
         self.storage = storage ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("RITVIO/playback-v1.json")
         restore()
@@ -81,6 +89,7 @@ final class NativePlaybackOwner {
     }
     func snapshot() -> [String: Any] {
         precondition(Thread.isMainThread)
+        _ = checkSleepExpiry()
         let ranges = player.currentItem?.loadedTimeRanges.compactMap { $0.timeRangeValue } ?? []
         let currentPosition = position
         let buffered = ranges.filter { $0.start.seconds <= currentPosition && CMTimeRangeGetEnd($0).seconds >= currentPosition }.map { CMTimeRangeGetEnd($0).seconds }.filter(\.isFinite).max() ?? currentPosition
@@ -92,20 +101,26 @@ final class NativePlaybackOwner {
                 "stamp": ["session": sessionID, "sequence": sequence]]
     }
     private func emit() {
+        _ = checkSleepExpiry()
         sequence += 1
         if systemIntegration { updateNowPlaying() }
         onSnapshot?(snapshot())
     }
     func playTracks(_ values: [[String: Any]], index: Int) throws -> [String: Any] {
         let tracks = try values.map(PlaybackTrack.decode)
+        guard tracks.indices.contains(index) else { throw ResolverFailure.code("INVALID_QUEUE") }
+        let expired = checkSleepExpiry(), boundary = consumeSleepBoundary()
         try queue.replace(tracks, at: index)
-        wantsPlayback = true; activate(at: 0); return snapshot()
+        if expired || boundary { stopCurrent(); savedPosition = 0; wantsPlayback = false; persist(); emit() }
+        else { wantsPlayback = true; activate(at: 0) }
+        return snapshot()
     }
     func enqueue(_ value: [String: Any], next: Bool) throws -> [String: Any] {
         try queue.enqueue(PlaybackTrack.decode(value), next: next); persist(); emit(); return snapshot()
     }
     func command(_ type: String, value: Any? = nil) throws -> [String: Any] {
         precondition(Thread.isMainThread)
+        if checkSleepExpiry() { emit(); return snapshot() }
         switch type {
         case "play":
             guard queue.current != nil else { return snapshot() }
@@ -115,8 +130,11 @@ final class NativePlaybackOwner {
             else if restart { seek(to: 0) }
             else { reconcileIntent() }
         case "pause": wantsPlayback = false; player.pause(); watchdog?.cancel(); persist()
-        case "next": if queue.advance(automatic: false) { activate(at: 0) } else { wantsPlayback = false; player.pause(); ended = true; persist() }
+        case "next":
+            if consumeSleepBoundary() { emit(); return snapshot() }
+            if queue.advance(automatic: false) { activate(at: 0) } else { wantsPlayback = false; player.pause(); ended = true; persist() }
         case "previous":
+            if position <= 3, queue.order.first != queue.index, consumeSleepBoundary() { emit(); return snapshot() }
             if position > 3 { seek(to: 0) } else if queue.previous() { activate(at: 0) } else { seek(to: 0) }
         case "seek":
             guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite else { throw ResolverFailure.code("INVALID_ARGUMENT") }
@@ -133,6 +151,7 @@ final class NativePlaybackOwner {
             queue.setShuffle(enabled); persist()
         case "jump":
             guard let index = Self.integer(value), queue.items.indices.contains(index) else { throw ResolverFailure.code("INVALID_QUEUE") }
+            if consumeSleepBoundary() { emit(); return snapshot() }
             if queue.index != index { queue.index = index; queue.revision += 1 }
             wantsPlayback = true; activate(at: 0)
         case "move":
@@ -143,18 +162,68 @@ final class NativePlaybackOwner {
             guard let index = Self.integer(details?["index"] ?? value) else { throw ResolverFailure.code("INVALID_QUEUE") }
             if let details, Self.integer(details["revision"]) == nil { throw ResolverFailure.code("INVALID_QUEUE") }
             let removed = try queue.remove(index, expectedRevision: details.flatMap { Self.integer($0["revision"]) })
-            if queue.current == nil { stopCurrent(); wantsPlayback = false; savedPosition = 0 }
-            else if removed { activate(at: 0) }
+            if queue.current == nil { stopCurrent(); wantsPlayback = false; savedPosition = 0; cancelSleepTimer() }
+            else if removed {
+                if consumeSleepBoundary() { stopCurrent(); savedPosition = 0 }
+                else { activate(at: 0) }
+            }
             persist()
         case "retry":
             if queue.current != nil { wantsPlayback = true; interrupted = false; activate(at: position, refresh: true) }
         case "clear":
+            cancelSleepTimer()
             stopCurrent(); queue = PlaybackQueue(revision: queue.revision + 1); wantsPlayback = false; savedPosition = 0; ended = false; errorCode = nil; persist()
             if systemIntegration { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         default: throw ResolverFailure.code("INVALID_COMMAND")
         }
         emit(); return snapshot()
     }
+    func timerSnapshot() -> [String: Any] {
+        precondition(Thread.isMainThread)
+        if checkSleepExpiry() { emit() }
+        return sleepTimer.snapshot(now: sleepClock())
+    }
+    func configureSleepTimer(mode: String, minutes: Int?, revision: Int) throws -> [String: Any] {
+        precondition(Thread.isMainThread)
+        if checkSleepExpiry() { emit() }
+        guard revision == sleepTimer.revision else { throw ResolverFailure.code("TIMER_CHANGED") }
+        guard mode == "off" || queue.current != nil else { throw ResolverFailure.code("NO_CURRENT_TRACK") }
+        try sleepTimer.configure(mode: mode, minutes: minutes, now: sleepClock())
+        sleepTick?.cancel(); sleepTick = nil
+        if mode == "duration", scheduleSleepTicks {
+            let timer = DispatchSource.makeTimerSource(queue: .main)
+            timer.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(100))
+            timer.setEventHandler { [weak self] in self?.refreshSleepTimer() }
+            sleepTick = timer; timer.resume()
+        }
+        publishSleepTimer(); return sleepTimer.snapshot(now: sleepClock())
+    }
+    func refreshSleepTimer() {
+        precondition(Thread.isMainThread)
+        if checkSleepExpiry() { emit() } else { publishSleepTimer() }
+    }
+    private func publishSleepTimer() { onSleepTimer?(sleepTimer.snapshot(now: sleepClock())) }
+    private func cancelSleepTimer() {
+        guard sleepTimer.mode != "off" else { return }
+        try? sleepTimer.configure(mode: "off", minutes: nil, now: sleepClock())
+        sleepTick?.cancel(); sleepTick = nil; publishSleepTimer()
+    }
+    @discardableResult private func checkSleepExpiry() -> Bool {
+        guard sleepTimer.consumeExpiry(now: sleepClock()) else { return false }
+        pauseForSleep(); return true
+    }
+    private func consumeSleepBoundary() -> Bool {
+        guard sleepTimer.consumeBoundary(now: sleepClock()) else { return false }
+        pauseForSleep(); return true
+    }
+    private func pauseForSleep() {
+        let offset = position
+        wantsPlayback = false; interrupted = false; player.pause(); watchdog?.cancel(); retryWork?.cancel()
+        if resolving || recovering { stopCurrent(); savedPosition = offset }
+        sleepTick?.cancel(); sleepTick = nil
+        persist(); publishSleepTimer()
+    }
+
     private static func integer(_ value: Any?) -> Int? {
         guard let number = value as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(), number.doubleValue.isFinite,
               number.doubleValue.rounded() == number.doubleValue, abs(number.doubleValue) < 1_000_000_000 else { return nil }
@@ -197,6 +266,7 @@ final class NativePlaybackOwner {
         } }
     }
     private func install(_ descriptor: [String: Any], generation current: Int) throws {
+        if checkSleepExpiry() { emit(); return }
         let source = try PlaybackResourceLoader(descriptor: descriptor, protocols: protocols)
         loader = source
         source.onFailure = { [weak self] code in guard let self, self.generation == current else { return }; self.mediaFailure(code) }
@@ -211,6 +281,7 @@ final class NativePlaybackOwner {
         } }
         endedObserver = NotificationCenter.default.addObserver(forName: .AVPlayerItemDidPlayToEndTime, object: item, queue: .main) { [weak self] _ in
             guard let self, self.generation == current else { return }
+            if self.consumeSleepBoundary() { self.ended = true; self.persist(); self.emit(); return }
             if self.queue.advance(automatic: true) { self.activate(at: 0) }
             else { self.wantsPlayback = false; self.ended = true; self.savedPosition = self.duration; self.persist(); self.emit() }
         }
@@ -223,6 +294,7 @@ final class NativePlaybackOwner {
         try audio.setActive(true)
     }
     private func reconcileIntent() {
+        if checkSleepExpiry() { return }
         if wantsPlayback && !interrupted && !seeking {
             do { try activateAudioSession(); player.play(); armWatchdog() }
             catch { finishError("AUDIO_SESSION_UNAVAILABLE") }
@@ -295,6 +367,7 @@ final class NativePlaybackOwner {
     func publishSnapshot() { emit() }
 
     func interruption(began: Bool, shouldResume: Bool = false) {
+        _ = checkSleepExpiry()
         if began { interrupted = true; player.pause(); watchdog?.cancel(); persist() }
         else {
             interrupted = false
@@ -307,6 +380,9 @@ final class NativePlaybackOwner {
 
     private func installSystemIntegration() {
         let center = NotificationCenter.default
+        notifications.append(center.addObserver(forName: UIApplication.willEnterForegroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.refreshSleepTimer()
+        })
         notifications.append(center.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] note in
             guard let self, let raw = (note.userInfo?[AVAudioSessionInterruptionTypeKey] as? NSNumber)?.uintValue else { return }
             let options = AVAudioSession.InterruptionOptions(rawValue: (note.userInfo?[AVAudioSessionInterruptionOptionKey] as? NSNumber)?.uintValue ?? 0)
@@ -356,6 +432,7 @@ final class NativePlaybackOwner {
             MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0, MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue]
     }
     func shutdown() {
+        sleepTick?.cancel(); sleepTick = nil; onSleepTimer = nil
         persist(); stopCurrent(); wantsPlayback = false
         if let timeObserver { player.removeTimeObserver(timeObserver); self.timeObserver = nil }
         for note in notifications { NotificationCenter.default.removeObserver(note) }; notifications.removeAll(); observations.removeAll()

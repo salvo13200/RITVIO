@@ -30,7 +30,9 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "storyArtwork", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "cancelStoryArtwork", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "exportStory", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "storyOpenSettings", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "storyOpenSettings", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "sleepTimer", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setSleepTimer", returnType: CAPPluginReturnPromise)
     ]
     private let preferenceKey = "ritvio.language.preference"
     private let revisionKey = "ritvio.language.revision"
@@ -41,6 +43,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
 
     public override func load() {
         DispatchQueue.main.async { [weak self] in
+            NativePlaybackOwner.shared.onSleepTimer = { [weak self] state in self?.notifyListeners("sleepTimer", data: state) }
             NativePlaybackOwner.shared.onSnapshot = { [weak self] state in self?.notifyListeners("playback", data: self?.present(state) ?? state) }
             NativePlaybackOwner.shared.onTrackStarted = { [weak self] track in
                 self?.libraryWorker.async { [weak self] in
@@ -88,6 +91,25 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         if NativeUIFixture.enabled { return NativeUIFixture.present(state) }
         #endif
         return state
+    }
+
+    @objc func sleepTimer(_ call: CAPPluginCall) {
+        playback(call) { NativePlaybackOwner.shared.timerSnapshot() }
+    }
+    @objc func setSleepTimer(_ call: CAPPluginCall) {
+        guard let mode = call.getString("mode"), let rawRevision = call.getValue("revision") as? NSNumber,
+              CFGetTypeID(rawRevision) != CFBooleanGetTypeID(), rawRevision.doubleValue.isFinite,
+              rawRevision.doubleValue.rounded() == rawRevision.doubleValue, (0...1_000_000_000).contains(rawRevision.doubleValue) else {
+            call.reject("Invalid timer", "INVALID_TIMER"); return
+        }
+        let raw = call.getValue("minutes")
+        var minutes: Int?
+        if let raw, !(raw is NSNull) {
+            guard let number = raw as? NSNumber, CFGetTypeID(number) != CFBooleanGetTypeID(),
+                  [15.0,30.0,45.0,60.0].contains(number.doubleValue) else { call.reject("Invalid timer", "INVALID_TIMER"); return }
+            minutes = number.intValue
+        }
+        playback(call) { try NativePlaybackOwner.shared.configureSleepTimer(mode: mode, minutes: minutes, revision: rawRevision.intValue) }
     }
 
     @objc func resolverStatus(_ call: CAPPluginCall) { resolve(call, payload: ["operation": "status"]) }
@@ -204,7 +226,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true, "sleepTimer": true]
             ])
         }
     }

@@ -380,7 +380,7 @@ pnpm exec tsx --test tests/ios-lyrics.test.ts tests/ios-foundation.test.ts
 pnpm exec playwright test --config tests/config/playwright.ios5.config.ts tests/ios-lyrics-ui.spec.ts
 ```
 
-TypeScript and the final iOS-target web bundle passed locally;12 deterministic client/foundation cases and two browser fixture cases passed (15.2seconds for the latter). The browser flow covers manual/follow controls, appearance, track changes, plain/missing/instrumental/error states and59pt synthetic side insets in landscape plus the tall/default gutter rule. Opening lyrics does not issue an audio/queue command. The independent review resolved its sole safe-area fix at browser/source scope. No native Simulator, device, live LRCLIB HTTP or new IPA result is inferred. The maintainer explicitly deferred native/physical testing until beta; signing, native HTTP behaviour, Dynamic Type/VoiceOver and locked-screen/network continuity remain acceptance work before distribution. No GitHub push or public release was performed for this local increment. Existing Android and desktop releases are unchanged.
+TypeScript and the final iOS-target web bundle passed locally;12 deterministic client/foundation cases and two browser fixture cases passed (15.2seconds for the latter). The browser flow covers manual/follow controls, appearance, track changes, plain/missing/instrumental/error states and 59pt synthetic side insets in landscape plus the tall/default gutter rule. Opening lyrics does not issue an audio/queue command. The independent review resolved its sole safe-area fix at browser/source scope. No native Simulator, device, live LRCLIB HTTP or new IPA result is inferred. The maintainer explicitly deferred native/physical testing until beta; signing, native HTTP behaviour, Dynamic Type/VoiceOver and locked-screen/network continuity remain acceptance work before distribution. No GitHub push or public release was performed for this local increment. Existing Android and desktop releases are unchanged.
 
 
 ## iOS image-sharing source candidate 0.7.0 build 8
@@ -405,3 +405,26 @@ TypeScript and the iOS-target web bundle passed locally. 17 deterministic cases 
 This is local source on codex/ios-sharing, not an IPA or published iOS release. The maintainer deferred native/simulator/device testing until beta. Before distribution, macOS compilation and an iOS15+ phone must establish real artwork/lyrics access, Photos permission and acknowledgement, activity-sheet handoff/cancellation, VoiceOver/Dynamic Type and continuous audio through sharing. Existing Android/Windows releases and the temporary PC-assisted iOS12 trial remain separate and unchanged.
 
 The independent finish review requested one text-scaling correction in the new composer. Its verdict pass scored that finding resolved (`ship`) at source/browser scope; the documentation audit confirmed reuse of the incumbent system and preserved the known historical Android-document drift. Neither verdict establishes native or public-release readiness.
+
+
+## iOS sleep-timer source candidate 0.8.0 build 9
+
+The local timer increment extends the existing player with a clock action and an additional Settings entry. Choose 15/30/45/60 minutes or End of this song, inspect the native remaining time and cancel without starting music. End of song pauses the current occurrence before natural repeat/advance or a manual skip/jump/new-queue boundary. A duration timer survives ordinary track changes and continues counting while playback is paused. Closing its sheet does not cancel it. It is session-only and is not restored after process termination.
+
+`NativePlaybackOwner` owns the policy, ticking and pause intent. Expiry is checked before resume, descriptor installation, seek reconciliation, interruption recovery and foreground refresh. Pending resolution generations are invalidated when stopping a loading item; a late result must not restart playback. The native getter/setter/event are separate from transport commands. Mutations require the current revision, modes/presets are bounded, and the client rejects older revisions and time samples. A completed native response is required before showing the new active state. Inline feedback keeps timer controls visible; long content scrolls below the fixed Done header.
+
+The deadline uses [`mach_continuous_time`](https://developer.apple.com/documentation/kernel/1646199-mach_continuous_time), which advances during system sleep and avoids civil-clock adjustments. A native dispatch source polls while the process runs; this is not a claim that iOS wakes a suspended process or provides an exact real-time alarm. Foreground and playback-intent checks enforce an overdue timer on return. The existing SystemBootTime/35F9.1 privacy declaration covers the app's elapsed-interval use. No notification permission, additional background entitlement, paid service or server is added.
+
+```powershell
+pnpm exec tsc --noEmit
+$env:RITVIO_MOBILE_PLATFORM='ios'
+pnpm --dir apps/mobile exec vite build
+pnpm exec tsx --test tests/ios-sleep-timer.test.ts tests/ios-foundation.test.ts
+pnpm exec playwright test --config tests/config/playwright.ios-timer.config.ts
+```
+
+Eight local model/foundation cases and three browser cases passed. Browser checks cover delayed acknowledgement, native countdown presentation, closing/reopening/focus, cancelling, end mode, expiry feedback, failed mutation recovery, older-event rejection, Settings entry, 375x667/402x874 large-text layouts and 59pt synthetic landscape side insets. They assert no transport/queue calls from timer UI actions. Outcomes are native bridge fixtures; they do not execute Swift or prove real audio expiry. The App project lists the new Swift source and the privacy plist parses with its existing elapsed-time reason.
+
+`PlaybackSelfTest` now includes native policy checks with an injected continuous clock plus synthetic AVPlayer cases for elapsed time during pause, stopping playback, interruption/repeat precedence, manual boundaries, stale mutations and cancelled pending resolution. These native additions are written but have not been compiled or executed on this Windows host. As agreed, macOS compilation, actual locked-screen/background timing, calls/headphones, VoiceOver/Dynamic Type and iOS15+ phone acceptance remain beta work. This source-only increment stays on codex/ios-sleep-timer; no IPA, push or release is produced. Radio/autoplay, playlist document transfer and support/update adaptation remain later IOS-5 work.
+
+The independent Impeccable finish review returned `ship` with no material findings at this local source/browser scope. It does not certify native background execution or supersede the beta acceptance work above.
