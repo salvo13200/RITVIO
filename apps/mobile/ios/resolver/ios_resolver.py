@@ -27,6 +27,7 @@ _Session = requests.Session
 _sessions = []
 _search_cache = OrderedDict()
 _catalog_cache = OrderedDict()
+_radio_cache = OrderedDict()
 _stream_cache = OrderedDict()
 _cooldown_until = 0.0
 _provider_signals = set()
@@ -134,6 +135,30 @@ def search(query):
     checkpoint()
     cache_write(_search_cache, key, result, time.monotonic() + 300, 24)
     return {**result, 'cacheHit': False}
+
+
+def radio(video_id):
+    if not isinstance(video_id, str) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', video_id):
+        raise ResolverError('INVALID_VIDEO_ID')
+    cached = cache_read(_radio_cache, video_id, time.monotonic())
+    if cached is not None:
+        return {**cached, 'cached': True}
+    if time.monotonic() < _cooldown_until:
+        raise ResolverError('RATE_LIMITED')
+    result = json.loads(shared.catalog(json.dumps({'operation': 'radio', 'videoId': video_id})))
+    checkpoint()
+    if not isinstance(result, dict) or result.get('videoId') != video_id or not isinstance(result.get('items'), list) or len(result['items']) > 51:
+        raise ResolverError('NATIVE_RESPONSE_INVALID')
+    items = []
+    for item in result['items']:
+        if not isinstance(item, dict) or not re.fullmatch(r'[A-Za-z0-9_-]{11}', str(item.get('videoId', ''))):
+            continue
+        if not isinstance(item.get('title'), str) or not item['title'].strip() or len(item['title'].encode('utf-8')) > 1024:
+            continue
+        items.append(public_catalog(item))
+    value = {'videoId': video_id, 'items': items}
+    cache_write(_radio_cache, video_id, value, time.monotonic() + (600 if items else 120), 8)
+    return {**value, 'cached': False}
 
 
 def catalog(payload):
@@ -313,6 +338,8 @@ def invoke(payload_json):
             value = search(payload.get('query'))
         elif operation in ('catalog-search', 'detail', 'search-snapshot', 'releases', 'artist-search'):
             value = catalog(payload)
+        elif operation == 'radio':
+            value = radio(payload.get('videoId'))
         elif operation == 'resolve':
             value = resolve(payload.get('videoId'), payload.get('refresh', False))
         elif operation == 'engine-check':

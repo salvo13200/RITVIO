@@ -87,6 +87,7 @@ enum PlaybackSelfTest {
             progress("original-aac")
             let audio = try await makeAudio(in: directory)
             FixtureMediaProtocol.configure(audio)
+            progress("discovery");report["discovery"] = try await discoveryChecks(in:directory,tracks:tracks)
             var timerNow = 100.0
             var resolved: [[String: Any]] = [], cancelled = 0
             let stateURL = directory.appendingPathComponent("playback.json")
@@ -218,6 +219,61 @@ enum PlaybackSelfTest {
         }
         write(report)
     }
+    @MainActor private static func discoveryChecks(in directory:URL,tracks:[[String:Any]]) async throws -> [String:Any] {
+        let decoded=try tracks.map(PlaybackTrack.decode)
+        var duplicate=tracks[1];duplicate["videoId"]="abcdefghijk"
+        let candidates=[decoded[0],decoded[1],try PlaybackTrack.decode(duplicate),decoded[2]]
+        let selected=PlaybackDiscovery.select(candidates,excluding:[decoded[0]],seen:[],limit:20)
+        try expect(selected.map(\.videoId) == [decoded[1].videoId,decoded[2].videoId],"RADIO_EDITION_DEDUP_FAILED")
+        try expect(PlaybackDiscovery.moved([2],count:3,from:2,to:1) == Set([1]),"AUTOMATIC_MOVE_IDENTITY_LOST")
+        try expect(PlaybackDiscovery.removed([1,2],index:1) == Set([1]),"AUTOMATIC_REMOVE_IDENTITY_LOST")
+        var legacyQueue=PlaybackQueue();try legacyQueue.replace(decoded,at:0)
+        let saved=PlaybackSavedState(schema:1,queue:legacyQueue,position:0,volume:1)
+        var legacy=try JSONSerialization.jsonObject(with:JSONEncoder().encode(saved)) as! [String:Any]
+        legacy.removeValue(forKey:"automatic");legacy.removeValue(forKey:"radioOrigin")
+        let old=try JSONDecoder().decode(PlaybackSavedState.self,from:JSONSerialization.data(withJSONObject:legacy))
+        try expect(old.valid && old.automatic == nil,"LEGACY_AUTOMATIC_MIGRATION_FAILED")
+        var now=100.0,calls=0
+        var reply:((Result<[String:Any],ResolverFailure>)->Void)?
+        let owner=NativePlaybackOwner(storage:directory.appendingPathComponent("discovery.json"),protocols:[FixtureMediaProtocol.self],systemIntegration:false,
+            sleepClock:{now},scheduleSleepTicks:false,suggest:{_,_,callback in calls += 1;reply=callback},
+            resolver:{_,_,callback in callback(.success(["url":"https://fixture.googlevideo.com/audio.m4a","headers":["User-Agent":"RITVIO-native-test"],
+                "expires":Date().timeIntervalSince1970+300,"container":"m4a","codec":"mp4a.40.2","protocol":"https","duration":fixtureSeconds]))},cancelResolve:{_ in})
+        defer { owner.shutdown() }
+        _ = try owner.playTracks(tracks,index:0);try await wait("DISCOVERY_PLAYER_SETUP_FAILED"){playing(owner) && !loading(owner)}
+        let seed=decoded[0],payload:[String:Any]=["videoId":seed.videoId,"items":decoded.map(\.json)]
+        let before=owner.snapshot()["queueRevision"] as! Int
+        _ = try owner.discoveryCommand("radio",seed:seed,requestID:"radio-test-one")
+        _ = try owner.command("pause");reply?(.success(payload));try await Task.sleep(nanoseconds:50_000_000)
+        try expect(owner.snapshot()["queueRevision"] as? Int == before && !playing(owner),"LATE_RADIO_OVERRAN_PAUSE")
+        _ = try owner.discoveryCommand("radio",seed:seed,requestID:"radio-test-two");reply?(.success(payload))
+        try await wait("RADIO_DID_NOT_COMMIT"){owner.discoverySnapshot()["status"] as? String == "ready" && playing(owner)}
+        try expect(owner.snapshot()["automatic"] as? [Int] == [1,2],"RADIO_ORIGINS_MISSING")
+        _ = try owner.enqueue(tracks[0],next:true)
+        _ = try owner.discoveryCommand("enabled",enabled:false)
+        let retained=owner.snapshot()["items"] as! [[String:Any]]
+        try expect(retained.count == 2 && retained.allSatisfy{$0["videoId"] as? String == seed.videoId} && playing(owner),"AUTOPLAY_OFF_REMOVED_MANUAL_OR_CURRENT")
+        _ = try owner.discoveryCommand("enabled",enabled:true);now += 5
+        try await wait("AUTOPLAY_NOT_REQUESTED"){owner.discoverySnapshot()["mode"] as? String == "autoplay"}
+        do {_ = try owner.discoveryCommand("retry");throw ResolverFailure.code("DISCOVERY_CONCURRENT_RETRY_ACCEPTED")}
+        catch let failure as ResolverFailure {if failure.identifier != "DISCOVERY_BUSY" {throw failure}}
+        let oldReply=reply,beforeRepeat=owner.snapshot()["queueRevision"] as! Int
+        _ = try owner.command("repeat",value:"one");oldReply?(.success(payload));try await Task.sleep(nanoseconds:50_000_000)
+        try expect(owner.snapshot()["queueRevision"] as? Int == beforeRepeat+1 && owner.discoverySnapshot()["suspended"] as? String == "repeat","LATE_AUTOPLAY_OVERRAN_REPEAT")
+        _ = try owner.command("repeat",value:"off")
+        _ = try owner.configureSleepTimer(mode:"duration",minutes:15,revision:owner.timerSnapshot()["revision"] as! Int)
+        let blockedCalls=calls;now += 5;try await Task.sleep(nanoseconds:350_000_000)
+        try expect(calls == blockedCalls && owner.discoverySnapshot()["suspended"] as? String == "timer","TIMER_DID_NOT_SUSPEND_AUTOPLAY")
+        _ = try owner.configureSleepTimer(mode:"off",minutes:nil,revision:owner.timerSnapshot()["revision"] as! Int);now += 5
+        try await wait("AUTOPLAY_AFTER_TIMER_NOT_REQUESTED"){owner.discoverySnapshot()["mode"] as? String == "autoplay"}
+        reply?(.failure(.code("RATE_LIMITED")))
+        try await wait("DISCOVERY_COOLDOWN_NOT_SET"){owner.discoverySnapshot()["status"] as? String == "error"}
+        do {_ = try owner.discoveryCommand("retry");throw ResolverFailure.code("DISCOVERY_COOLDOWN_BYPASSED")}
+        catch let failure as ResolverFailure {if failure.identifier != "RATE_LIMITED" {throw failure}}
+        try expect(playing(owner),"SUGGESTIONS_ERROR_STOPPED_AUDIO")
+        return ["editionDedup":true,"occurrenceIdentity":true,"legacyState":true,"lateRadioDiscarded":true,"disableProtectsManual":true,"timerRepeatSuspend":true,"cooldown":true]
+    }
+
     private static func expect(_ value: Bool, _ code: String) throws { if !value { throw ResolverFailure.code(code) } }
     @MainActor private static func playing(_ owner: NativePlaybackOwner) -> Bool { owner.snapshot()["playing"] as? Bool == true }
     @MainActor private static func loading(_ owner: NativePlaybackOwner) -> Bool { owner.snapshot()["loading"] as? Bool == true }

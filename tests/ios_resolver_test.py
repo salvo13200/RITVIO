@@ -21,7 +21,7 @@ spec.loader.exec_module(resolver)
 class IOSResolverTests(unittest.TestCase):
     def setUp(self):
         native.abort_reason.return_value = None
-        resolver._search_cache.clear(); resolver._stream_cache.clear(); resolver._catalog_cache.clear(); resolver._cooldown_until = 0
+        resolver._search_cache.clear(); resolver._stream_cache.clear(); resolver._catalog_cache.clear(); resolver._radio_cache.clear(); resolver._cooldown_until = 0
         self.stream = {'url': 'https://r1.googlevideo.com/audio?expire=9999999999&signature=private-value',
                        'expires': time.time() + 600, 'headers': {'User-Agent': 'Agent'},
                        'container': 'm4a', 'codec': 'mp4a.40.2', 'protocol': 'https', 'duration': 180}
@@ -37,6 +37,29 @@ class IOSResolverTests(unittest.TestCase):
                 self.assertEqual(self.call(operation='resolve', videoId=identifier)['error'], 'INVALID_VIDEO_ID')
             search.assert_not_called(); stream.assert_not_called()
         self.assertEqual(json.loads(resolver.invoke('{'))['error'], 'INVALID_ARGUMENT')
+
+    def test_radio_reuses_bounded_public_metadata_and_preserves_cooldown(self):
+        seed = 'abcdefghijk'
+        raw = {'videoId': seed, 'items': [{'videoId': 'lmnopqrstuv', 'title': 'A real title', 'artist': 'Artist', 'duration': 90, 'thumbnail': '', 'url': 'https://private.invalid', 'headers': {'secret': 'hidden'}}]}
+        with patch.object(resolver.shared, 'catalog', return_value=json.dumps(raw)) as provider:
+            first = resolver.radio(seed)
+            self.assertNotIn('url', first['items'][0]); self.assertNotIn('headers', first['items'][0])
+            first['items'].clear()
+            resolver._cooldown_until = time.monotonic() + 30
+            self.assertEqual(len(resolver.radio(seed)['items']), 1)
+            self.assertTrue(resolver.radio(seed)['cached']); provider.assert_called_once()
+            with self.assertRaises(resolver.ResolverError): resolver.radio('98765432101')
+        with patch.object(resolver.shared, 'catalog') as provider:
+            self.assertEqual(self.call(operation='radio', videoId='../../bad')['error'], 'INVALID_VIDEO_ID'); provider.assert_not_called()
+
+    def test_radio_rejects_mismatched_oversized_cancelled_results(self):
+        seed = 'abcdefghijk'
+        for raw in [{'videoId': 'lmnopqrstuv', 'items': []}, {'videoId': seed, 'items': [{}] * 52}]:
+            with patch.object(resolver.shared, 'catalog', return_value=json.dumps(raw)):
+                self.assertEqual(self.call(operation='radio', videoId=seed)['error'], 'NATIVE_RESPONSE_INVALID')
+        with patch.object(resolver.shared, 'catalog', side_effect=lambda _: (setattr(native.abort_reason, 'return_value', 'cancelled'), json.dumps({'videoId': seed, 'items': []}))[1]):
+            self.assertEqual(self.call(operation='radio', videoId=seed)['error'], 'CANCELLED')
+            self.assertEqual(len(resolver._radio_cache), 0)
 
     def test_search_reuses_bounded_cache_and_returns_independent_values(self):
         with patch.object(resolver.shared, 'search', return_value=json.dumps({'items': [{'videoId': 'abcdefghijk'}]})) as provider:

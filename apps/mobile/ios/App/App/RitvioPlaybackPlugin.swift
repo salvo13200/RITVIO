@@ -32,7 +32,9 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "exportStory", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storyOpenSettings", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "sleepTimer", returnType: CAPPluginReturnPromise),
-        CAPPluginMethod(name: "setSleepTimer", returnType: CAPPluginReturnPromise)
+        CAPPluginMethod(name: "setSleepTimer", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "discoveryState", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "discoveryCommand", returnType: CAPPluginReturnPromise)
     ]
     private let preferenceKey = "ritvio.language.preference"
     private let revisionKey = "ritvio.language.revision"
@@ -43,6 +45,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
 
     public override func load() {
         DispatchQueue.main.async { [weak self] in
+            NativePlaybackOwner.shared.onDiscovery = { [weak self] value in self?.notifyListeners("discovery",data:value) }
             NativePlaybackOwner.shared.onSleepTimer = { [weak self] state in self?.notifyListeners("sleepTimer", data: state) }
             NativePlaybackOwner.shared.onSnapshot = { [weak self] state in self?.notifyListeners("playback", data: self?.present(state) ?? state) }
             NativePlaybackOwner.shared.onTrackStarted = { [weak self] track in
@@ -110,6 +113,27 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
             minutes = number.intValue
         }
         playback(call) { try NativePlaybackOwner.shared.configureSleepTimer(mode: mode, minutes: minutes, revision: rawRevision.intValue) }
+    }
+
+    @objc func discoveryState(_ call: CAPPluginCall) { playback(call) { NativePlaybackOwner.shared.discoverySnapshot() } }
+    @objc func discoveryCommand(_ call: CAPPluginCall) {
+        guard let type=call.getString("type"),["enabled","radio","cancel","retry"].contains(type) else { call.reject("Invalid discovery command","INVALID_ARGUMENT");return }
+        var seed: PlaybackTrack?,enabled: Bool?,request: String?
+        do {
+            if type == "enabled" {
+                guard let raw=call.getValue("enabled") as? NSNumber,CFGetTypeID(raw) == CFBooleanGetTypeID() else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+                enabled=raw.boolValue
+            }
+            if type == "radio" {
+                guard let raw=call.getObject("track") else { throw ResolverFailure.code("INVALID_TRACK") }
+                seed=try PlaybackTrack.decode(raw)
+            }
+            if type == "radio" || type == "cancel" {
+                guard let id=call.getString("requestId"),id.range(of:"\\A[A-Za-z0-9-]{8,80}\\z",options:.regularExpression) != nil else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+                request=id
+            }
+        } catch { call.reject("Invalid discovery command",(error as? ResolverFailure)?.identifier ?? "INVALID_ARGUMENT");return }
+        playback(call) { try NativePlaybackOwner.shared.discoveryCommand(type,enabled:enabled,seed:seed,requestID:request) }
     }
 
     @objc func resolverStatus(_ call: CAPPluginCall) { resolve(call, payload: ["operation": "status"]) }
@@ -226,7 +250,7 @@ public class RitvioPlaybackPlugin: CAPPlugin, CAPBridgedPlugin {
                 "textScale": UIFont.preferredFont(forTextStyle: .body).pointSize / 17.0,
                 "safeArea": ["top": safeArea.top, "right": safeArea.right, "bottom": safeArea.bottom, "left": safeArea.left],
                 "bundledAssets": bundle.url(forResource: "index", withExtension: "html", subdirectory: "public") != nil,
-                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true, "sleepTimer": true]
+                "capabilities": ["resolver": bundle.url(forResource: "ios_resolver", withExtension: "py", subdirectory: "Resolver/app") != nil, "playback": true, "library": true, "lyrics": true, "sharing": true, "sleepTimer": true, "discovery": true]
             ])
         }
     }

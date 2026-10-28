@@ -2,9 +2,12 @@ import {registerPlugin,type PluginListenerHandle} from '@capacitor/core';
 import type {MobilePlayback,MobileCommand,NativeTrack} from '../../../../packages/domain/mobile';
 import type {LibraryAction} from './library-model';
 import type {SleepMode,SleepMinutes} from './sleep-model';
+import type {DiscoveryCommand} from './discovery-model';
 import type {CatalogRequest} from './catalog-model';
 interface FoundationPlugin {
  foundationStatus():Promise<unknown>;
+ discoveryState():Promise<unknown>;
+ discoveryCommand(options:DiscoveryCommand):Promise<unknown>;
  sleepTimer():Promise<unknown>;
  setSleepTimer(options:{mode:SleepMode;minutes?:SleepMinutes;revision:number}):Promise<unknown>;
  foundationCheck(options:{nonce:string}):Promise<unknown>;
@@ -25,6 +28,7 @@ interface FoundationPlugin {
  cancelStoryArtwork(options:{requestId:string}):Promise<{cancelled:boolean}>;
  exportStory(options:{base64:string;save:boolean}):Promise<{status:'saved'|'shared'|'cancelled';destination?:'photos'}>;
  storyOpenSettings():Promise<void>;
+ addListener(event:'discovery',listener:(state:unknown)=>void):Promise<PluginListenerHandle>;
  addListener(event:'sleepTimer',listener:(state:unknown)=>void):Promise<PluginListenerHandle>;
  addListener(event:'playback',listener:(state:MobilePlayback)=>void):Promise<PluginListenerHandle>;
  addListener(event:'library',listener:(state:unknown)=>void):Promise<PluginListenerHandle>;

@@ -112,5 +112,7 @@ struct PlaybackSavedState: Codable {
     let queue: PlaybackQueue
     let position: Double
     let volume: Float
-    var valid: Bool { schema == 1 && queue.valid && position.isFinite && (0...86400).contains(position) && volume.isFinite && (0...1).contains(volume) }
+    var automatic: [Int]? = nil
+    var radioOrigin: PlaybackTrack? = nil
+    var valid: Bool { schema == 1 && queue.valid && (automatic == nil || (automatic!.count <= 500 && Set(automatic!).count == automatic!.count && automatic!.allSatisfy { queue.items.indices.contains($0) })) && (radioOrigin == nil || radioOrigin!.valid) && position.isFinite && (0...86400).contains(position) && volume.isFinite && (0...1).contains(volume) }
 }

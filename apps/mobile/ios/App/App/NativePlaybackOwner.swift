@@ -19,6 +19,24 @@ final class NativePlaybackOwner {
     private let sleepClock: () -> TimeInterval
     private let scheduleSleepTicks: Bool
     var onTrackStarted: ((PlaybackTrack) -> Void)?
+    var onDiscovery: (([String:Any])->Void)?
+    private let suggest: Resolve
+    private let discoveryPreferences: UserDefaults?
+    private var autoplayEnabled = false
+    private var automatic = Set<Int>()
+    private var radioOrigin: PlaybackTrack?
+    private var discoverySeen: [String] = []
+    private var discoveryRequest: String?
+    private var discoveryGeneration = 0
+    private var discoveryRevision = 0
+    private var radioClientID: String?
+    private var discoveryMode: String?
+    private var discoveryStatus = "idle"
+    private var discoveryMessage: String?
+    private var discoveryCooldown = 0.0
+    private var discoveryChangedAt = 0.0
+    private var lastAutoSeed: String?
+    private var waitingForAutoplay = false
     private var rememberedGeneration = -1
     private let player = AVPlayer()
     private var queue = PlaybackQueue()
@@ -55,8 +73,11 @@ final class NativePlaybackOwner {
 
     init(storage: URL? = nil, protocols: [AnyClass]? = nil, systemIntegration: Bool = true,
          sleepClock: @escaping () -> TimeInterval = PlaybackTimerClock.now, scheduleSleepTicks: Bool = true,
+         suggest: @escaping Resolve = { payload,id,callback in ResolverWorker.shared.perform(payload,requestID:id,budget:15000,completion:callback) },
          resolver: @escaping Resolve = { payload, id, callback in ResolverWorker.shared.perform(payload, requestID: id, budget: 60000, completion: callback) },
          cancelResolve: @escaping (String) -> Void = { _ = ResolverWorker.shared.cancel($0) }) {
+        self.suggest = suggest; self.discoveryPreferences = systemIntegration ? .standard : nil
+        self.autoplayEnabled = self.discoveryPreferences?.bool(forKey:"ritvio.ios.autoplay.enabled") ?? false
         self.sleepClock = sleepClock; self.scheduleSleepTicks = scheduleSleepTicks
         self.resolver = resolver; self.cancelResolve = cancelResolve; self.protocols = protocols; self.systemIntegration = systemIntegration
         self.storage = storage ?? FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0].appendingPathComponent("RITVIO/playback-v1.json")
@@ -67,12 +88,12 @@ final class NativePlaybackOwner {
             if self.player.timeControlStatus == .waitingToPlayAtSpecifiedRate && self.wantsPlayback { self.armWatchdog() }
             else if !self.resolving { self.watchdog?.cancel() }
             if self.player.timeControlStatus == .playing, self.rememberedGeneration != self.generation, let track = self.queue.current {
-                self.rememberedGeneration = self.generation; self.onTrackStarted?(track)
+                self.rememberedGeneration = self.generation; self.rememberDiscovery([track]); self.onTrackStarted?(track)
             }
             self.emit()
         } })
         timeObserver = player.addPeriodicTimeObserver(forInterval: CMTime(seconds: 0.25, preferredTimescale: 600), queue: .main) { [weak self] _ in
-            guard let self else { return }; self.emit()
+            guard let self else { return }; self.maybeAutoplay(); self.emit()
             if self.player.rate > 0 && Date().timeIntervalSince(self.lastSave) >= 5 { self.persist() }
         }
         if systemIntegration { installSystemIntegration() }
@@ -96,7 +117,7 @@ final class NativePlaybackOwner {
         return ["items": queue.items.map(\.json), "index": queue.index, "order": queue.order, "queueRevision": queue.revision,
                 "position": currentPosition, "duration": duration, "buffered": max(currentPosition, buffered),
                 "playing": player.rate > 0, "loading": resolving || recovering || seeking || (wantsPlayback && !interrupted && player.timeControlStatus == .waitingToPlayAtSpecifiedRate),
-                "shuffle": queue.shuffle, "repeat": queue.repeatMode, "volume": player.volume,
+                "automatic": automatic.sorted(), "shuffle": queue.shuffle, "repeat": queue.repeatMode, "volume": player.volume,
                 "error": errorCode as Any? ?? NSNull(), "status": queue.current == nil ? "idle" : ended ? "ended" : resolving || seeking ? "buffering" : "ready",
                 "stamp": ["session": sessionID, "sequence": sequence]]
     }
@@ -109,6 +130,7 @@ final class NativePlaybackOwner {
     func playTracks(_ values: [[String: Any]], index: Int) throws -> [String: Any] {
         let tracks = try values.map(PlaybackTrack.decode)
         guard tracks.indices.contains(index) else { throw ResolverFailure.code("INVALID_QUEUE") }
+        invalidateDiscovery(clearOrigin:true); automatic.removeAll()
         let expired = checkSleepExpiry(), boundary = consumeSleepBoundary()
         try queue.replace(tracks, at: index)
         if expired || boundary { stopCurrent(); savedPosition = 0; wantsPlayback = false; persist(); emit() }
@@ -116,11 +138,15 @@ final class NativePlaybackOwner {
         return snapshot()
     }
     func enqueue(_ value: [String: Any], next: Bool) throws -> [String: Any] {
-        try queue.enqueue(PlaybackTrack.decode(value), next: next); persist(); emit(); return snapshot()
+        let track = try PlaybackTrack.decode(value)
+        guard queue.items.count < 500 else { throw ResolverFailure.code("INVALID_QUEUE") }
+        invalidateDiscovery()
+        try queue.enqueue(track, next: next); persist(); emit(); return snapshot()
     }
     func command(_ type: String, value: Any? = nil) throws -> [String: Any] {
         precondition(Thread.isMainThread)
         if checkSleepExpiry() { emit(); return snapshot() }
+        if ["play","pause","next","previous","seek","jump","move","remove","clear","repeat","shuffle","retry"].contains(type) { invalidateDiscovery(clearOrigin:type == "clear") }
         switch type {
         case "play":
             guard queue.current != nil else { return snapshot() }
@@ -156,12 +182,17 @@ final class NativePlaybackOwner {
             wantsPlayback = true; activate(at: 0)
         case "move":
             guard let item = value as? [String: Any], let from = Self.integer(item["from"]), let to = Self.integer(item["to"]), let revision = Self.integer(item["revision"]) else { throw ResolverFailure.code("INVALID_QUEUE") }
-            try queue.move(from: from, to: to, expectedRevision: revision); persist()
+            let priorAutomatic = automatic
+            try queue.move(from: from, to: to, expectedRevision: revision)
+            automatic = PlaybackDiscovery.moved(priorAutomatic,count:queue.items.count,from:from,to:to); persist()
         case "remove":
             let details = value as? [String: Any]
             guard let index = Self.integer(details?["index"] ?? value) else { throw ResolverFailure.code("INVALID_QUEUE") }
             if let details, Self.integer(details["revision"]) == nil { throw ResolverFailure.code("INVALID_QUEUE") }
+            let removedTrack = queue.items.indices.contains(index) ? queue.items[index] : nil
             let removed = try queue.remove(index, expectedRevision: details.flatMap { Self.integer($0["revision"]) })
+            automatic = PlaybackDiscovery.removed(automatic,index:index)
+            if let removedTrack { rememberDiscovery([removedTrack]) }
             if queue.current == nil { stopCurrent(); wantsPlayback = false; savedPosition = 0; cancelSleepTimer() }
             else if removed {
                 if consumeSleepBoundary() { stopCurrent(); savedPosition = 0 }
@@ -171,6 +202,7 @@ final class NativePlaybackOwner {
         case "retry":
             if queue.current != nil { wantsPlayback = true; interrupted = false; activate(at: position, refresh: true) }
         case "clear":
+            automatic.removeAll()
             cancelSleepTimer()
             stopCurrent(); queue = PlaybackQueue(revision: queue.revision + 1); wantsPlayback = false; savedPosition = 0; ended = false; errorCode = nil; persist()
             if systemIntegration { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
@@ -178,6 +210,126 @@ final class NativePlaybackOwner {
         }
         emit(); return snapshot()
     }
+    private var discoverySuspended: String? {
+        sleepTimer.mode != "off" ? "timer" : queue.repeatMode != "off" ? "repeat" : nil
+    }
+    func discoverySnapshot() -> [String:Any] {
+        precondition(Thread.isMainThread)
+        return ["enabled":autoplayEnabled,"status":discoveryStatus,"mode":discoveryMode as Any? ?? NSNull(),
+            "loading":discoveryRequest != nil,"origin":radioOrigin?.json as Any? ?? NSNull(),
+            "message":discoveryMessage as Any? ?? NSNull(),"suspended":discoverySuspended as Any? ?? NSNull(),
+            "retryIn":Int(ceil(max(0,discoveryCooldown-sleepClock()))),"revision":discoveryRevision,"sample":sleepClock()]
+    }
+    private func publishDiscovery() { discoveryRevision += 1; onDiscovery?(discoverySnapshot()) }
+    private func rememberDiscovery(_ tracks:[PlaybackTrack]) {
+        discoverySeen.append(contentsOf:tracks.flatMap(PlaybackDiscovery.keys))
+        if discoverySeen.count > 400 { discoverySeen.removeFirst(discoverySeen.count-400) }
+    }
+    private func invalidateDiscovery(clearOrigin:Bool=false) {
+        discoveryGeneration += 1
+        if let id=discoveryRequest { cancelResolve(id) }
+        discoveryRequest=nil;discoveryMode=nil;radioClientID=nil;lastAutoSeed=nil
+        discoveryStatus="idle";discoveryMessage=nil;discoveryChangedAt=sleepClock()
+        if waitingForAutoplay { wantsPlayback=false;waitingForAutoplay=false;player.pause() }
+        if clearOrigin { radioOrigin=nil }
+        publishDiscovery()
+    }
+    func discoveryCommand(_ type:String,enabled:Bool?=nil,seed:PlaybackTrack?=nil,requestID:String?=nil) throws -> [String:Any] {
+        precondition(Thread.isMainThread)
+        switch type {
+        case "enabled":
+            guard let enabled else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+            invalidateDiscovery();autoplayEnabled=enabled
+            discoveryPreferences?.set(enabled,forKey:"ritvio.ios.autoplay.enabled")
+            if !enabled {
+                for index in PlaybackDiscovery.future(queue,automatic:automatic) {
+                    rememberDiscovery([queue.items[index]])
+                    _ = try queue.remove(index,expectedRevision:nil)
+                    automatic=PlaybackDiscovery.removed(automatic,index:index)
+                }
+                radioOrigin=nil;persist();emit()
+            }
+            publishDiscovery()
+        case "radio":
+            guard let seed,let requestID else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+            guard sleepTimer.mode == "off" else { throw ResolverFailure.code("DISCOVERY_TIMER_ACTIVE") }
+            guard !resolving && !recovering && !seeking && activeResolution == nil else { throw ResolverFailure.code("DISCOVERY_BUSY") }
+            try beginDiscovery(seed,explicit:true,clientID:requestID)
+        case "cancel":
+            guard let requestID else { throw ResolverFailure.code("INVALID_ARGUMENT") }
+            if discoveryMode == "radio", radioClientID == requestID { invalidateDiscovery() }
+        case "retry":
+            guard discoveryRequest == nil else { throw ResolverFailure.code("DISCOVERY_BUSY") }
+            guard sleepClock() >= discoveryCooldown else { throw ResolverFailure.code("RATE_LIMITED") }
+            lastAutoSeed=nil;discoveryStatus="idle";discoveryMessage=nil
+            maybeAutoplay(force:true);publishDiscovery()
+        default: throw ResolverFailure.code("INVALID_ARGUMENT")
+        }
+        return discoverySnapshot()
+    }
+    private func beginDiscovery(_ seed:PlaybackTrack,explicit:Bool,clientID:String?=nil) throws {
+        guard discoveryRequest == nil else { throw ResolverFailure.code("DISCOVERY_BUSY") }
+        guard sleepClock() >= discoveryCooldown else { throw ResolverFailure.code("RATE_LIMITED") }
+        let id=UUID().uuidString,epoch=discoveryGeneration
+        discoveryRequest=id;radioClientID=clientID;discoveryMode=explicit ? "radio" : "autoplay"
+        discoveryStatus="loading";discoveryMessage=nil
+        if !explicit { lastAutoSeed=seed.videoId }
+        publishDiscovery()
+        suggest(["operation":"radio","videoId":seed.videoId],id) { [weak self] result in DispatchQueue.main.async {
+            guard let self,self.discoveryRequest == id,self.discoveryGeneration == epoch else { return }
+            self.discoveryRequest=nil;self.discoveryMode=nil;self.radioClientID=nil
+            guard self.sleepTimer.mode == "off", explicit || self.autoplayEnabled && self.discoverySuspended == nil else {
+                self.discoveryStatus="idle";self.publishDiscovery();return
+            }
+            do {
+                let raw=try result.get(),candidates=try PlaybackDiscovery.decode(raw,seed:seed.videoId)
+                let selected=PlaybackDiscovery.select(candidates,excluding:explicit ? [seed] : self.queue.items,
+                    seen:explicit ? [] : self.discoverySeen,limit:explicit ? 20 : min(8,500-self.queue.items.count))
+                guard !selected.isEmpty else {
+                    self.discoveryStatus=self.queue.items.count >= 500 && !explicit ? "full" : "empty"
+                    self.discoveryMessage=self.discoveryStatus == "full" ? "QUEUE_FULL" : "NO_SUGGESTIONS"
+                    if self.waitingForAutoplay { self.waitingForAutoplay=false;self.wantsPlayback=false;self.persist();self.emit() }
+                    self.publishDiscovery();return
+                }
+                if explicit {
+                    let preserve=self.queue.current?.videoId == seed.videoId && self.player.currentItem != nil && !self.ended && self.errorCode == nil
+                    self.queue.setShuffle(false);self.queue.repeatMode="off"
+                    try self.queue.replace([seed]+selected,at:0)
+                    self.automatic=Set(1...selected.count);self.autoplayEnabled=true;self.radioOrigin=seed;self.discoverySeen=[]
+                    self.discoveryPreferences?.set(true,forKey:"ritvio.ios.autoplay.enabled")
+                    self.rememberDiscovery([seed]+selected);self.waitingForAutoplay=false
+                    self.wantsPlayback=true
+                    if preserve { self.reconcileIntent() } else { self.activate(at:0) }
+                } else {
+                    for track in selected { let index=self.queue.items.count;try self.queue.enqueue(track,next:false);self.automatic.insert(index) }
+                    self.rememberDiscovery(selected)
+                    if self.waitingForAutoplay && self.wantsPlayback && self.queue.advance(automatic:true) {
+                        self.waitingForAutoplay=false;self.activate(at:0)
+                    }
+                }
+                self.discoveryStatus="ready";self.discoveryMessage=nil;self.persist();self.emit();self.publishDiscovery()
+            } catch {
+                let code=(error as? ResolverFailure)?.identifier ?? "PROVIDER_UNAVAILABLE"
+                self.discoveryStatus="error";self.discoveryMessage=code == "RATE_LIMITED" ? "RATE_LIMITED" : code == "BUSY" ? "BUSY" : "SUGGESTIONS_UNAVAILABLE"
+                self.discoveryCooldown=self.sleepClock()+30
+                if self.waitingForAutoplay { self.waitingForAutoplay=false;self.wantsPlayback=false;self.persist();self.emit() }
+                self.publishDiscovery()
+            }
+        } }
+    }
+    private func maybeAutoplay(force:Bool=false) {
+        guard autoplayEnabled,discoveryRequest == nil,discoverySuspended == nil,
+              !resolving && !recovering && !seeking && activeResolution == nil,
+              sleepClock() >= discoveryCooldown,force || (player.rate > 0 && sleepClock()-discoveryChangedAt >= 4),
+              let cursor=queue.order.firstIndex(of:queue.index),queue.order.count-cursor-1 <= 2,
+              let tail=queue.order.last else { return }
+        let seed=queue.items[tail]
+        guard lastAutoSeed != seed.videoId else { return }
+        if queue.items.count >= 500 { discoveryStatus="full";discoveryMessage="QUEUE_FULL";lastAutoSeed=seed.videoId;publishDiscovery();return }
+        do { try beginDiscovery(seed,explicit:false) }
+        catch { discoveryStatus="error";discoveryMessage="SUGGESTIONS_UNAVAILABLE";lastAutoSeed=seed.videoId;publishDiscovery() }
+    }
+
     func timerSnapshot() -> [String: Any] {
         precondition(Thread.isMainThread)
         if checkSleepExpiry() { emit() }
@@ -189,6 +341,7 @@ final class NativePlaybackOwner {
         guard revision == sleepTimer.revision else { throw ResolverFailure.code("TIMER_CHANGED") }
         guard mode == "off" || queue.current != nil else { throw ResolverFailure.code("NO_CURRENT_TRACK") }
         try sleepTimer.configure(mode: mode, minutes: minutes, now: sleepClock())
+        invalidateDiscovery()
         sleepTick?.cancel(); sleepTick = nil
         if mode == "duration", scheduleSleepTicks {
             let timer = DispatchSource.makeTimerSource(queue: .main)
@@ -202,7 +355,7 @@ final class NativePlaybackOwner {
         precondition(Thread.isMainThread)
         if checkSleepExpiry() { emit() } else { publishSleepTimer() }
     }
-    private func publishSleepTimer() { onSleepTimer?(sleepTimer.snapshot(now: sleepClock())) }
+    private func publishSleepTimer() { onSleepTimer?(sleepTimer.snapshot(now: sleepClock())); publishDiscovery() }
     private func cancelSleepTimer() {
         guard sleepTimer.mode != "off" else { return }
         try? sleepTimer.configure(mode: "off", minutes: nil, now: sleepClock())
@@ -218,6 +371,7 @@ final class NativePlaybackOwner {
     }
     private func pauseForSleep() {
         let offset = position
+        invalidateDiscovery()
         wantsPlayback = false; interrupted = false; player.pause(); watchdog?.cancel(); retryWork?.cancel()
         if resolving || recovering { stopCurrent(); savedPosition = offset }
         sleepTick?.cancel(); sleepTick = nil
@@ -238,6 +392,7 @@ final class NativePlaybackOwner {
         player.pause(); player.replaceCurrentItem(with: nil); loader?.stop(); loader = nil
     }
     private func activate(at offset: Double, refresh: Bool = false, resetRecovery: Bool = true) {
+        discoveryChangedAt = sleepClock()
         stopCurrent()
         guard queue.current != nil else { emit(); return }
         errorCode = nil; ended = false; resolving = true; savedPosition = max(0, offset); pendingSeek = savedPosition > 0 ? savedPosition : nil
@@ -283,7 +438,13 @@ final class NativePlaybackOwner {
             guard let self, self.generation == current else { return }
             if self.consumeSleepBoundary() { self.ended = true; self.persist(); self.emit(); return }
             if self.queue.advance(automatic: true) { self.activate(at: 0) }
-            else { self.wantsPlayback = false; self.ended = true; self.savedPosition = self.duration; self.persist(); self.emit() }
+            else {
+                self.ended = true; self.savedPosition = self.duration
+                self.waitingForAutoplay = self.autoplayEnabled && self.discoverySuspended == nil && (self.discoveryRequest != nil || self.lastAutoSeed != self.queue.current?.videoId)
+                self.wantsPlayback = self.waitingForAutoplay
+                if self.waitingForAutoplay { self.maybeAutoplay(force:true); if self.discoveryRequest == nil { self.waitingForAutoplay=false;self.wantsPlayback=false } }
+                self.persist(); self.emit()
+            }
         }
         player.replaceCurrentItem(with: item)
         if wantsPlayback && !interrupted { try activateAudioSession(); player.play() }
@@ -352,10 +513,11 @@ final class NativePlaybackOwner {
         guard let attributes = try? FileManager.default.attributesOfItem(atPath: storage.path), ((attributes[.size] as? NSNumber)?.intValue ?? Int.max) <= 2 * 1024 * 1024,
               let data = try? Data(contentsOf: storage), let saved = try? JSONDecoder().decode(PlaybackSavedState.self, from: data), saved.valid else { return }
         queue = saved.queue; savedPosition = saved.position; player.volume = saved.volume
+        automatic = Set(saved.automatic ?? []); radioOrigin = saved.radioOrigin
         // Restore metadata and position; playback always requires a new user action.
     }
     func persist() {
-        let saved = PlaybackSavedState(schema: 1, queue: queue, position: position, volume: player.volume)
+        let saved = PlaybackSavedState(schema: 1, queue: queue, position: position, volume: player.volume, automatic:automatic.sorted(), radioOrigin:radioOrigin)
         guard saved.valid, let data = try? JSONEncoder().encode(saved), data.count <= 2 * 1024 * 1024 else { return }
         do {
             try FileManager.default.createDirectory(at: storage.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -368,7 +530,7 @@ final class NativePlaybackOwner {
 
     func interruption(began: Bool, shouldResume: Bool = false) {
         _ = checkSleepExpiry()
-        if began { interrupted = true; player.pause(); watchdog?.cancel(); persist() }
+        if began { invalidateDiscovery(); interrupted = true; player.pause(); watchdog?.cancel(); persist() }
         else {
             interrupted = false
             if shouldResume && wantsPlayback { reconcileIntent() }
@@ -432,6 +594,7 @@ final class NativePlaybackOwner {
             MPNowPlayingInfoPropertyDefaultPlaybackRate: 1.0, MPNowPlayingInfoPropertyMediaType: MPNowPlayingInfoMediaType.audio.rawValue]
     }
     func shutdown() {
+        invalidateDiscovery(); onDiscovery = nil
         sleepTick?.cancel(); sleepTick = nil; onSleepTimer = nil
         persist(); stopCurrent(); wantsPlayback = false
         if let timeObserver { player.removeTimeObserver(timeObserver); self.timeObserver = nil }

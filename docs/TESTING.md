@@ -428,3 +428,29 @@ Eight local model/foundation cases and three browser cases passed. Browser check
 `PlaybackSelfTest` now includes native policy checks with an injected continuous clock plus synthetic AVPlayer cases for elapsed time during pause, stopping playback, interruption/repeat precedence, manual boundaries, stale mutations and cancelled pending resolution. These native additions are written but have not been compiled or executed on this Windows host. As agreed, macOS compilation, actual locked-screen/background timing, calls/headphones, VoiceOver/Dynamic Type and iOS15+ phone acceptance remain beta work. This source-only increment stays on codex/ios-sleep-timer; no IPA, push or release is produced. Radio/autoplay, playlist document transfer and support/update adaptation remain later IOS-5 work.
 
 The independent Impeccable finish review returned `ship` with no material findings at this local source/browser scope. It does not certify native background execution or supersede the beta acceptance work above.
+
+
+## iOS song-radio and autoplay source candidate 0.9.0 build 10
+
+Start song radio from a song's menu. Its frozen seed, preparation state and queue-replacement disclosure are separate from playback controls. A successful radio replaces the queue with its seed and up to 20 deduplicated suggestions, enables Autoplay and turns repeat/shuffle off. The current song can retain its installed player item and position when it is the seed. Music keeps playing while metadata is prepared; closing cancels a still-pending preparation. Failures and stale responses leave the existing queue usable.
+
+Autoplay is off by default and its explicit preference is stored locally. It requests up to 8 suggestions when at most two songs remain, after a four-second settling interval, with one active metadata operation and one attempt per tail seed. Timer and repeat suspend extension. Manual queue/transport changes invalidate pending results; natural progress can accept a result for the unchanged queue session. Disabling Autoplay removes only unplayed automatic occurrences, preserving current, previously played and manually added entries. Suggested rows retain occurrence identity through reordering/removal. The native 500-song bound is disclosed when full; this increment does not prune a manual queue or claim unlimited continuation.
+
+The existing single resolver worker gives manual stream resolution priority over metadata. Radio uses a 15-second cooperative budget and the existing 8-second request timeout; cancellation can wait for a started network call to return. The authoritative shared radio adapter returns at most 51 metadata candidates. iOS admits only the seed ID, strips descriptor/header fields, caches at most 8 batches for 10 minutes (empty results 2 minutes) and observes the shared provider cooldown. Native failures additionally enforce a 30-second retry gate; there is no tight provider retry loop or resolution of every suggested stream. Provider recommendations determine variety; this is not a new personal genre model.
+
+Playback persistence remains schema 1 with backward-compatible optional automatic-occurrence indices and radio-origin metadata. Missing fields decode as legacy manual entries; invalid indices/duplicates or invalid origin fail validation. Signed URLs and stream headers are excluded. Enabling Autoplay or restoring its setting never starts playback by itself. Native ownership covers continuation, queue changes and timer precedence; React only requests explicit discovery actions and presents state.
+
+```powershell
+pnpm exec tsc --noEmit
+$env:RITVIO_MOBILE_PLATFORM='ios'
+pnpm --dir apps/mobile exec vite build
+python tests/ios_resolver_test.py
+pnpm exec tsx --test tests/ios-discovery.test.ts tests/ios-foundation.test.ts
+pnpm exec playwright test --config tests/config/playwright.ios-discovery.config.ts
+```
+
+23 Python host-policy tests and 7 TypeScript model/foundation cases passed. Four browser cases passed across compact 375x667 and 1.6-scale 402x874 layouts, radio preparation/acknowledgement, native cancellation/failure fixtures, queue protection, timer/repeat suspension, Suggested labels, disabling future suggestions, real pointer-handle reordering and 59pt synthetic landscape insets. Queue reorder feedback is inline rather than a floating message over controls. These are fixture/source checks, not provider or iPhone evidence. The native self-test source now covers edition/ID deduplication, occurrence remapping, legacy-state decoding, obsolete-radio rejection after pause, protecting manual/current entries, timer/repeat suspension and retry gates; those additions have not been compiled or run on Windows.
+
+This remains local source on codex/ios-radio-autoplay. Native macOS compilation, actual provider access, automatic continuation across locked-screen/background changes, iOS15+ rendering, interruptions and VoiceOver remain beta acceptance work, as agreed. No IPA, push or publication is performed. Playlist document transfer and support/update adaptation remain later IOS-5 work; this block does not complete the full iOS plan.
+
+The independent Impeccable finish review returned `ship` without material findings for this local source/browser increment. This does not certify Swift compilation or native/provider acceptance.

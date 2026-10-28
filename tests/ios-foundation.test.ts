@@ -33,6 +33,9 @@ test('foundation accepts native metadata without inventing playback capabilities
  assert.equal(parseFoundationStatus({...playerBuild,phase:'IOS-5',capabilities:{...playerBuild.capabilities,sleepTimer:true}}).capabilities.sleepTimer,true);
  assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',capabilities:{...playerBuild.capabilities,sleepTimer:true}}));
  assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-5',capabilities:{...playerBuild.capabilities,sleepTimer:'yes'}}));
+ assert.equal(parseFoundationStatus({...playerBuild,phase:'IOS-5',capabilities:{...playerBuild.capabilities,discovery:true}}).capabilities.discovery,true);
+ assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',capabilities:{...playerBuild.capabilities,discovery:true}}));
+ assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-5',capabilities:{...playerBuild.capabilities,discovery:'true'}}));
  for(const textScale of [0,NaN,Infinity,'1.5'])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',textScale}));
  assert.deepEqual(parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea:{top:62,right:0,bottom:34,left:0}}).safeArea,{top:62,right:0,bottom:34,left:0});
  for(const safeArea of [null,{}, {top:-1,right:0,bottom:0,left:0},{top:NaN,right:0,bottom:0,left:0}])assert.throws(()=>parseFoundationStatus({...playerBuild,phase:'IOS-4',safeArea}));
