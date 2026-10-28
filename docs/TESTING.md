@@ -363,3 +363,21 @@ Focused Catalog run `40541808071` at `cae2578` passed the complete large-text fl
 Final focused Catalog run `40577150178` at `d303e6afa69e9f3928c759294d8029ba74e499c5` **passed** on both iPhone SE (3rd generation) and iPhone 17 Pro with accessibility-large text, also exporting three independent normal-text tall captures. The single-run matrix contains 15 unedited captures. Both unsigned device and simulator builds passed, as did native synthetic player/store migration and resolver core. This is `uiTestScope: catalog-only`; the separately successful Listening run and prior Library cases remain separate evidence, not a claimed all-UI rerun. The latest change after correction review is XCTest's measured-overflow reveal gesture, not production UI.
 
 The independent correction verdict resolved Album Play's capsule and Search spacing; it retained `fix` solely for the unresolved automatic PLATES workflow. No further changes were requested on that original UI fix list. The CLI recorded `finish: fix` while PLATES and downstream formal phases stayed open; this is not whole-surface approval or completed automatic workflow. Provider acceptance remains `not-run`, physical acceptance `pending`. A private unsigned iOS 0.5.1 build 6 IPA was packaged from this exact run with SHA-256 `aab2c2eecc31386a0b74dabe8b1ed12a791fdc7f2c92a2e4a266b2cd00072324`, preserving original bundle bytes/permissions and validating arm64, minimum iOS 15 and the embedded runtime lock. It requires personal signing and is not a public release.
+
+
+## iOS lyrics source candidate 0.6.0 build 7
+
+The local `codex/ios-lyrics` increment extends the existing iPhone player with the approved A reading composition: compact track identity, fixed seek/transport and a text-only scrolling area. It supports synchronized or plain lyrics, manual scrolling with explicit follow recovery, local reading preferences and distinct missing/instrumental/rate-limit/error states. Metadata must match the title and credited or primary artist. Unknown duration or differences over two seconds produce plain text; differences over ten seconds are rejected. Equally plausible differing editions are not selected automatically.
+
+Native CapacitorHttp is already bundled and performs these HTTPS LRCLIB requests separately from music resolution. There is one active lookup plus the latest waiting track. Cancelled consumers cannot publish obsolete data, though a started native HTTP request can finish under its configured connect/read timeouts. The RAM cache holds up to30 entries/1MB, with24-hour positive and2-minute missing-result expiry. Provider bodies are checked against2MB after native buffering; this is not a streaming native-memory cap. Existing shared lyric parsing and active-line timing are reused. No new account, API key or paid dependency is introduced.
+
+```powershell
+pnpm install --frozen-lockfile
+pnpm exec tsc --noEmit
+$env:RITVIO_MOBILE_PLATFORM='ios'
+pnpm --dir apps/mobile exec vite build
+pnpm exec tsx --test tests/ios-lyrics.test.ts tests/ios-foundation.test.ts
+pnpm exec playwright test --config tests/config/playwright.ios5.config.ts tests/ios-lyrics-ui.spec.ts
+```
+
+TypeScript and the final iOS-target web bundle passed locally;12 deterministic client/foundation cases and two browser fixture cases passed (15.2seconds for the latter). The browser flow covers manual/follow controls, appearance, track changes, plain/missing/instrumental/error states and59pt synthetic side insets in landscape plus the tall/default gutter rule. Opening lyrics does not issue an audio/queue command. The independent review resolved its sole safe-area fix at browser/source scope. No native Simulator, device, live LRCLIB HTTP or new IPA result is inferred. The maintainer explicitly deferred native/physical testing until beta; signing, native HTTP behaviour, Dynamic Type/VoiceOver and locked-screen/network continuity remain acceptance work before distribution. No GitHub push or public release was performed for this local increment. Existing Android and desktop releases are unchanged.
