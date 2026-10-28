@@ -445,7 +445,7 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -473,7 +473,7 @@ AA1000000000000000000012 = {isa = PBXSourcesBuildPhase; buildActionMask = 214748
                 OTHER_CFLAGS = ("$(inherited)", "-include", "$(PROJECT_DIR)/Runtime/quickjs/ritvio-quickjs-config.h",);
 
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				INFOPLIST_FILE = App/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				LD_RUNPATH_SEARCH_PATHS = (

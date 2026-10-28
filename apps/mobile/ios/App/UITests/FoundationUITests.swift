@@ -219,7 +219,7 @@ final class FoundationUITests: XCTestCase {
         XCUIDevice.shared.orientation = .portrait
         queue.tap()
         let slow = button(app, "Reorder: Slow motion"), night = button(app, "Reorder: Night swim")
-        XCTAssertTrue(slow.waitForExistence(timeout: 10)); XCTAssertTrue(night.isHittable)
+        XCTAssertTrue(slow.waitForExistence(timeout: 10))
         slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10))
         capture(app, "ios4-queue-song-actions"); button(app, "Cancel").tap()
         let closedMenu = NSPredicate { _, _ in !self.button(app, "Cancel").exists }
@@ -229,7 +229,14 @@ final class FoundationUITests: XCTestCase {
         slow.tap(); XCTAssertTrue(button(app, "Move down").waitForExistence(timeout: 10)); button(app, "Cancel").tap()
         expectation(for: closedMenu, evaluatedWith: app); waitForExpectations(timeout: 10)
         XCTAssertTrue(button(app, "Reorder: Night swim").waitForExistence(timeout: 10))
-        night.press(forDuration: 0.25, thenDragTo: slow)
+        revealQueueHandle(app, night)
+        XCTAssertTrue(night.isHittable)
+        let area = queueArea(app)
+        let destination = app.coordinate(withNormalizedOffset: .zero).withOffset(CGVector(dx:night.frame.midX-app.frame.minX,dy:area.minY+10-app.frame.minY))
+        // The first row can be outside a short/large-text viewport. Hold inside
+        // the list's top edge to exercise genuine autoscroll rather than an
+        // offscreen element coordinate or the fixed Autoplay panel.
+        night.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.25,thenDragTo:destination,withVelocity:.slow,thenHoldForDuration:1.2)
         let reordered = NSPredicate { _, _ in
             let first = app.webViews.buttons["Reorder: Night swim"], second = app.webViews.buttons["Reorder: Slow motion"]
             return first.exists && second.exists && first.frame.minY < second.frame.minY
@@ -290,6 +297,25 @@ final class FoundationUITests: XCTestCase {
     // semantics and query the actual actionable role instead of changing UI.
     private func button(_ app: XCUIApplication, _ label: String) -> XCUIElement {
         app.webViews.descendants(matching:.any).matching(NSPredicate(format:"(elementType == %d OR elementType == %d) AND label == %@", XCUIElement.ElementType.button.rawValue, XCUIElement.ElementType.switch.rawValue, label)).firstMatch
+    }
+    private func queueArea(_ app: XCUIApplication) -> CGRect {
+        let hint = app.webViews.staticTexts["Drag to reorder, or use the song menu."].firstMatch
+        let autoplay = app.webViews.staticTexts["Autoplay"].firstMatch
+        XCTAssertTrue(hint.waitForExistence(timeout:10)); XCTAssertTrue(autoplay.exists)
+        let top = hint.frame.maxY+4, bottom = autoplay.frame.minY-12
+        XCTAssertGreaterThan(bottom-top, 50, "Upcoming songs must retain a scrolling viewport")
+        return CGRect(x:app.frame.minX+22,y:top,width:app.frame.width-44,height:max(1,bottom-top))
+    }
+    private func revealQueueHandle(_ app: XCUIApplication, _ target: XCUIElement) {
+        for _ in 0..<8 {
+            let area = queueArea(app)
+            if target.exists && target.frame.midY>area.minY+24 && target.frame.midY<area.maxY-24 { return }
+            let downward = !target.exists || target.frame.midY>=area.maxY-24
+            let start = app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:area.minX+4-app.frame.minX,dy:(downward ? area.maxY-8 : area.minY+8)-app.frame.minY))
+            let end = start.withOffset(CGVector(dx:0,dy:(downward ? -1 : 1)*min(90,area.height-24)))
+            start.press(forDuration:0.05,thenDragTo:end)
+        }
+        XCTFail("Queue handle could not be revealed inside the list")
     }
     private func chooseLanguage(_ app: XCUIApplication, _ label: String) {
         let choice = app.webViews.switches[label]
