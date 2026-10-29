@@ -79,7 +79,7 @@ The three shared Python catalogue modules are copied from canonical `scripts/` s
 
 ## iOS embedded resolver (technical build)
 
-The unreleased iOS candidate has an independent version in `apps/mobile/ios-version.json` (currently 0.10.0 build 12, iOS 15+). Source now includes Home/Search/Library, fixed player and queue, native AVPlayer and embedded resolver, personal playlist photos/history, album/artist pages, lyrics and song/lyric image cards, sleep timer, radio/Autoplay, portable playlist files and reviewed Help reports. The candidate scope is maintained in `scripts/ios-candidate-scope.json`. Native and real-provider acceptance are separate from the source/browser checks recorded in TESTING.md. Android and Windows retain their existing release channels.
+The unreleased iOS candidate has an independent version in `apps/mobile/ios-version.json` (currently 0.10.0 build 13, iOS 15+). Source now includes Home/Search/Library, fixed player and queue, native AVPlayer and embedded resolver, personal playlist photos/history, album/artist pages, lyrics and song/lyric image cards, sleep timer, radio/Autoplay, portable playlist files and reviewed Help reports. The candidate scope is maintained in `scripts/ios-candidate-scope.json`. Native and real-provider acceptance are separate from the source/browser checks recorded in TESTING.md. Android and Windows retain their existing release channels.
 
 On Windows, prepare the bundled assets and sync only the iOS project:
 

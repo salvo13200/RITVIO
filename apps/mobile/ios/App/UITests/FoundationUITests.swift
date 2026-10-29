@@ -237,6 +237,8 @@ final class FoundationUITests: XCTestCase {
         // the list's top edge to exercise genuine autoscroll rather than an
         // offscreen element coordinate or the fixed Autoplay panel.
         night.coordinate(withNormalizedOffset:CGVector(dx:0.5,dy:0.5)).press(forDuration:0.25,thenDragTo:destination,withVelocity:.slow,thenHoldForDuration:1.2)
+        let committed = NSPredicate { _, _ in self.button(app,"Clear").isEnabled }
+        expectation(for: committed, evaluatedWith: app); waitForExpectations(timeout: 10)
         let reordered = NSPredicate { _, _ in
             let first = app.webViews.buttons["Reorder: Night swim"], second = app.webViews.buttons["Reorder: Slow motion"]
             return first.exists && second.exists && first.frame.minY < second.frame.minY
@@ -270,19 +272,20 @@ final class FoundationUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(headerTop, app.frame.height > 800 ? 44 : 16, "Settings must remain below the portrait system region after keyboard dismissal")
         let motion = app.webViews.switches["Reduce motion"]
         XCTAssertTrue(motion.waitForExistence(timeout: 10)); XCTAssertEqual(String(describing: motion.value ?? ""), "0")
+        revealSettingsElement(app,motion)
         capture(app, "ios4-settings")
         motion.tap(); XCTAssertEqual(String(describing: motion.value ?? ""), "1")
         capture(app, "ios4-settings-motion-on")
         motion.tap(); XCTAssertEqual(String(describing: motion.value ?? ""), "0")
         let sources = app.webViews.staticTexts["Music sources"]
-        for _ in 0..<4 { if sources.isHittable { break }; app.swipeUp() }
+        revealSettingsElement(app,sources)
         XCTAssertTrue(sources.isHittable, "Settings content must retain its own scrolling")
         XCTAssertEqual(done.frame.minY, headerTop, accuracy: 2, "Settings header must stay fixed")
         capture(app, "ios4-settings-sources")
         // WKWebView can report a partially clipped row as hittable even when its
         // centre is behind the fixed header. Bring the entire control below it.
         let italian = app.webViews.switches["Italiano"]
-        for _ in 0..<4 { if italian.exists && italian.frame.minY >= done.frame.maxY { break }; app.swipeDown() }
+        revealSettingsElement(app,italian,towardTop:true)
         XCTAssertGreaterThanOrEqual(italian.frame.minY, done.frame.maxY)
         chooseLanguage(app, "Italiano"); button(app, "Fine").tap()
         app.terminate(); app.launch()
@@ -323,6 +326,19 @@ final class FoundationUITests: XCTestCase {
             start.press(forDuration:0.05,thenDragTo:end,withVelocity:.slow,thenHoldForDuration:0.5)
         }
         XCTFail("Queue handle could not be revealed inside the list")
+    }
+    private func revealSettingsElement(_ app: XCUIApplication, _ target: XCUIElement, towardTop: Bool = false) {
+        let header = button(app,"Done")
+        for _ in 0..<12 {
+            let top = header.frame.maxY+16, bottom = app.frame.maxY-40
+            let middle = (top+bottom)/2, extent = bottom-top
+            if target.exists && target.frame.minY>=top && target.frame.maxY<=bottom { return }
+            let distance = target.exists ? target.frame.midY-middle : (towardTop ? -extent : extent)
+            let travel = min(max(24,abs(distance)),min(320,extent*0.45))
+            let start = app.coordinate(withNormalizedOffset:.zero).withOffset(CGVector(dx:26,dy:middle-app.frame.minY))
+            start.press(forDuration:0.05,thenDragTo:start.withOffset(CGVector(dx:0,dy:(distance>=0 ? -1 : 1)*travel)),withVelocity:.slow,thenHoldForDuration:0.5)
+        }
+        XCTFail("Settings control could not be revealed below the fixed header")
     }
     private func chooseLanguage(_ app: XCUIApplication, _ label: String) {
         let choice = app.webViews.switches[label]
