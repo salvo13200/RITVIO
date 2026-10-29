@@ -214,6 +214,17 @@ final class NativePlaybackOwner {
         sleepTimer.mode != "off" ? "timer" : queue.repeatMode != "off" ? "repeat" : nil
     }
     func diagnosticCodes() -> [String:String] { precondition(Thread.isMainThread);return ["playback":errorCode ?? "NONE","suggestions":discoveryMessage ?? "NONE"] }
+    /// Bounded technical values only: no media URL, title, IDs, headers or history.
+    func diagnosticTiming() -> [String:Any] {
+        precondition(Thread.isMainThread)
+        func seconds(_ value: Double?) -> Any {
+            guard let value, value.isFinite, value >= 0, value <= 86400 else { return NSNull() }
+            return (value * 1000).rounded() / 1000
+        }
+        return ["codec": loader?.codec ?? "none", "precise": loader?.asset.providesPreciseDurationAndTiming ?? false,
+                "catalogSeconds": seconds(queue.current?.duration), "sourceSeconds": seconds(loader?.descriptorDuration),
+                "assetSeconds": seconds(loader?.asset.duration.seconds), "itemSeconds": seconds(player.currentItem?.duration.seconds)]
+    }
     func discoverySnapshot() -> [String:Any] {
         precondition(Thread.isMainThread)
         return ["enabled":autoplayEnabled,"status":discoveryStatus,"mode":discoveryMode as Any? ?? NSNull(),

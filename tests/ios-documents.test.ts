@@ -23,3 +23,10 @@ test('reviewed report accepts only the bounded diagnostic schema, preserving exa
  for(const patch of [{history:['private song']},{deviceId:'private'},{version:'user/path'},{codes:{...report().codes,documents:'SECRET_URL'}},{codes:{...report().codes,path:'/private'}},{capabilities:{...report().capabilities,account:'private'}}])assert.throws(()=>parseReviewedReport({token,text:JSON.stringify({...report(),...patch})}));
  assert.throws(()=>parseReviewedReport({token,text:'x'.repeat(6001)}));
 });
+test('playback timing diagnostics allow bounded numbers and known codecs only',()=>{
+ const timing={codec:'mp4a.40.2',precise:true,catalogSeconds:296,sourceSeconds:296,assetSeconds:295.502,itemSeconds:295.502};
+ for(const value of [timing,{...timing,codec:'none',catalogSeconds:null,sourceSeconds:null,assetSeconds:null,itemSeconds:null}]){
+  const text=JSON.stringify({...report(),timing:value});assert.equal(parseReviewedReport({token,text}).text,text);
+ }
+ for(const patch of [{url:'https://private.invalid'},{codec:'private codec or URL'},{itemSeconds:-1},{itemSeconds:86401},{itemSeconds:'296'},{itemSeconds:true},{precise:1}])assert.throws(()=>parseReviewedReport({token,text:JSON.stringify({...report(),timing:{...timing,...patch}})}));
+});

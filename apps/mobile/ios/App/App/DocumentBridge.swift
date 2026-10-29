@@ -73,6 +73,7 @@ extension RitvioPlaybackPlugin {
             let value:[String:Any]=["schema":1,"app":"RITVIO","platform":"ios","version":bundle.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.0.0",
                 "build":bundle.object(forInfoDictionaryKey:"CFBundleVersion") as? String ?? "0","systemVersion":UIDevice.current.systemVersion,"minimumOS":"15.0",
                 "capabilities":["library":true,"lyrics":true,"sharing":true,"timer":true,"discovery":true,"playlistFiles":true],
+                "timing":NativePlaybackOwner.shared.diagnosticTiming(),
                 "codes":["playback":Self.reportCode(codes["playback"]),"suggestions":Self.reportCode(codes["suggestions"]),"documents":Self.reportCode(self.lastDocumentError)]]
             do{let bytes=try JSONSerialization.data(withJSONObject:value,options:[.prettyPrinted,.sortedKeys]);guard bytes.count<=6000,let text=String(data:bytes,encoding:.utf8) else{throw ResolverFailure.code("REPORT_UNAVAILABLE")};call.resolve(self.documents.prepareReport(text))}
             catch{call.reject("Report unavailable","REPORT_UNAVAILABLE")}

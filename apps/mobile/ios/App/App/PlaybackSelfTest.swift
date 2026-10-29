@@ -107,6 +107,10 @@ enum PlaybackSelfTest {
             try await wait("RAPID_CHANGE_FAILED") { (player.snapshot()["index"] as? Int) == 2 && playing(player) && position(player) > 0.15 }
             try expect(resolved.count == 2 && cancelled >= 1, "SUPERSEDED_RESOLUTION_NOT_DISCARDED")
             try expect(AVAudioSession.sharedInstance().category == .playback, "AUDIO_SESSION_CATEGORY_FAILED")
+            let timing = player.diagnosticTiming()
+            guard let nativeSeconds = timing["itemSeconds"] as? Double, let assetSeconds = timing["assetSeconds"] as? Double else { throw ResolverFailure.code("NATIVE_DURATION_MISSING") }
+            try expect(abs(nativeSeconds - Double(fixtureSeconds)) < 0.15 && abs(assetSeconds - nativeSeconds) < 0.15, "NATIVE_DURATION_INCORRECT")
+            report["duration"] = timing
             report["rapidChange"] = ["latestTrackWins": true, "supersededResolutionDiscarded": true, "cancelRequested": true]
 
             progress("seek-and-pause")

@@ -11,6 +11,7 @@ export function Queue({state,text,send,onClose,onMore,onOpenPlayer,onSave,saveLa
  function report(message:string){window.clearTimeout(noticeTimer.current);setNotice(message);noticeTimer.current=window.setTimeout(()=>setNotice(''),5000);}
  useEffect(()=>()=>window.clearTimeout(noticeTimer.current),[]);
  const list=useRef<HTMLDivElement>(null),drag=useRef<Drag|null>(null),[view,setView]=useState<Drag|null>(null),[busy,setBusy]=useState(false),[confirm,setConfirm]=useState(false);
+ const suppressClickUntil=useRef(0);
  const finish=useRef<(pointer:number,y:number,commit:boolean)=>void>(()=>{});
  finish.current=(pointer,y,commit)=>{void end(pointer,y,commit);};
  useEffect(()=>{
@@ -43,7 +44,11 @@ export function Queue({state,text,send,onClose,onMore,onOpenPlayer,onSave,saveLa
   function step(){const area=list.current,value=drag.current;if(!area||!value)return;const rect=area.getBoundingClientRect(),edge=48;let delta=0;if(value.moved&&value.y<value.startY&&value.y<rect.top+edge)delta=-Math.min(14,(rect.top+edge-value.y)/4);else if(value.moved&&value.y>value.startY&&value.y>rect.bottom-edge)delta=Math.min(14,(value.y-rect.bottom+edge)/4);if(delta){area.scrollTop+=delta;update(value.y);}frame=requestAnimationFrame(step);}
   frame=requestAnimationFrame(step);return()=>cancelAnimationFrame(frame);
  },[Boolean(view)]);
- async function end(pointer:number,y:number,commit:boolean){if(drag.current?.pointer!==pointer)return;if(commit)update(y);const value=drag.current;if(!value)return;const source=list.current?.querySelector<HTMLButtonElement>(`[data-queue-entry="${value.from}"] .ios-grip`);reset();if(commit&&value.from!==value.to){setBusy(true);const ok=await send({type:'move',value:{from:value.from,to:value.to,revision:value.revision}});setBusy(false);if(ok)report(text.reordered);}else if(commit&&!value.moved){source?.focus({preventScroll:true});onMore(value.from);}}
+ async function end(pointer:number,y:number,commit:boolean){if(drag.current?.pointer!==pointer)return;if(commit)update(y);const value=drag.current;if(!value)return;
+  // A tap belongs to the button's click activation (including VoiceOver and
+  // keyboard), not to pointer-up. Only a real drag suppresses its trailing click.
+  suppressClickUntil.current=value.moved||!commit?performance.now()+500:0;
+  reset();if(commit&&value.from!==value.to){setBusy(true);const ok=await send({type:'move',value:{from:value.from,to:value.to,revision:value.revision}});setBusy(false);if(ok)report(text.reordered);}}
  return <Sheet title={text.queue} closeLabel={text.done} closeText onClose={onClose} className={`ios-queue${autoplay?' has-discovery':''}`}>
   <div className="ios-queue-current"><h3>{text.nowPlaying}</h3>{track&&<SongRow track={track} text={text} active onPlay={onOpenPlayer}/>}{radioOrigin&&onRadio&&<button className="ios-radio-origin" onClick={()=>onRadio(radioOrigin)}><Radio aria-hidden="true"/><span>{originLabel} {radioOrigin.title}</span></button>}</div>
   <div className="ios-section-title"><h3>{text.upNext}</h3>{onSave&&<IconButton label={saveLabel??'Save queue'} onClick={onSave} disabled={busy||Boolean(view)}><ListPlus/></IconButton>}<button disabled={!state.items.length||busy||Boolean(view)} onClick={()=>setConfirm(true)}>{text.clear}</button></div>
@@ -53,10 +58,10 @@ export function Queue({state,text,send,onClose,onMore,onOpenPlayer,onSave,saveLa
    {entries.map(entry=><div key={`${state.queueRevision}:${entry}`} data-queue-entry={entry} className={`ios-queue-entry${state.automatic?.includes(entry)?' is-automatic':''}${view?.from===entry?' is-lifted':''}${view?.to===entry&&view.from!==entry?' is-insertion':''}`}>
     <SongRow track={state.items[entry]} text={text} onPlay={()=>{if(!view)void send({type:'jump',value:entry});}}><IconButton label={`${text.more}: ${state.items[entry].title}`} onClick={()=>onMore(entry)} disabled={busy||Boolean(view)}><MoreHorizontal/></IconButton>
      <button className="ios-icon ios-grip" aria-label={`${text.reorder}: ${state.items[entry].title}`} aria-describedby="ios-queue-hint" disabled={busy||state.queueRevision===undefined}
-      onPointerDown={event=>{if(event.button!==0||drag.current)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);const value={from:entry,to:entry,pointer:event.pointerId,y:event.clientY,startY:event.clientY,startScroll:list.current?.scrollTop??0,moved:false,revision:state.queueRevision!,current:state.index};drag.current=value;setView(value);}}
+      onPointerDown={event=>{if(event.button!==0||drag.current)return;suppressClickUntil.current=0;event.currentTarget.setPointerCapture(event.pointerId);const value={from:entry,to:entry,pointer:event.pointerId,y:event.clientY,startY:event.clientY,startScroll:list.current?.scrollTop??0,moved:false,revision:state.queueRevision!,current:state.index};drag.current=value;setView(value);}}
       onTouchStart={event=>{const value=drag.current,touch=event.changedTouches[0];if(value&&value.touch===undefined&&touch)value.touch=touch.identifier;}}
       onPointerMove={event=>{if(drag.current?.pointer===event.pointerId)update(event.clientY);}} onPointerUp={event=>void end(event.pointerId,event.clientY,true)} onPointerCancel={event=>void end(event.pointerId,event.clientY,false)} onLostPointerCapture={()=>cancel()}
-      onClick={event=>{if(event.detail===0)onMore(entry);}} onKeyDown={event=>{if(event.key==='Escape')cancel();}}><GripVertical aria-hidden="true"/></button>
+      onClick={event=>{if(event.detail>0&&performance.now()<suppressClickUntil.current)return;event.currentTarget.focus({preventScroll:true});onMore(entry);}} onKeyDown={event=>{if(event.key==='Escape')cancel();}}><GripVertical aria-hidden="true"/></button>
     </SongRow>
     {state.automatic?.includes(entry)&&<span className="ios-suggestion-label">{suggestedLabel}</span>}
    </div>)}

@@ -22,6 +22,8 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
     static let chunkBytes = 128 * 1024
     static let maxRequests = 4
     let asset: AVURLAsset
+    let codec: String
+    let descriptorDuration: Double?
     private let url: URL
     private let headers: [String: String]
     private let expires: Double
@@ -46,8 +48,12 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
             throw ResolverFailure.code("UNSUPPORTED_STREAM")
         }
         self.url = url; self.headers = headers; self.expires = expires
+        self.codec = ["mp4a.40.2", "mp4a.40.5", "mp4a.40.29", "aac"].contains(codec) ? codec : "other"
+        let seconds = descriptor["duration"] as? Double
+        self.descriptorDuration = seconds.flatMap { $0.isFinite && $0 > 0 && $0 <= 86400 ? $0 : nil }
         // A private resource scheme, not an HTTP proxy or private AVURLAsset key.
-        asset = AVURLAsset(url: URL(string: "ritvio-media://stream/\(UUID().uuidString).m4a")!)
+        asset = AVURLAsset(url: URL(string: "ritvio-media://stream/\(UUID().uuidString).m4a")!,
+            options: [AVURLAssetPreferPreciseDurationAndTimingKey: true])
         super.init()
         let configuration = URLSessionConfiguration.ephemeral
         configuration.urlCache = nil; configuration.httpCookieStorage = nil; configuration.httpShouldSetCookies = false

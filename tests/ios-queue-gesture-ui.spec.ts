@@ -3,6 +3,18 @@ import {mkdir} from 'node:fs/promises';
 import {fixture} from './helpers/ios-fixture';
 const folder='.local/ios-queue-gesture-preview';
 async function shot(page:Page,name:string){await mkdir(folder,{recursive:true});await page.screenshot({path:`${folder}/${name}.png`,animations:'disabled'});}
+for(const input of ['pointer','touch','activation'] as const)test(`queue menu reopens repeatedly using ${input}`,async({page})=>{
+ await page.setViewportSize({width:375,height:667});const errors=await fixture(page);
+ await page.getByRole('button',{name:'Open player: After the rain'}).first().click();await page.getByRole('button',{name:'Queue',exact:true}).first().click();
+ const grip=page.getByRole('button',{name:'Reorder: Slow motion',exact:true});
+ for(let cycle=0;cycle<3;cycle++){
+  if(input==='pointer')await grip.click();else if(input==='touch')await grip.tap();else await grip.dispatchEvent('click',{detail:1});
+  const menu=page.getByRole('dialog',{name:'Slow motion',exact:true});await expect(menu.getByRole('button',{name:'Move down',exact:true})).toBeVisible();
+  await menu.getByRole('button',{name:'Cancel',exact:true}).click();await expect(menu).toHaveCount(0);await expect(grip).toBeVisible();
+ }
+ await shot(page,`menu-reopened-${input}`);expect(errors).toEqual([]);
+ expect(await page.evaluate(()=>(window as any).__iosOperations.filter((item:any)=>item.type==='move').length)).toBe(0);
+});
 for(const scale of [1,2.14])test(`queue hold, scrolling, edge drop and next occurrence at ${scale}`,async({page})=>{
  await page.setViewportSize(scale===1?{width:375,height:667}:{width:402,height:874});await page.route('https://**',route=>route.abort());const errors=await fixture(page,{withLibrary:true,discovery:true,scale});
  await page.getByRole('button',{name:'Open player: After the rain'}).first().click();await page.getByRole('button',{name:'Queue',exact:true}).first().click();const queue=page.getByRole('dialog',{name:'Queue',exact:true}),area=queue.locator('.ios-queue-list'),grip=queue.getByRole('button',{name:'Reorder: Night swim',exact:true});
