@@ -88,3 +88,7 @@ node scripts/release-manifest.mjs
 ```
 
 The final manifest step requires freshly built EXEs, APK/signature evidence, and both source archives. The public source export contains build scripts, tests, lockfile, localisations, font licences and curated upstream notices. Private keys, profiles, downloaded comparison APKs, historical working mockups and design skills are excluded. The upstream archive contains the exact pinned Python resolver source distributions verified against PyPI's SHA-256 metadata. Publish both source archives with corresponding binaries. See [publication](PUBLISHING.md).
+
+## iOS beta source
+
+The iOS beta is versioned independently and its exact source is tagged separately. See the [iOS guide](IOS.md#source-and-feedback) for the release, corresponding-source archive and macOS/Xcode build instructions. The existing commands in this guide describe Windows and Android unless a platform is named explicitly.

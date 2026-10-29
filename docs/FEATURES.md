@@ -6,6 +6,10 @@ Windows 1.0.0 and Android 1.4.0 include RITVIO song-reference links, a desktop *
 
 Every feature group below has a corresponding view in the [illustrated function index](SCREENSHOTS.md#feature-to-screen-index), including separate track-card and lyrics-card exports and the lyrics-selection menu.
 
+## iOS beta
+
+The [iOS 15+ beta](IOS.md) has its own touch interface, native AVPlayer, local library, search/catalogue pages, lyrics/cards, queue, timer, radio and portable playlist files. It requires personal signing with Sideloadly on a computer, with seven-day renewal for a free Apple account. The Windows/Android features below are not a promise of full iOS parity: equalizer, complete discovery Home and provider-playlist URL import are not in the beta. Installation, exact release/source links, completed corrective tests and remaining device checks are in the [iOS guide](IOS.md).
+
 ## Discover and return
 
 Search tracks, artists and albums, then browse an artist or a complete available album. Home combines recent listening with global hits and new releases; Android also lets you browse catalogue genres and moods/activities; availability and updates depend on the catalogue provider. A track radio and listening-based suggestions help you continue from a song you like. These are RITVIO/provider-dependent selections, not an official Spotify or Apple Music recommendation service.
@@ -46,7 +50,7 @@ Android 1.3.0 separates full-height verse selection from preview. Back preserves
 
 ## Languages and appearance
 
-English and Italian are available through Settings. Both platforms use the RITVIO charcoal/lavender identity, readable type, waveform progress and reduced-motion support, with layouts designed separately for desktop and touch. Metadata and lyrics are not automatically translated. Other languages are planned, not currently offered as complete translations.
+English and Italian are available through Settings. Windows and Android use the RITVIO charcoal/lavender identity, readable type, waveform progress and reduced-motion support, with layouts designed separately for desktop and touch. Metadata and lyrics are not automatically translated. Other languages are planned, not currently offered as complete translations.
 
 ## Current limits
 

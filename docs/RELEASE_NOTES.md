@@ -2,6 +2,18 @@
 
 Each entry describes its publication-time state and checks. See [Quality status](QUALITY_STATUS.md) for the consolidated current baseline, later source-only controls and remaining verification.
 
+## iOS 0.10.0 beta 2 — 29 October 2026 (build 15)
+
+[Download beta 2](https://github.com/salvo13200/RITVIO/releases/tag/ios-v0.10.0-beta.2) · [Install and renew](IOS.md). Requires iOS 15+, a computer and personal signing with Sideloadly. It is not an App Store installation or a stable iOS release. Beta 1 remains archived; Windows 1.0.0 and Android 1.4.0 remain stable.
+
+- Fix native double-counted duration for eligible fragmented AAC initialization timing, preserving audio samples, edits and fragment offsets. Real Hello duration changed from 590.993 to 295.491 seconds, and Porcelain from 482.308 to 241.148 seconds on iPhone 15.
+- Make Queue grip/menu activation repeatable while retaining drag reordering.
+- Add bounded, manually reviewed timing diagnostics without signed stream URLs or track identifiers in the new fields.
+
+The exact source `6aeaa4e971b260c04659d16f8265c3d95c519e78` passed [full native CI](https://github.com/salvo13200/RITVIO/actions/runs/40917748394): device/simulator builds, full compact/large-text UI, native resolver-core and AVPlayer regression checks. The exact release IPA then passed corrective duration, repeated-menu, paused-seek/resume, natural-next, rapid-skip and short background/lock flows on real cloud iPhone 15 / iOS 17.5.1 and iPhone 13 / native iOS 15.4.1. These are scoped checks; no audible-output, calls/Bluetooth, VoiceOver, long-background or personal-signature-renewal acceptance is claimed. `VALIDATION.md` in the release supplements the original conservative packaging/native reports.
+
+The beta includes Home/search/catalogue pages, native playback and editable queue, local library/personal playlists, lyrics/cards, timer, radio/Autoplay and portable playlist files. Equalizer, full discovery Home, provider-playlist URL import, cloud sync and offline audio are absent. [Complete scope](IOS.md#included-in-this-beta).
+
 ## Windows 1.0.0 and Android 1.4.0 — 21 October 2026 (stable)
 
 The first stable delivery brings [Windows 1.0.0](https://github.com/salvo13200/RITVIO/releases/tag/windows-v1.0.0) and [Android 1.4.0](https://github.com/salvo13200/RITVIO/releases/tag/android-v1.4.0), version code 22. Both keep local libraries and existing installation identities; previous previews remain available. [Choose a download](https://salvo13200.github.io/RITVIO/). Update an official installation without uninstalling.

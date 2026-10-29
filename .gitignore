@@ -50,6 +50,7 @@ docs/*
 !docs/TESTING.md
 !docs/README.md
 !docs/FEATURES.md
+!docs/IOS.md
 !docs/SCREENSHOTS.md
 !docs/ADOPTION.md
 !docs/COMMUNITY.md

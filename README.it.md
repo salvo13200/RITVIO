@@ -2,11 +2,13 @@
 
 # RITVIO
 
-**Player musicale gratuito e open source per Windows e Android.** Ricerca, scoperta, libreria locale e interfacce pensate per ciascuna piattaforma.
+**Player musicale gratuito e open source per Windows e Android, con una beta iOS.** Ricerca, scoperta, libreria locale e interfacce pensate per ciascuna piattaforma.
 
 [English](README.md) · **Italiano** · [Scarica RITVIO](https://salvo13200.github.io/RITVIO/) · [Galleria](docs/SCREENSHOTS.md)
 
 [![Entra nella community Discord di RITVIO](https://img.shields.io/badge/Entra_su_Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/hCMwUtWZuM)
+
+> **Beta iOS: 0.10.0 beta 2 (build 15)**, iOS 15+, firma personale richiesta. [Guida di installazione iOS](docs/IOS.md) · [Tutorial sul sito](https://salvo13200.github.io/RITVIO/#ios-install).
 
 > Versioni stabili: **Windows 1.0.0** e **Android 1.4.0**. [Scegli il download](https://salvo13200.github.io/RITVIO/) e consulta [note e limiti](docs/RELEASE_NOTES.md). La copertura dei dispositivi e dell’accessibilità nativa resta limitata.
 
@@ -27,16 +29,21 @@ Italiano e inglese disponibili nelle impostazioni; metadati e testi mantengono l
 
 ## Download
 
-Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti.
+Non servono Node.js, Python, chiavi API o account RITVIO per usare i pacchetti. La beta iOS richiede un PC Windows o Mac, il tuo account Apple e Sideloadly per la firma personale. Con un account gratuito la firma va rinnovata ogni sette giorni; il rinnovo automatico opzionale richiede comunque il computer. Toccare il link IPA sull’iPhone non installa l’app. [Guida iOS](docs/IOS.md).
 
 <!-- downloads:start -->
 | Piattaforma | Download |
 | --- | --- |
 | Windows 10/11 x64 | [Installer](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-setup.exe) · [ZIP da estrarre una volta](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.zip) · [EXE autoestraente](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.exe) |
 | Android 7.0+ ARM64/x86_64 | [APK firmata](https://github.com/salvo13200/RITVIO/releases/download/android-v1.4.0/RITVIO-Android-1.4.0.apk) |
+| iOS 15+ · beta | [IPA da firmare con Sideloadly](https://github.com/salvo13200/RITVIO/releases/download/ios-v0.10.0-beta.2/RITVIO-iOS-0.10.0-beta.ipa) · [Guida iOS](docs/IOS.md) |
 <!-- downloads:end -->
 
 Aggiorna sopra l'installazione ufficiale esistente senza disinstallare per conservare i dati locali. Gli EXE Windows non hanno firma Authenticode e possono attivare SmartScreen. Per l'uso quotidiano scegli installer o ZIP: estrai lo ZIP interamente e avvia `RITVIO.exe`, mantenendo insieme tutti i file. L'EXE autoestraente continua a estrarsi a ogni avvio e può partire lentamente. Tutti i formati Windows usano il profilo locale esistente. Una APK con firma diversa non può aggiornare l'app ufficiale. [Sorgenti e checksum](https://github.com/salvo13200/RITVIO/releases).
+
+## Beta iOS
+
+Disponibile per iOS 15+ con ricerca, libreria e playlist locali, player/coda nativi, testi, card musicali, timer e radio. Equalizzatore e Home completa delle altre piattaforme non sono inclusi. Le correzioni di riproduzione e Coda sono state confermate su due iPhone cloud reali; restano da verificare chiamate/Bluetooth, VoiceOver, ascolto prolungato e firma personale. [Installazione e limiti](docs/IOS.md).
 
 ## Community
 

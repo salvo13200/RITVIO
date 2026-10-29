@@ -6,10 +6,12 @@ import {publishedDownloads, formatDownloadSize} from '../../packages/releases/ca
 const root=path.resolve(import.meta.dirname,'../..');
 const escape=(value:string)=>value.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;');
 const tokens:Record<string,string>={verifiedAt:publishedDownloads.verifiedAt};
-for(const platform of ['android','windows'] as const){
+for(const platform of ['android','windows','ios'] as const){
   const release=publishedDownloads[platform];
+  if(!release)continue;
+  tokens[platform]='available';
   Object.assign(tokens,Object.fromEntries(Object.entries(release).filter(([,value])=>typeof value==='string').map(([key,value])=>[`${platform}.${key}`,String(value)])));
-  tokens[`${platform}.channel`]=release.preview?'Public preview':'Stable release';
+  tokens[`${platform}.channel`]=platform==='ios'?'iOS beta':release.preview?'Public preview':'Stable release';
   tokens[`${platform}.size`]=formatDownloadSize(release.bytes);
 }
 export default defineConfig({

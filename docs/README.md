@@ -6,6 +6,7 @@
 
 | Guide | What you will find |
 | --- | --- |
+| [iOS beta](IOS.md) | Installation with Sideloadly, seven-day renewal, features and tested scope. |
 | [Features](FEATURES.md) | Listening, library, lyrics, sharing and differences between platforms. |
 | [Interface gallery](SCREENSHOTS.md) | English desktop/mobile screenshots, with capture origins explained. |
 | [Release notes](RELEASE_NOTES.md) | Current stable versions, historical previews and known limitations. |
