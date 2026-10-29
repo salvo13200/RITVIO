@@ -221,9 +221,15 @@ final class NativePlaybackOwner {
             guard let value, value.isFinite, value >= 0, value <= 86400 else { return NSNull() }
             return (value * 1000).rounded() / 1000
         }
-        return ["codec": loader?.codec ?? "none", "precise": loader?.asset.providesPreciseDurationAndTiming ?? false,
+        // Report generation must never synchronously load an asset over the network.
+        let asset = loader?.asset
+        let loaded = asset?.statusOfValue(forKey: "duration", error: nil) == .loaded
+        let header = loader?.headerTiming()
+        return ["codec": loader?.codec ?? "none", "precise": loaded && (asset?.providesPreciseDurationAndTiming ?? false),
                 "catalogSeconds": seconds(queue.current?.duration), "sourceSeconds": seconds(loader?.descriptorDuration),
-                "assetSeconds": seconds(loader?.asset.duration.seconds), "itemSeconds": seconds(player.currentItem?.duration.seconds)]
+                "assetSeconds": seconds(loaded ? asset?.duration.seconds : nil), "itemSeconds": seconds(player.currentItem?.duration.seconds),
+                "headerNormalized": header?["headerNormalized"] ?? false,
+                "containerSeconds": header?["containerSeconds"] ?? NSNull()]
     }
     func discoverySnapshot() -> [String:Any] {
         precondition(Thread.isMainThread)

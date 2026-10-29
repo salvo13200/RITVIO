@@ -1,0 +1,15 @@
+{
+  "schema": 1,
+  "file": "fragmented-timing.m4a",
+  "seconds": 5,
+  "bytes": 42891,
+  "sha256": "842d0f4398332f7d6f429538b21ea31ecbdb4c292e0022742ce579eeca66cf23",
+  "source": "original-generated-440Hz-sine",
+  "license": "CC0-1.0",
+  "purpose": "Deliberately nonzero init durations with empty sample tables and movie fragments",
+  "modifiedMetadata": [
+    "/moov/mvhd",
+    "/moov/trak/tkhd",
+    "/moov/trak/mdia/mdhd"
+  ]
+}

@@ -45,11 +45,13 @@ for(const cancel of [false,true])test(`legacy touch ${cancel?'cancellation':'rel
  const errors=await fixture(page);await page.getByRole('button',{name:'Open player: After the rain'}).first().click();await page.getByRole('button',{name:'Queue',exact:true}).first().click();
  const from=page.getByRole('button',{name:'Reorder: Night swim'}),target=page.getByRole('button',{name:'Reorder: Slow motion'}),source=(await from.boundingBox())!,destination=(await target.boundingBox())!;
  await page.mouse.move(source.x+22,source.y+22);await page.mouse.down();
- await from.evaluate((el,{x,y})=>el.dispatchEvent(new TouchEvent('touchstart',{bubbles:true,changedTouches:[new Touch({identifier:17,target:el,clientX:x,clientY:y})]})),{x:source.x+22,y:source.y+22});
+  // This explicitly tests the legacy fallback payload, not physical touch.
+  // WebKit does not expose a constructible Touch on every supported host.
+  await from.evaluate((el,{x,y})=>{const event=new Event('touchstart',{bubbles:true});Object.defineProperty(event,'changedTouches',{value:[{identifier:17,target:el,clientX:x,clientY:y}]});el.dispatchEvent(event);},{x:source.x+22,y:source.y+22});
  await page.mouse.move(destination.x+22,destination.y+22,{steps:8});
- await from.evaluate(el=>el.dispatchEvent(new TouchEvent('touchend',{bubbles:true,changedTouches:[new Touch({identifier:18,target:el})]})));
+  await from.evaluate(el=>{const event=new Event('touchend',{bubbles:true});Object.defineProperty(event,'changedTouches',{value:[{identifier:18,target:el,clientY:0}]});el.dispatchEvent(event);});
  await expect(page.locator('.ios-queue-list')).toHaveClass(/is-dragging/);
- await from.evaluate((el,{cancel,x,y})=>el.dispatchEvent(new TouchEvent(cancel?'touchcancel':'touchend',{bubbles:true,changedTouches:[new Touch({identifier:17,target:el,clientX:x,clientY:y})]})),{cancel,x:destination.x+22,y:destination.y+22});await page.mouse.up();
+  await from.evaluate((el,{cancel,x,y})=>{const event=new Event(cancel?'touchcancel':'touchend',{bubbles:true});Object.defineProperty(event,'changedTouches',{value:[{identifier:17,target:el,clientX:x,clientY:y}]});el.dispatchEvent(event);},{cancel,x:destination.x+22,y:destination.y+22});await page.mouse.up();
  await expect(page.locator('.ios-queue-list')).not.toHaveClass(/is-dragging/);await expect.poll(()=>page.evaluate(()=>{const s=(window as any).__iosState();return s.items[s.order[1]].title;})).toBe(cancel?'Slow motion':'Night swim');
  expect(await page.evaluate(()=>(window as any).__iosOperations.filter((item:any)=>item.type==='move').length)).toBe(cancel?0:1);expect(errors).toEqual([]);
 });

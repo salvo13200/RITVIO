@@ -209,6 +209,8 @@ enum PlaybackSelfTest {
             report["transport"] = FixtureMediaProtocol.stats()
             try expect(FixtureMediaProtocol.stats()["allowedHeadersForwarded"] as? Bool == true && (FixtureMediaProtocol.stats()["largestRangeBytes"] as? Int ?? Int.max) <= PlaybackResourceLoader.chunkBytes, "TRANSPORT_BOUNDS_FAILED")
             try expect(audio.count > PlaybackResourceLoader.chunkBytes && (FixtureMediaProtocol.stats()["nonzeroRanges"] as? Int ?? 0) > 0, "MULTI_RANGE_NOT_EXERCISED")
+            progress("fragmented-duration")
+            report["fragmentedTiming"] = try await fragmentedTimingChecks(in: directory)
             report["audioSession"] = "playback-category-activated"
             report["status"] = "passed"
         } catch {
@@ -276,6 +278,33 @@ enum PlaybackSelfTest {
         catch let failure as ResolverFailure {if failure.identifier != "RATE_LIMITED" {throw failure}}
         try expect(playing(owner),"SUGGESTIONS_ERROR_STOPPED_AUDIO")
         return ["editionDedup":true,"occurrenceIdentity":true,"legacyState":true,"lateRadioDiscarded":true,"disableProtectsManual":true,"timerRepeatSuspend":true,"cooldown":true]
+    }
+
+    @MainActor private static func fragmentedTimingChecks(in directory: URL) async throws -> [String:Any] {
+        // An original generated tone, injected into the DEBUG simulator's
+        // Documents by the build harness. It is never a Release app resource.
+        let file = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("fragmented-timing.m4a")
+        let bytes = try Data(contentsOf: file)
+        let rawAsset = AVURLAsset(url: file, options: [AVURLAssetPreferPreciseDurationAndTimingKey:true])
+        let rawTime = try await rawAsset.load(.duration)
+        try expect(rawTime.seconds.isFinite && rawTime.seconds > 0, "FRAGMENTED_FIXTURE_INVALID")
+        FixtureMediaProtocol.configure(bytes)
+        let owner = NativePlaybackOwner(storage: directory.appendingPathComponent("fragmented.json"), protocols: [FixtureMediaProtocol.self], systemIntegration: false,
+            resolver: { _,_,reply in reply(.success(["url":"https://fixture.googlevideo.com/audio.m4a","headers":["User-Agent":"RITVIO-native-test"],
+                "expires":Date().timeIntervalSince1970+300,"container":"m4a","codec":"mp4a.40.2","protocol":"https","duration":5])) }, cancelResolve:{_ in})
+        defer { owner.shutdown() }
+        let tracks = (1...2).map { ["videoId":"ritviofrag\($0)","title":"Original fragmented tone","artist":"RITVIO native check","thumbnail":"","duration":5] as [String:Any] }
+        _ = try owner.playTracks(tracks, index:0)
+        try await wait("FRAGMENTED_PLAY_FAILED") { playing(owner) && position(owner) > 0.1 }
+        let timing = owner.diagnosticTiming()
+        guard let actual = timing["itemSeconds"] as? Double else { throw ResolverFailure.code("FRAGMENTED_DURATION_MISSING") }
+        try expect(timing["headerNormalized"] as? Bool == true && abs(actual - 5) < 0.15, "FRAGMENTED_DURATION_INCORRECT")
+        _ = try owner.command("pause"); _ = try owner.command("seek",value:3.5)
+        try await wait("FRAGMENTED_PAUSED_SEEK_FAILED") { !loading(owner) && !playing(owner) && abs(position(owner)-3.5) < 0.15 }
+        _ = try owner.command("play"); _ = try owner.command("seek",value:4.7)
+        try await wait("FRAGMENTED_BOUNDARY_FAILED") { owner.snapshot()["index"] as? Int == 1 && playing(owner) }
+        return ["synthetic":true,"source":"original-generated-440Hz-sine","expectedSeconds":5,
+                "rawAssetSeconds":rawTime.seconds,"normalizedTiming":timing,"pausedSeek":true,"naturalBoundary":true]
     }
 
     private static func expect(_ value: Bool, _ code: String) throws { if !value { throw ResolverFailure.code(code) } }

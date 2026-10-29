@@ -95,6 +95,10 @@ if(buildSimulator){
     }
     if(index===0&&['IOS-3','IOS-4','IOS-5'].includes(version.phase)&&!options.has('--resolver-only')){
      const playbackEvidence=path.join(container,'Documents/playback-evidence.json');
+     const toneFolder=path.join(root,'tests/fixtures/audio'),toneManifest=JSON.parse(await readFile(path.join(toneFolder,'fragmented-timing.json'),'utf8'));
+     const tone=await readFile(path.join(toneFolder,'fragmented-timing.m4a'));
+     if(tone.length!==toneManifest.bytes||createHash('sha256').update(tone).digest('hex')!==toneManifest.sha256)throw Error('Original fragmented tone checksum mismatch');
+     await writeFile(path.join(container,'Documents/fragmented-timing.m4a'),tone);
      await rm(playbackEvidence,{force:true});
      await run('xcrun',['simctl','launch','--terminate-running-process',device.udid,'it.ritvio.ios','--ritvio-playback-check']);
      let playback;

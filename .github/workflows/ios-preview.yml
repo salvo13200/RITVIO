@@ -60,6 +60,8 @@ jobs:
         run: |
           swiftc -swift-version 5 -warnings-as-errors apps/mobile/ios/App/App/ResolverWorker.swift tests/ios_resolver_admission_test.swift -o "$RUNNER_TEMP/ritvio-admission-test"
           "$RUNNER_TEMP/ritvio-admission-test"
+          swiftc -swift-version 5 -warnings-as-errors apps/mobile/ios/App/App/FragmentedMP4Timing.swift tests/ios_mp4_timing_test.swift -o "$RUNNER_TEMP/ritvio-mp4-timing-test"
+          "$RUNNER_TEMP/ritvio-mp4-timing-test"
       - run: pnpm exec playwright install chromium
       - run: pnpm exec playwright test --config tests/config/playwright.ios5.config.ts
       - run: node scripts/prepare-ios-resolver.mjs

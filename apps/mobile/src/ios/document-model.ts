@@ -17,8 +17,10 @@ export function documentSelection(preview:DocumentPreview,selected:ReadonlySet<n
 const reportCodes=new Set(['NONE','OTHER','RATE_LIMITED','PLAYBACK_TIMEOUT','UNSUPPORTED_STREAM','SOURCE_EXPIRED','TRANSPORT_ERROR','SEEK_FAILED','AUDIO_SESSION_UNAVAILABLE','PROVIDER_UNAVAILABLE','PROVIDER_REJECTED','PROVIDER_SIGN_IN_REQUIRED','PROVIDER_TOKEN_REQUIRED','FORMAT_UNAVAILABLE','JS_CHALLENGE_FAILED','BUSY','SUGGESTIONS_UNAVAILABLE','NO_SUGGESTIONS','QUEUE_FULL','PLAYLIST_FILE_INVALID','PLAYLIST_FILE_TOO_LARGE','PLAYLIST_FILE_UNAVAILABLE','PLAYLIST_COVER_INVALID','IMPORT_EXPIRED','LIBRARY_PLAYLIST_LIMIT','LIBRARY_TRACK_LIMIT','LIBRARY_WRITE_FAILED','DOCUMENT_EXPORT_FAILED','DOCUMENT_BUSY','PLAYLIST_CHANGED','PLAYLIST_MISSING','INVALID_IMPORT_SELECTION']);
 function keys(value:Record<string,unknown>,expected:string[]){return Object.keys(value).length===expected.length&&expected.every(key=>Object.hasOwn(value,key));}
 function validTiming(value:unknown){
- if(!record(value)||!keys(value,['codec','precise','catalogSeconds','sourceSeconds','assetSeconds','itemSeconds'])||!['none','other','mp4a.40.2','mp4a.40.5','mp4a.40.29','aac'].includes(String(value.codec))||typeof value.precise!=='boolean')return false;
- return ['catalogSeconds','sourceSeconds','assetSeconds','itemSeconds'].every(key=>value[key]===null||typeof value[key]==='number'&&Number.isFinite(value[key])&&Number(value[key])>=0&&Number(value[key])<=86400);
+ if(!record(value))return false;
+ const header=Object.hasOwn(value,'headerNormalized');
+ if(!keys(value,['codec','precise','catalogSeconds','sourceSeconds','assetSeconds','itemSeconds',...(header?['headerNormalized','containerSeconds']:[])])||typeof value.codec!=='string'||!['none','other','mp4a.40.2','mp4a.40.5','mp4a.40.29','aac'].includes(value.codec)||typeof value.precise!=='boolean'||header&&typeof value.headerNormalized!=='boolean')return false;
+ return ['catalogSeconds','sourceSeconds','assetSeconds','itemSeconds',...(header?['containerSeconds']:[])].every(key=>value[key]===null||typeof value[key]==='number'&&Number.isFinite(value[key])&&Number(value[key])>=0&&Number(value[key])<=86400);
 }
 export function parseReviewedReport(raw:unknown):ReviewedReport{
  if(!record(raw)||!uuid(raw.token)||typeof raw.text!=='string'||raw.text.length>6000)throw Error('REPORT_UNAVAILABLE');

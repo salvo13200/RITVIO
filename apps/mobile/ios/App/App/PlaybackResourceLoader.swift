@@ -20,6 +20,7 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
         }
     }
     static let chunkBytes = 128 * 1024
+    static let initializationBytes = 32 * 1024
     static let maxRequests = 4
     let asset: AVURLAsset
     let codec: String
@@ -31,6 +32,15 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
     private var session: URLSession!
     private var loading: [Int: Loading] = [:]
     private var total: Int64?
+    private var prefix: Data?
+    private let timingLock = NSLock()
+    private var normalizedSeconds: Double?
+    func headerTiming() -> [String:Any] {
+        timingLock.lock(); defer { timingLock.unlock() }
+        let seconds: Any
+        if let value = normalizedSeconds { seconds = (value * 1000).rounded() / 1000 } else { seconds = NSNull() }
+        return ["headerNormalized": normalizedSeconds != nil, "containerSeconds": seconds]
+    }
     private var stopped = false
     var onFailure: ((String) -> Void)?
 
@@ -71,7 +81,7 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
                 item.task?.cancel()
                 if !item.request.isFinished && !item.request.isCancelled { item.request.finishLoading(with: self.error("CANCELLED")) }
             }
-            self.loading.removeAll(); self.session.invalidateAndCancel()
+            self.loading.removeAll(); self.prefix = nil; self.session.invalidateAndCancel()
         }
     }
     func resourceLoader(_ resourceLoader: AVAssetResourceLoader, shouldWaitForLoadingOfRequestedResource request: AVAssetResourceLoadingRequest) -> Bool {
@@ -98,9 +108,20 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
             item.end = min(item.end ?? total, total)
             if item.offset >= (item.end ?? total) { item.request.finishLoading(); return }
         }
+        if let prefix, let data = item.request.dataRequest, item.offset < Int64(prefix.count) {
+            if let info = item.request.contentInformationRequest, let total { info.contentType = UTType.mpeg4Audio.identifier; info.contentLength = total; info.isByteRangeAccessSupported = true }
+            let end = min(item.end ?? Int64(prefix.count), Int64(prefix.count))
+            data.respond(with: prefix.subdata(in: Int(item.offset)..<Int(end)))
+            item.offset = end
+            if item.offset >= min(item.end ?? Int64.max, total ?? Int64.max) { item.request.finishLoading(); return }
+        }
         let informationOnly = item.request.dataRequest == nil
         let amount = informationOnly ? 2 : Int64(Self.chunkBytes)
-        let last = min(item.offset + amount - 1, (item.end ?? Int64.max) - 1)
+        // Inspect the init segment before AVFoundation sees any sample timing.
+        // Keep this bounded prefix in memory and reuse it for later ranges;
+        // even a two-byte first data request needs no additional round trip.
+        let inspecting = !informationOnly && item.offset == 0 && prefix == nil
+        let last = inspecting ? Int64(Self.initializationBytes - 1) : min(item.offset + amount - 1, (item.end ?? Int64.max) - 1)
         item.limit = last
         var request = URLRequest(url: url); request.cachePolicy = .reloadIgnoringLocalCacheData
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
@@ -152,6 +173,14 @@ final class PlaybackResourceLoader: NSObject, AVAssetResourceLoaderDelegate, URL
         guard failure == nil, item.expected > 0, item.bytes.count == item.expected else { fail(item, "TRANSPORT_ERROR"); return }
         if item.offset == 0 && item.bytes.count >= 8 && String(data: item.bytes.subdata(in: 4..<8), encoding: .ascii) != "ftyp" { fail(item, "CONTAINER_MISMATCH"); return }
         if let data = item.request.dataRequest {
+            if item.offset == 0 && item.bytes.count >= 24 {
+                let normalized = FragmentedMP4Timing.normalize(item.bytes)
+                prefix = normalized?.data ?? item.bytes
+                if let normalized {
+                    timingLock.lock(); normalizedSeconds = normalized.containerSeconds; timingLock.unlock()
+                    item.bytes = normalized.data
+                }
+            }
             let available = max(0, (item.end ?? total ?? Int64.max) - item.offset)
             let count = min(item.bytes.count, Int(min(available, Int64(Self.chunkBytes))))
             if count > 0 { data.respond(with: item.bytes.prefix(count)); item.offset += Int64(count) }

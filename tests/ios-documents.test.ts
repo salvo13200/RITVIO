@@ -25,8 +25,8 @@ test('reviewed report accepts only the bounded diagnostic schema, preserving exa
 });
 test('playback timing diagnostics allow bounded numbers and known codecs only',()=>{
  const timing={codec:'mp4a.40.2',precise:true,catalogSeconds:296,sourceSeconds:296,assetSeconds:295.502,itemSeconds:295.502};
- for(const value of [timing,{...timing,codec:'none',catalogSeconds:null,sourceSeconds:null,assetSeconds:null,itemSeconds:null}]){
+ for(const value of [timing,{...timing,codec:'none',catalogSeconds:null,sourceSeconds:null,assetSeconds:null,itemSeconds:null},{...timing,headerNormalized:true,containerSeconds:295.502}]){
   const text=JSON.stringify({...report(),timing:value});assert.equal(parseReviewedReport({token,text}).text,text);
  }
- for(const patch of [{url:'https://private.invalid'},{codec:'private codec or URL'},{itemSeconds:-1},{itemSeconds:86401},{itemSeconds:'296'},{itemSeconds:true},{precise:1}])assert.throws(()=>parseReviewedReport({token,text:JSON.stringify({...report(),timing:{...timing,...patch}})}));
+ for(const patch of [{url:'https://private.invalid'},{codec:'private codec or URL'},{codec:['aac']},{itemSeconds:-1},{itemSeconds:86401},{itemSeconds:'296'},{itemSeconds:true},{precise:1},{headerNormalized:true},{headerNormalized:1,containerSeconds:296},{headerNormalized:true,containerSeconds:'private'}])assert.throws(()=>parseReviewedReport({token,text:JSON.stringify({...report(),timing:{...timing,...patch}})}));
 });
