@@ -7,7 +7,7 @@ import {imageMetadataIssue} from './check-assets.mjs';
 import showcase from './showcase-files.json' with {type:'json'};
 import adoptionMedia from './adoption-media.json' with {type:'json'};
 
-const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','QUALITY_STATUS.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','SCREENSHOTS.md','ADOPTION.md','COMMUNITY.md']);
+const publicDocs=new Set(['BUILDING.md','PUBLISHING.md','RELEASE_NOTES.md','RELEASE_CHECKLIST.md','QUALITY_STATUS.md','API.md','openapi.json','ARCHITECTURE.md','TESTING.md','README.md','FEATURES.md','IOS.md','SCREENSHOTS.md','ADOPTION.md','COMMUNITY.md']);
 const publicMedia=new Set(['README.md','manifest.json','logo.svg','banner.webp','adoption.json','adoption-demo.webm',...showcase.views.map(view=>`${view.name}.webp`),...adoptionMedia.views.map(view=>`${view.name}.webp`)]);
 const rootFiles=new Set(['LICENSE','README.md','README.en.md','README.it.md','CONTRIBUTING.md','SECURITY.md','PRIVACY.md','THIRD_PARTY_NOTICES.md','.gitignore','.gitattributes','.env.example','package.json','pnpm-lock.yaml','pnpm-workspace.yaml','requirements-resolver.txt','tsconfig.json','vite.config.ts']);
 export function isPublicSource(file){

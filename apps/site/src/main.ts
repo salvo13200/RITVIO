@@ -1,4 +1,4 @@
-import {publishedDownloads, releaseDownload, formatDownloadSize, type DownloadRelease} from '../../../packages/releases/catalog';
+import {publishedDownloads, releaseDownload, iosBetaDownload, formatDownloadSize, type DownloadRelease} from '../../../packages/releases/catalog';
 import {releasesEndpoint} from '../../../packages/domain/updates';
 import {parseTrackReference} from '../../../packages/domain/track-sharing';
 import libraryImage from '../../../docs/media/mobile-library.webp';
@@ -34,12 +34,15 @@ const features = [
 
 function recommendPlatform(){
   const agent=navigator.userAgent;
-  const suggested=/Android/i.test(agent)?'android':/Windows NT/i.test(agent)?'windows':null;
+  const appleMobile=/iPhone|iPad|iPod/i.test(agent)||(/Macintosh/i.test(agent)&&navigator.maxTouchPoints>1);
+  const suggested=appleMobile?'ios':/Android/i.test(agent)?'android':/Windows NT/i.test(agent)?'windows':null;
   if(!suggested)return;
   for(const element of document.querySelectorAll<HTMLElement>('[data-platform]')){
     const matches=element.dataset.platform===suggested;
     element.querySelector('.recommended')?.toggleAttribute('hidden',!matches);
     element.querySelector('.download-button')?.classList.toggle('primary',matches);
+    element.classList.toggle('suggested-platform',matches);
+    if(matches&&matchMedia('(max-width: 760px)').matches)element.parentElement?.prepend(element);
   }
 }
 
@@ -79,11 +82,12 @@ tabs.forEach((tab,index)=>{
   });
 });
 
-function applyRelease(platform:'android'|'windows',release:DownloadRelease){
-  document.querySelector<HTMLAnchorElement>(`[data-download=${platform}]`)!.href=release.download;
-  document.querySelector(`[data-version=${platform}]`)!.textContent=`v${release.version}`;
-  document.querySelector(`[data-channel=${platform}]`)!.textContent=release.preview?'Public preview':'Stable release';
-  document.querySelector(`[data-size=${platform}]`)!.textContent=formatDownloadSize(release.bytes);
+function applyRelease(platform:'android'|'windows'|'ios',release:DownloadRelease){
+  for(const link of document.querySelectorAll<HTMLAnchorElement>(`[data-download=${platform}]`))link.href=release.download;
+  const version=document.querySelector(`[data-version=${platform}]`),channel=document.querySelector(`[data-channel=${platform}]`),size=document.querySelector(`[data-size=${platform}]`);
+  if(version)version.textContent=`v${release.version}`;
+  if(channel)channel.textContent=platform==='ios'?'iOS beta':release.preview?'Public preview':'Stable release';
+  if(size)size.textContent=formatDownloadSize(release.bytes);
   for(const link of document.querySelectorAll<HTMLAnchorElement>(`[data-release-link=${platform}]`))link.href=release.url;
   if(platform==='windows'){
     for(const [format,url]of [['zip',release.portableZip],['exe',release.portableExe]]){
@@ -108,10 +112,11 @@ async function refreshReleases(){
     try{while(true){const chunk=await reader.read();if(chunk.done)break;bytes+=chunk.value.length;if(bytes>2_000_000)throw Error('Response too large');chunks.push(chunk.value);}}
     finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
     const data=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){data.set(chunk,offset);offset+=chunk.length;}
-    const body=new TextDecoder().decode(data),android=releaseDownload(body,'android'),windows=releaseDownload(body,'windows');
+    const body=new TextDecoder().decode(data),android=releaseDownload(body,'android'),windows=releaseDownload(body,'windows'),ios=iosBetaDownload(body);
     if(!android||!windows)throw Error('Incomplete release list');
     applyRelease('android',android);applyRelease('windows',windows);
-    status.textContent='Official release list checked just now. Downloads open GitHub.';
+    if(ios)applyRelease('ios',ios);
+    status.textContent=`Official release list checked just now. Downloads open GitHub.${!ios&&publishedDownloads.ios?' iOS beta was not returned; keeping its verified link.':''}`;
   }catch{status.textContent=`Could not check GitHub right now. Keeping the verified links from ${publishedDownloads.verifiedAt}. You can still download or browse all releases.`;}
   finally{refresh.disabled=false;refresh.removeAttribute('aria-busy');}
 }

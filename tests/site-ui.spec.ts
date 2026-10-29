@@ -9,6 +9,8 @@ test('desktop download choices, real images, keyboard gallery and sharing stay a
  await page.goto('/');await settle(page);
  const android=page.getByRole('link',{name:'Download Android APK',exact:true}),windows=page.getByRole('link',{name:'Download Windows installer',exact:true});
  await expect(android).toHaveAttribute('href',publishedDownloads.android.download);await expect(windows).toHaveAttribute('href',publishedDownloads.windows.download);
+ await expect(page.locator('[data-platform=ios] [data-download=ios]')).toHaveAttribute('href',publishedDownloads.ios!.download);
+ await expect(page.locator('[data-channel=ios]')).toHaveText('iOS beta');
  for(const link of [android,windows]){const box=await link.boundingBox();expect(box!.y+box!.height).toBeLessThan(1000);}
  expect(external).toEqual([]);await expect(page.getByRole('button',{name:'Check latest releases'})).toBeVisible();
  const assetLinks=await page.locator('a[href*="/assets/"]').evaluateAll(links=>links.map(a=>(a as HTMLAnchorElement).href));
@@ -54,3 +56,35 @@ test('successful release refresh exposes only the new official packages and trut
  await page.route('https://api.github.com/repos/salvo13200/RITVIO/releases?per_page=30',route=>route.fulfill({json:releases}));await page.goto('/');await page.getByRole('button',{name:'Check latest releases'}).click();await expect(page.getByRole('status')).toContainText('checked just now');await expect(page.locator('[data-channel=android]')).toHaveText('Stable release');await expect(page.locator('[data-channel=windows]')).toHaveText('Stable release');await expect(page.locator('[data-download=windows]')).toHaveAttribute('href',releases[1].assets[0].browser_download_url);await page.getByText('Other Windows formats',{exact:true}).click();await expect(page.locator('[data-portable=zip]')).toBeHidden();
 });
 test.beforeAll(async()=>{await mkdir(output,{recursive:true});});
+
+test('iPhone download is recommended with a short usable signing and renewal tutorial',async({browser})=>{
+ const context=await browser.newContext({viewport:{width:393,height:852},isMobile:true,hasTouch:true,userAgent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1'}),page=await context.newPage();
+ await page.goto('http://127.0.0.1:5180/RITVIO/');await settle(page);
+ await expect(page.locator('.download-choices > article').first()).toHaveAttribute('data-platform','ios');
+ await expect(page.locator('[data-platform=ios] .recommended')).toBeVisible();
+ await expect(page.locator('[data-platform=android] .recommended')).toBeHidden();
+ await expect(page.locator('[data-platform=ios]')).toContainText('Windows PC or Mac required');
+ await page.getByRole('link',{name:'Follow the tutorial',exact:true}).click();
+ await expect(page.getByRole('heading',{name:'Install on iPhone.',exact:true})).toBeInViewport();
+ await expect(page.locator('.ios-steps > li')).toHaveCount(3);
+ await expect(page.locator('.ios-steps')).toContainText('Free Apple-account signatures last 7 days');
+ await expect(page.locator('.ios-steps')).toContainText('Developer Mode');
+ await expect(page.locator('.ios-tutorial-footer')).toContainText('An IPA link alone cannot install');
+ await expect(page.getByRole('link',{name:'Full iOS installation guide'})).toHaveAttribute('href','https://github.com/salvo13200/RITVIO/blob/main/docs/IOS.md');
+ await page.locator('#ios-install').screenshot({path:output+'/ios-tutorial-mobile.png',animations:'disabled'});
+ expect((await new AxeBuilder({page}).analyze()).violations).toEqual([]);
+ await page.setViewportSize({width:320,height:740});await page.evaluate(()=>document.documentElement.style.fontSize='150%');
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await context.close();
+});
+
+test('untrusted iOS refresh cannot change the verified beta or stable downloads',async({page})=>{
+ const snapshot=JSON.parse(await (await import('node:fs/promises')).readFile('packages/releases/published.json','utf8'));
+ const ios=snapshot.releases.find((r:{tag_name:string})=>r.tag_name.startsWith('ios-'));
+ ios.assets[0].browser_download_url='https://example.org/not-the-app.ipa';
+ await page.route('https://api.github.com/repos/salvo13200/RITVIO/releases?per_page=30',route=>route.fulfill({json:snapshot.releases}));
+ await page.goto('/');await page.getByRole('button',{name:'Check latest releases'}).click();
+ await expect(page.getByRole('status')).toContainText('iOS beta was not returned');
+ for(const platform of ['windows','android'] as const)await expect(page.locator(`[data-download=${platform}]`)).toHaveAttribute('href',publishedDownloads[platform].download);
+ for(const link of await page.locator('[data-download=ios]').all())await expect(link).toHaveAttribute('href',publishedDownloads.ios!.download);
+});

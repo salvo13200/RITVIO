@@ -1,6 +1,6 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {publishedDownloads, readPublishedCatalog, releaseDownload} from '../packages/releases/catalog';
+import {publishedDownloads, readPublishedCatalog, releaseDownload, iosBetaDownload} from '../packages/releases/catalog';
 import {downloadTable,syncDownloads} from '../scripts/sync-downloads';
 import {readFile} from 'node:fs/promises';
 import path from 'node:path';
@@ -26,4 +26,33 @@ test('portable links and release targets cannot escape the official repository o
  raw.assets[0].browser_download_url=raw.assets[0].browser_download_url.replace('1.0.0-setup','0.7.5-setup');assert.equal(releaseDownload(JSON.stringify([raw]),'windows'),null);
  assert.throws(()=>readPublishedCatalog({schema:1,verifiedAt:'2026-10-21',releases:[release('1.0.0')]}));
  assert.throws(()=>releaseDownload('{broken','windows'));
+});
+
+function iosRelease(beta=2){
+ const tag=`ios-v0.10.0-beta.${beta}`,name='RITVIO-iOS-0.10.0-beta.ipa';
+ return {draft:false,prerelease:true,tag_name:tag,html_url:`https://github.com/salvo13200/RITVIO/releases/tag/${tag}`,assets:[{name,browser_download_url:`https://github.com/salvo13200/RITVIO/releases/download/${tag}/${name}`,size:15_225_927,state:'uploaded'}]};
+}
+test('iOS beta selection compares beta numbers and stays independent of stable channels',()=>{
+ const body=JSON.stringify([iosRelease(2),iosRelease(10),iosRelease(1),release('1.0.0')]);
+ assert.equal(iosBetaDownload(body)?.version,'0.10.0-beta.10');
+ assert.equal(releaseDownload(body,'windows')?.version,'1.0.0');
+ assert.equal(releaseDownload(body,'android'),null);
+ assert.equal(publishedDownloads.ios?.tag,'ios-v0.10.0-beta.2');
+ assert.equal(publishedDownloads.ios?.preview,true);
+ assert.equal(iosBetaDownload('[]'),null);
+});
+test('iOS beta requires a published official IPA with exact release identity',()=>{
+ for(const mutate of [
+  (r:ReturnType<typeof iosRelease>)=>{r.draft=true;},
+  (r:ReturnType<typeof iosRelease>)=>{r.prerelease=false;},
+  (r:ReturnType<typeof iosRelease>)=>{r.html_url='https://example.org/fake';},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].browser_download_url=r.assets[0].browser_download_url.replace('github.com','example.org');},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].browser_download_url=r.assets[0].browser_download_url.replace('beta.2','beta.1');},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].name='RITVIO-iOS-0.9.0-beta.ipa';},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].state='new';},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].size=0;},
+  (r:ReturnType<typeof iosRelease>)=>{r.assets[0].size=500_000_001;},
+ ]){const r=iosRelease();mutate(r);assert.equal(iosBetaDownload(JSON.stringify([r])),null);}
+ assert.throws(()=>iosBetaDownload('{}'));
+ assert.throws(()=>iosBetaDownload('{broken'));
 });

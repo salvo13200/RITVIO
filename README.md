@@ -2,7 +2,7 @@
 
 # RITVIO
 
-**A free, open-source music player for Windows and Android.** Discover something new, keep a library of your own and make room for the music you love.
+**A free, open-source music player for Windows and Android, with an iOS beta.** Discover something new, keep a library of your own and make room for the music you love.
 
 <p>
   <a href="https://salvo13200.github.io/RITVIO/"><strong>Download RITVIO</strong></a> ·
@@ -16,7 +16,7 @@
 
 [![CI](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml/badge.svg)](https://github.com/salvo13200/RITVIO/actions/workflows/ci.yml) · [GPL-3.0-only](LICENSE) · [English](README.md) / [Italiano](README.it.md)
 
-> **Stable releases:** Windows **1.0.0** · Android **1.4.0**. [Choose your download](https://salvo13200.github.io/RITVIO/) or read the [release notes and known limits](docs/RELEASE_NOTES.md).
+> **Stable releases:** Windows **1.0.0** · Android **1.4.0**. **iOS beta:** **0.10.0 beta 2 (build 15)**, iOS 15+, personal signing required. [iOS installation guide](docs/IOS.md). [Choose your download](https://salvo13200.github.io/RITVIO/) or read the [release notes and known limits](docs/RELEASE_NOTES.md).
 
 ## A look inside
 
@@ -40,13 +40,13 @@
 | --- | --- | --- | --- |
 | Search tracks, artists and albums. Explore global hits, new releases and track radio. | Keep liked tracks, playlists, followed artists/albums and history on your device. | Edit the queue, shuffle/repeat, read lyrics, adjust audio and set a sleep timer. | Export playlist files or turn a track and a lyrics excerpt into a 9:16 image. |
 
-Windows has a full desktop workspace, an immersive player and a mini-player. Android has its own touch interface with native Media3 playback, system media controls and a background service. The apps share core logic while keeping layouts suited to each platform.
+Windows has a full desktop workspace, an immersive player and a mini-player. Android has its own touch interface with native Media3 playback, system media controls and a background service. The apps share core logic while keeping layouts suited to each platform. iOS has its own beta interface and native AVPlayer playback; [its scope and remaining checks](docs/IOS.md#what-was-checked) are documented separately.
 
 English and Italian are available. Choose your language in **Settings → Language** (desktop: Appearance). Music titles and lyrics keep their original language. Spanish, French and German are planned.
 
 Check official updates in Settings; startup checks and preview releases are optional. Read and inspect a report in Help before choosing to copy it or open GitHub. Nothing submits automatically.
 
-See the [feature and platform guide](docs/FEATURES.md). There is currently no offline audio download, cloud account, cross-device library sync or live social collaboration.
+See the [feature and platform guide](docs/FEATURES.md), including the separate [iOS beta scope](docs/IOS.md). There is currently no offline audio download, cloud account, cross-device library sync or live social collaboration.
 
 ## Share a moment
 
@@ -61,7 +61,7 @@ Create a 9:16 track card or choose a consecutive lyrics excerpt. Preview it befo
 
 ## Download
 
-You do **not** need Node.js, Python, an API key or a RITVIO account to use the packaged apps.
+You do **not** need Node.js, Python, an API key or a RITVIO account to use the packaged apps. The **iOS beta requires a Windows PC or Mac, your Apple account and Sideloadly** for personal signing; free-account signatures need renewal every seven days. [Short tutorial](https://salvo13200.github.io/RITVIO/#ios-install) · [Full guide](docs/IOS.md).
 
 <!-- downloads:start -->
 | Platform | Package | Get it |
@@ -70,6 +70,7 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 | Windows 10/11 · x64 | Portable ZIP · extract once | [Download portable ZIP](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.zip) |
 | Windows 10/11 · x64 | Self-extracting portable EXE | [Download portable EXE](https://github.com/salvo13200/RITVIO/releases/download/windows-v1.0.0/RITVIO-1.0.0-portatile.exe) |
 | Android 7.0+ · ARM64 / x86_64 | Signed APK | [Download Android APK](https://github.com/salvo13200/RITVIO/releases/download/android-v1.4.0/RITVIO-Android-1.4.0.apk) |
+| iOS 15+ · beta | IPA · personal signing required | [Download iOS beta IPA](https://github.com/salvo13200/RITVIO/releases/download/ios-v0.10.0-beta.2/RITVIO-iOS-0.10.0-beta.ipa) · [Installation guide](docs/IOS.md) |
 <!-- downloads:end -->
 
 [All release files, source archives and SHA-256 checksums](https://github.com/salvo13200/RITVIO/releases).
@@ -84,9 +85,15 @@ You do **not** need Node.js, Python, an API key or a RITVIO account to use the p
 
 </details>
 
+## iOS beta
+
+RITVIO is also available for **iOS 15+**, currently **0.10.0 beta 2 (build 15)**. It includes search, local library and playlists, native playback/queue, lyrics, music cards, sleep timer and radio. The equalizer and full Android/Windows discovery Home are not included.
+
+This is an IPA for personal signing, not an App Store installation; tapping the download on an iPhone does not install it. Corrective playback/Queue flows passed on two real cloud iPhones, but Bluetooth/calls, VoiceOver, long background sessions and personal signature renewal remain to be verified. [Installation, tested scope and source](docs/IOS.md).
+
 ## Community
 
-[Join the RITVIO Discord](https://discord.gg/hCMwUtWZuM) for app updates, help, feedback and music discoveries. Choose Android, Windows or both when you join.
+[Join the RITVIO Discord](https://discord.gg/hCMwUtWZuM) for app updates, help, feedback and music discoveries. Community platform roles currently cover Android and Windows; iOS beta questions are welcome in support.
 
 For reproducible bugs and feature requests, please use [GitHub Issues](https://github.com/salvo13200/RITVIO/issues) so reports remain easy to track. For security vulnerabilities, follow [SECURITY.md](SECURITY.md).
 
@@ -96,7 +103,7 @@ For reproducible bugs and feature requests, please use [GitHub Issues](https://g
 - **Developing RITVIO:** [build from source](docs/BUILDING.md) · [architecture](docs/ARCHITECTURE.md) · [testing](docs/TESTING.md) · [API](docs/API.md).
 - **Contributing:** [contribution guide](CONTRIBUTING.md) · [issues](https://github.com/salvo13200/RITVIO/issues) · [security reporting](SECURITY.md).
 
-The source uses React, TypeScript, Vite and Zustand; Electron/Fastify/SQLite on Windows; Capacitor and native Media3 on Android. Domain logic and localisation live in `packages/`.
+The source uses React, TypeScript, Vite and Zustand; Electron/Fastify/SQLite on Windows; Capacitor and native Media3 on Android. The iOS beta uses a dedicated native AVPlayer adapter and embedded resolver; its exact source and build guide are linked in the [iOS guide](docs/IOS.md#source-and-feedback). Domain logic and localisation live in `packages/`.
 
 ```powershell
 pnpm install --frozen-lockfile

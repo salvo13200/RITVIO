@@ -22,4 +22,4 @@ body:
     id: platform
     attributes:
       label: Platform
-      options: [Both, Windows, Android]
+      options: [All platforms, Windows, Android, iOS beta]

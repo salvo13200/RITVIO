@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "verifiedAt": "2026-10-21",
+  "verifiedAt": "2026-10-29",
   "releases": [
     {
       "tag_name": "windows-v1.0.0",
@@ -42,6 +42,21 @@
           "digest": "sha256:29a828bab0ad62628f60aefbcac4cad3f928bb945d4faafae7d06837216930fd",
           "name": "RITVIO-Android-1.4.0.apk",
           "size": 52491840,
+          "state": "uploaded"
+        }
+      ]
+    },
+    {
+      "tag_name": "ios-v0.10.0-beta.2",
+      "html_url": "https://github.com/salvo13200/RITVIO/releases/tag/ios-v0.10.0-beta.2",
+      "draft": false,
+      "prerelease": true,
+      "assets": [
+        {
+          "browser_download_url": "https://github.com/salvo13200/RITVIO/releases/download/ios-v0.10.0-beta.2/RITVIO-iOS-0.10.0-beta.ipa",
+          "digest": "sha256:598a3d0be9ac8e2ef30f68a77075c172d91e8f9ff97dd6f27319695d829ea2ad",
+          "name": "RITVIO-iOS-0.10.0-beta.ipa",
+          "size": 15225927,
           "state": "uploaded"
         }
       ]
