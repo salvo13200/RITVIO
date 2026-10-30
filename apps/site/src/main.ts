@@ -123,3 +123,14 @@ async function refreshReleases(){
 recommendPlatform();
 refresh.hidden=false;
 refresh.addEventListener('click',()=>void refreshReleases());
+
+// Measure only the public project page. Local previews and UI tests send no counter requests.
+if(location.protocol==='https:'&&location.hostname==='salvo13200.github.io'){
+  const endpoint=document.body.dataset.goatcounter;
+  if(endpoint==='https://ritvio-insights-a68ff6.goatcounter.com/count'){
+    let referrer='';try{if(document.referrer)referrer=new URL(document.referrer).origin;}catch{}
+    Object.assign(window,{goatcounter:{path:'/RITVIO/',title:'RITVIO',referrer}});
+    const counter=document.createElement('script');counter.async=true;
+    counter.dataset.goatcounter=endpoint;counter.src='https://gc.zgo.at/count.js';document.head.append(counter);
+  }
+}
